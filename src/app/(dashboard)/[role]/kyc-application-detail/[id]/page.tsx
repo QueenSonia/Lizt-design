@@ -517,8 +517,8 @@ function KYCApplicationDetailContent() {
         showTenancyInfo={showTenancyInfo}
         outstandingBalance={appData.outstandingBalance ?? 0}
         creditBalance={appData.creditBalance ?? 0}
-        outstandingBalanceBreakdown={appData.outstandingBalanceBreakdown as any}
-        paymentTransactions={appData.paymentTransactions as any}
+        outstandingBalanceBreakdown={appData.outstandingBalanceBreakdown as unknown[]}
+        paymentTransactions={appData.paymentTransactions as unknown[]}
         onBack={handleBack}
         onAttachTenant={() => setShowAttachTenantModal(true)}
         onDownloadPDF={async () => {

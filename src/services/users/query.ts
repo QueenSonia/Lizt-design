@@ -725,7 +725,7 @@ export function useFetchAllTenantsWithKyc(_params?: UserFilter) {
   });
 }
 
-export function _useFetchAllTenantsWithKyc_REAL(params?: UserFilter) {
+export function useFetchAllTenantsWithKycReal(params?: UserFilter) {
   return useQuery({
     queryKey: ["all-tenants-with-kyc", params],
     queryFn: async () => {

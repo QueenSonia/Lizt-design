@@ -58,7 +58,7 @@ async function handleGet(url: string, params?: Record<string, unknown>) {
     return ok(mockPropertyDetails[id] ?? mockPropertyDetails["prop-1"]);
   }
   if (match(url, /^\/properties\/([^/]+)\/history/)) {
-    const detail = mockPropertyDetails["prop-1"] as any;
+    const detail = mockPropertyDetails["prop-1"] as Record<string, unknown>;
     return ok(detail.history);
   }
   if (match(url, /^\/properties\/([^/]+)\/service-requests/)) {
