@@ -6,4 +6,4 @@ Run the full deployment pipeline for this Next.js project:
 4. Commit with a short descriptive message summarizing what changed (based on the files modified)
 5. Push to `origin main` via SSH
 
-When done, tell the user "Done — check your Vercel site in ~1 minute" and show the commit hash.
+When done, tell the user "Done — check your Vercel site in ~1 minute" and show the commit hash. Also include the live URL: https://lizt-design.vercel.app/

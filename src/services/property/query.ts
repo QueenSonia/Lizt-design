@@ -234,7 +234,7 @@ const MOCK_PROPERTY_DETAIL = {
     paymentCycle: "Annually",
     passportPhoto: undefined,
     renewalStatus: null,
-    outstandingBalance: 0,
+    outstandingBalance: 120000,
   },
   history: [],
   kycApplications: [],

@@ -58,6 +58,8 @@ import { SetRentPriceRangeModal } from "./SetRentPriceRangeModal";
 import { useFetchPropertyDetailsWithHistory } from "@/services/property/query";
 import { getAssignedManager, setAssignedManager, subscribeToFMStore, MOCK_FM_LIST } from "@/lib/facilityManagerStore";
 import { getRecurringCharges, subscribeToRecurringCharges, type RecurringCharge } from "@/lib/recurringChargesStore";
+import { CreatePaymentPlanModal, type ChargeOption } from "./CreatePaymentPlanModal";
+import { PaymentPlansModal } from "./PaymentPlansModal";
 import {
   PropertyDetailWithHistory,
   KYCApplicationSummary,
@@ -177,6 +179,8 @@ export default function LandlordPropertyDetail({
   const [showFMModal, setShowFMModal] = useState(false);
   const [, fmTick] = useState(0); // forces re-render when store updates
   const [, rcTick] = useState(0); // forces re-render when recurring charges change
+  const [showPaymentPlanModal, setShowPaymentPlanModal] = useState(false);
+  const [showPaymentPlansListModal, setShowPaymentPlansListModal] = useState(false);
 
   useEffect(() => {
     return subscribeToFMStore(() => fmTick((n) => n + 1));
@@ -1639,118 +1643,97 @@ export default function LandlordPropertyDetail({
                     </div>
                   </div>
 
-                  {/* Rent & Payment Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8 ml-[28px]">
-                    {/* Rent Amount */}
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        Rent Amount
-                      </label>
-                      <p className="text-gray-900">
-                        {propertyData.rent
-                          ? formatCurrency(propertyData.rent)
-                          : "——"}
+                  {/* Outstanding Balance */}
+                  {(propertyData.currentTenant?.outstandingBalance ?? 0) > 0 && (
+                    <div className="ml-[28px] mb-6">
+                      <p className="text-xs text-gray-400 mb-1">Outstanding Balance</p>
+                      <p className="text-lg font-bold text-red-500">
+                        ₦{propertyData.currentTenant!.outstandingBalance!.toLocaleString()}
                       </p>
                     </div>
+                  )}
 
-                    {/* Service Charge */}
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        Service Charge
-                      </label>
-                      <p className="text-gray-900">
-                        {formatCurrency(propertyData.serviceCharge || 0)}
-                      </p>
-                    </div>
+                  {/* Unified Charges List */}
+                  {(() => {
+                    const FREQ_LABELS: Record<string, string> = {
+                      weekly: "Weekly",
+                      monthly: "Monthly",
+                      quarterly: "Quarterly",
+                      annually: "Annually",
+                    };
+                    const formatNextDue = (iso: string) => {
+                      const d = new Date(iso);
+                      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                    };
+                    const paymentCycle = (propertyData.currentTenant.paymentCycle ?? "").toLowerCase();
+                    const rentDue = propertyData.rentExpiryDate ?? "";
 
-                    {/* Legal Fee */}
-                    {(propertyData.legalFee ?? 0) > 0 && (
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">
-                          Legal Fee
-                        </label>
-                        <p className="text-gray-900">
-                          {formatCurrency(propertyData.legalFee!)}
-                        </p>
+                    // Build unified list
+                    type ChargeEntry =
+                      | { kind: "recurring"; name: string; amount: number; frequency: string; nextDueDate: string }
+                      | { kind: "one-time"; name: string; amount: number; dueDate: string };
+
+                    const entries: ChargeEntry[] = [];
+
+                    if (propertyData.rent) {
+                      entries.push({ kind: "recurring", name: "Rent", amount: propertyData.rent, frequency: paymentCycle, nextDueDate: rentDue });
+                    }
+                    if ((propertyData.serviceCharge ?? 0) > 0) {
+                      entries.push({ kind: "recurring", name: "Service Charge", amount: propertyData.serviceCharge!, frequency: paymentCycle, nextDueDate: rentDue });
+                    }
+                    if ((propertyData.legalFee ?? 0) > 0) {
+                      entries.push({ kind: "one-time", name: "Legal Fee", amount: propertyData.legalFee!, dueDate: rentDue });
+                    }
+                    if ((propertyData.agencyFee ?? 0) > 0) {
+                      entries.push({ kind: "one-time", name: "Agency Fee", amount: propertyData.agencyFee!, dueDate: rentDue });
+                    }
+                    propertyData.additionalFees?.forEach((fee) => {
+                      entries.push({ kind: "one-time", name: fee.name, amount: fee.amount, dueDate: rentDue });
+                    });
+
+                    const recurringCharges: RecurringCharge[] = getRecurringCharges(propertyData.name || "");
+                    recurringCharges.forEach((charge) => {
+                      entries.push({ kind: "recurring", name: charge.feeName, amount: charge.amount, frequency: charge.frequency, nextDueDate: charge.nextDueDate });
+                    });
+
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 my-8 ml-[28px]">
+                        {entries.map((entry, i) => (
+                          <div key={i}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm text-gray-900 font-medium">{entry.name}</span>
+                              <span className="text-sm font-semibold text-gray-900">— ₦{entry.amount.toLocaleString()}</span>
+                            </div>
+                            {entry.kind === "recurring" ? (
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {FREQ_LABELS[entry.frequency] ?? entry.frequency}
+                                {entry.nextDueDate ? ` · Next due: ${formatNextDue(entry.nextDueDate)}` : ""}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                One-time{entry.dueDate ? ` · Due: ${formatNextDue(entry.dueDate)}` : ""}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+
                       </div>
-                    )}
+                    );
+                  })()}
 
-                    {/* Agency Fee */}
-                    {(propertyData.agencyFee ?? 0) > 0 && (
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">
-                          Agency Fee
-                        </label>
-                        <p className="text-gray-900">
-                          {formatCurrency(propertyData.agencyFee!)}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Additional / Custom Fees */}
-                    {propertyData.additionalFees?.map((fee) => (
-                      <div key={fee.name}>
-                        <label className="text-xs text-gray-500 mb-1 block">
-                          {fee.name}
-                        </label>
-                        <p className="text-gray-900">
-                          {formatCurrency(fee.amount)}
-                        </p>
-                      </div>
-                    ))}
-
-                    {/* Payment Frequency */}
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        Payment Frequency
-                      </label>
-                      <p className="text-gray-900">
-                        {propertyData.currentTenant.paymentCycle}
-                      </p>
-                    </div>
-
-                    {/* Rent Start Date */}
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        Rent Start Date
-                      </label>
-                      <div className="flex items-center gap-2 text-gray-900">
-                        <span>
-                          {formatDate(
-                            propertyData.currentTenant.tenancyStartDate,
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Rent Due Date */}
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">
-                        Rent Due Date
-                      </label>
-                      <div className="flex items-center gap-2 text-gray-900">
-                        <span>
-                          {propertyData.rentExpiryDate
-                            ? formatDate(propertyData.rentExpiryDate)
-                            : "——"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Outstanding Balance */}
-                    {(propertyData.currentTenant?.outstandingBalance ?? 0) >
-                      0 && (
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">
-                          Outstanding Balance
-                        </label>
-                        <p className="text-red-600 font-medium">
-                          ₦
-                          {propertyData.currentTenant!.outstandingBalance!.toLocaleString()}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  {/* Payment Plans row */}
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentPlansListModal(true)}
+                    className="flex items-center gap-1 ml-[28px] mb-4 text-left group cursor-pointer"
+                  >
+                    <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">
+                      Payment Plans
+                    </span>
+                    <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
 
                   {/* Billing Summary */}
                   {propertyData.rentExpiryDate &&
@@ -1775,14 +1758,14 @@ export default function LandlordPropertyDetail({
                           <p className="text-sm sm:text-base text-gray-900">
                             The tenant is expected to pay{" "}
                             <span className="font-semibold">{formatCurrency(billingTotal)}</span>
+                            {" "}by {formatDate(propertyData.rentExpiryDate)}
                             <button
                               onClick={() => setShowBillingBreakdown((v) => !v)}
                               className="inline-flex items-center ml-1 text-gray-400 hover:text-gray-600 transition-colors align-middle"
                               aria-label="View billing breakdown"
                             >
                               <Info className="w-4 h-4" />
-                            </button>
-                            {" "}by {formatDate(propertyData.rentExpiryDate)}.
+                            </button>.
                           </p>
                           {showBillingBreakdown && (
                             <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
@@ -1806,44 +1789,6 @@ export default function LandlordPropertyDetail({
                       );
                     })()}
 
-                  {/* Recurring Charges */}
-                  {(() => {
-                    const charges: RecurringCharge[] = getRecurringCharges(propertyData.name || "");
-                    const FREQ_LABELS: Record<RecurringCharge["frequency"], string> = {
-                      weekly: "Weekly",
-                      monthly: "Monthly",
-                      quarterly: "Quarterly",
-                      annually: "Annually",
-                    };
-                    const formatNextDue = (iso: string) => {
-                      const d = new Date(iso);
-                      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-                    };
-                    return (
-                      <div className="pt-3 mt-3 border-t border-gray-100 ml-[28px]">
-                        <p className="text-xs text-gray-400 mb-2">Recurring Charges</p>
-                        {charges.length === 0 ? (
-                          <p className="text-sm text-gray-400 italic">No recurring charges</p>
-                        ) : (
-                          <div className="space-y-3">
-                            {charges.map((charge) => (
-                              <div key={charge.id}>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm text-gray-900 font-medium">{charge.feeName}</span>
-                                  <span className="text-sm font-semibold text-gray-900">
-                                    ₦{charge.amount.toLocaleString()}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                  {FREQ_LABELS[charge.frequency]} · Next due: {formatNextDue(charge.nextDueDate)}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
                 </div>
               )}
 
@@ -2484,6 +2429,38 @@ export default function LandlordPropertyDetail({
               : undefined
           }
           isLoading={isEditingTenancy}
+        />
+      )}
+
+      {/* Payment Plans list modal */}
+      {propertyData?.currentTenant && (
+        <PaymentPlansModal
+          open={showPaymentPlansListModal}
+          onClose={() => setShowPaymentPlansListModal(false)}
+          propertyName={propertyData.name || ""}
+          tenantId={propertyData.currentTenant.id}
+          onCreatePlan={() => setShowPaymentPlanModal(true)}
+        />
+      )}
+
+      {/* Create Payment Plan Modal */}
+      {propertyData?.currentTenant && (
+        <CreatePaymentPlanModal
+          open={showPaymentPlanModal}
+          onClose={() => setShowPaymentPlanModal(false)}
+          propertyName={propertyData.name || ""}
+          tenantId={propertyData.currentTenant.id}
+          charges={(() => {
+            const seen = new Set<string>();
+            return [
+              ...(propertyData.rent ? [{ name: "Rent", amount: propertyData.rent }] : []),
+              ...((propertyData.serviceCharge ?? 0) > 0 ? [{ name: "Service Charge", amount: propertyData.serviceCharge! }] : []),
+              ...((propertyData.legalFee ?? 0) > 0 ? [{ name: "Legal Fee", amount: propertyData.legalFee! }] : []),
+              ...((propertyData.agencyFee ?? 0) > 0 ? [{ name: "Agency Fee", amount: propertyData.agencyFee! }] : []),
+              ...(propertyData.additionalFees?.map((f) => ({ name: f.name, amount: f.amount })) ?? []),
+              ...getRecurringCharges(propertyData.name || "").map((c) => ({ name: c.feeName, amount: c.amount })),
+            ].filter((c) => { if (seen.has(c.name)) return false; seen.add(c.name); return true; });
+          })()}
         />
       )}
 
