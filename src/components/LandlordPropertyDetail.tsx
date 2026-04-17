@@ -1643,6 +1643,24 @@ export default function LandlordPropertyDetail({
                     </div>
                   </div>
 
+                  {/* Tenancy Info */}
+                  <div className="ml-[28px] mb-5 grid grid-cols-2 gap-x-8 gap-y-3">
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Tenancy Type</p>
+                      <p className="text-sm text-gray-900 font-medium">
+                        {propertyData.currentTenant.paymentCycle ?? "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Start Date</p>
+                      <p className="text-sm text-gray-900 font-medium">
+                        {propertyData.currentTenant.tenancyStartDate
+                          ? formatDate(propertyData.currentTenant.tenancyStartDate)
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Outstanding Balance */}
                   {(propertyData.currentTenant?.outstandingBalance ?? 0) > 0 && (
                     <div className="ml-[28px] mb-6">
