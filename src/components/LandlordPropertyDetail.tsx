@@ -59,6 +59,7 @@ import { useFetchPropertyDetailsWithHistory } from "@/services/property/query";
 import { getAssignedManager, setAssignedManager, subscribeToFMStore, MOCK_FM_LIST } from "@/lib/facilityManagerStore";
 import { getRecurringCharges, subscribeToRecurringCharges, type RecurringCharge } from "@/lib/recurringChargesStore";
 import { CreatePaymentPlanModal, type ChargeOption } from "./CreatePaymentPlanModal";
+import { PlanScopePickerModal, type PlanScope } from "./PlanScopePickerModal";
 import { PaymentPlansModal } from "./PaymentPlansModal";
 import {
   PropertyDetailWithHistory,
@@ -179,7 +180,9 @@ export default function LandlordPropertyDetail({
   const [showFMModal, setShowFMModal] = useState(false);
   const [, fmTick] = useState(0); // forces re-render when store updates
   const [, rcTick] = useState(0); // forces re-render when recurring charges change
+  const [showScopePicker, setShowScopePicker] = useState(false);
   const [showPaymentPlanModal, setShowPaymentPlanModal] = useState(false);
+  const [paymentPlanScope, setPaymentPlanScope] = useState<PlanScope>("tenancy");
   const [showPaymentPlansListModal, setShowPaymentPlansListModal] = useState(false);
 
   useEffect(() => {
@@ -1652,7 +1655,7 @@ export default function LandlordPropertyDetail({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Start Date</p>
+                      <p className="text-xs text-gray-400 mb-0.5">Tenancy Start Date</p>
                       <p className="text-sm text-gray-900 font-medium">
                         {propertyData.currentTenant.tenancyStartDate
                           ? formatDate(propertyData.currentTenant.tenancyStartDate)
@@ -2457,17 +2460,33 @@ export default function LandlordPropertyDetail({
           onClose={() => setShowPaymentPlansListModal(false)}
           propertyName={propertyData.name || ""}
           tenantId={propertyData.currentTenant.id}
-          onCreatePlan={() => setShowPaymentPlanModal(true)}
+          onCreatePlan={() => setShowScopePicker(true)}
         />
       )}
 
-      {/* Create Payment Plan Modal */}
+      {/* Step 1 — Scope Picker */}
+      <PlanScopePickerModal
+        open={showScopePicker}
+        onClose={() => setShowScopePicker(false)}
+        onSelect={(scope) => {
+          setPaymentPlanScope(scope);
+          setShowScopePicker(false);
+          setShowPaymentPlanModal(true);
+        }}
+      />
+
+      {/* Step 2 — Create Payment Plan Modal */}
       {propertyData?.currentTenant && (
         <CreatePaymentPlanModal
           open={showPaymentPlanModal}
           onClose={() => setShowPaymentPlanModal(false)}
+          onBack={() => {
+            setShowPaymentPlanModal(false);
+            setShowScopePicker(true);
+          }}
           propertyName={propertyData.name || ""}
           tenantId={propertyData.currentTenant.id}
+          scope={paymentPlanScope}
           charges={(() => {
             const seen = new Set<string>();
             return [

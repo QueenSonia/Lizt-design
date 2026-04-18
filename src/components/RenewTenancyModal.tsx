@@ -374,7 +374,7 @@ export function RenewTenancyModal({
           {/* Start Date - Read-only */}
           <div className="space-y-2">
             <Label htmlFor="startDate" className="text-gray-700">
-              Start Date
+              Tenancy Start Date
             </Label>
             <Input
               id="startDate"

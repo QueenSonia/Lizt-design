@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, AlertCircle, ChevronLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { addPaymentPlan } from "@/lib/paymentPlanStore";
+import type { PlanScope } from "./PlanScopePickerModal";
 
 export interface ChargeOption {
   name: string;
@@ -38,9 +39,11 @@ type Frequency = "weekly" | "monthly" | "quarterly" | "annually";
 interface Props {
   open: boolean;
   onClose: () => void;
+  onBack: () => void;
   propertyName: string;
   tenantId: string;
   charges: ChargeOption[];
+  scope: PlanScope;
 }
 
 function generateId() {
@@ -88,9 +91,11 @@ const FREQ_LABELS: Record<Frequency, string> = {
 export function CreatePaymentPlanModal({
   open,
   onClose,
+  onBack,
   propertyName,
   tenantId,
   charges,
+  scope,
 }: Props) {
   const [selectedCharge, setSelectedCharge] = useState<string>("");
   const [planType, setPlanType] = useState<"equal" | "custom">("equal");
@@ -100,12 +105,27 @@ export function CreatePaymentPlanModal({
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
 
-  const charge = charges.find((c) => c.name === selectedCharge) ?? null;
-  const total = charge?.amount ?? 0;
+  const tenancyTotal = charges.reduce((sum, c) => sum + c.amount, 0);
+  const chargeObj = charges.find((c) => c.name === selectedCharge) ?? null;
+  const total = scope === "tenancy" ? tenancyTotal : (chargeObj?.amount ?? 0);
+  const isReady = scope === "tenancy" ? true : !!chargeObj;
+
+  // Reset when modal opens with a new scope
+  useEffect(() => {
+    if (open) {
+      setSelectedCharge("");
+      setPlanType("equal");
+      setNumInstallments("2");
+      setFrequency("monthly");
+      setStartDate("");
+      setInstallments([]);
+      setErrors([]);
+    }
+  }, [open, scope]);
 
   // Re-generate equal schedule whenever relevant inputs change
   useEffect(() => {
-    if (planType !== "equal" || !charge) return;
+    if (planType !== "equal" || !isReady || total === 0) return;
     const n = Math.max(1, parseInt(numInstallments) || 1);
     const base = Math.floor(total / n);
     const remainder = total - base * n;
@@ -118,7 +138,7 @@ export function CreatePaymentPlanModal({
       }))
     );
     setErrors([]);
-  }, [planType, selectedCharge, numInstallments, frequency, startDate]);
+  }, [planType, scope, selectedCharge, numInstallments, frequency, startDate]);
 
   // Seed one row for custom when switching to it
   useEffect(() => {
@@ -145,7 +165,7 @@ export function CreatePaymentPlanModal({
 
   function validate(): string[] {
     const errs: string[] = [];
-    if (!selectedCharge) errs.push("Please select a charge.");
+    if (scope === "charge" && !selectedCharge) errs.push("Please select a charge.");
     if (planType === "equal" && !startDate) errs.push("Please select a start date.");
     if (installments.length === 0) errs.push("Add at least one installment.");
     installments.forEach((row, i) => {
@@ -157,7 +177,7 @@ export function CreatePaymentPlanModal({
       const sum = installments.reduce((acc, r) => acc + parseCurrency(r.amount), 0);
       if (Math.abs(sum - total) > 1) {
         errs.push(
-          `Installment total (${formatCurrency(sum)}) must equal the charge amount (${formatCurrency(total)}).`
+          `Installment total (${formatCurrency(sum)}) must equal the ${scope === "tenancy" ? "tenancy total" : "charge amount"} (${formatCurrency(total)}).`
         );
       }
     }
@@ -173,7 +193,7 @@ export function CreatePaymentPlanModal({
     addPaymentPlan({
       propertyName,
       tenantId,
-      chargeName: selectedCharge,
+      chargeName: scope === "tenancy" ? "Entire Tenancy" : selectedCharge,
       totalAmount: total,
       planType,
       installments: installments.map((row) => ({
@@ -200,49 +220,71 @@ export function CreatePaymentPlanModal({
   const installmentSum = installments.reduce((acc, r) => acc + parseCurrency(r.amount), 0);
   const remaining = total - installmentSum;
 
+  const scopeLabel = scope === "tenancy" ? "Entire Tenancy" : "Specific Charge";
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Payment Plan</DialogTitle>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-gray-400 hover:text-gray-600 transition-colors -ml-1 p-1 rounded"
+              aria-label="Back"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <DialogTitle>Create Payment Plan</DialogTitle>
+              <p className="text-xs text-gray-400 mt-0.5">{scopeLabel}</p>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Charge selector */}
-          <div className="space-y-1.5">
-            <Label>Charge</Label>
-            <Select
-              value={selectedCharge}
-              onValueChange={(v) => {
-                setSelectedCharge(v);
-                setErrors([]);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a charge" />
-              </SelectTrigger>
-              <SelectContent>
-                {charges.map((c) => (
-                  <SelectItem key={c.name} value={c.name}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Charge selector — only for Specific Charge */}
+          {scope === "charge" && (
+            <div className="space-y-1.5">
+              <Label>Charge</Label>
+              <Select
+                value={selectedCharge}
+                onValueChange={(v) => {
+                  setSelectedCharge(v);
+                  setErrors([]);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a charge" />
+                </SelectTrigger>
+                <SelectContent>
+                  {charges.map((c) => (
+                    <SelectItem key={c.name} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Total amount (read-only) */}
-          {charge && (
+          {isReady && total > 0 && (
             <div className="space-y-1.5">
               <Label>Total Amount</Label>
               <div className="px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700 font-medium">
                 {formatCurrency(total)}
+                {scope === "tenancy" && charges.length > 1 && (
+                  <span className="ml-2 text-xs text-gray-400 font-normal">
+                    ({charges.map((c) => c.name).join(" + ")})
+                  </span>
+                )}
               </div>
             </div>
           )}
 
           {/* Plan type toggle */}
-          {charge && (
+          {isReady && total > 0 && (
             <div className="space-y-1.5">
               <Label>Plan Type</Label>
               <div className="flex gap-2">
@@ -265,7 +307,7 @@ export function CreatePaymentPlanModal({
           )}
 
           {/* Equal split controls */}
-          {charge && planType === "equal" && (
+          {isReady && total > 0 && planType === "equal" && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Number of Installments</Label>
@@ -307,7 +349,7 @@ export function CreatePaymentPlanModal({
           )}
 
           {/* Installment schedule */}
-          {charge && installments.length > 0 && (
+          {isReady && total > 0 && installments.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Installment Schedule</Label>
@@ -377,7 +419,7 @@ export function CreatePaymentPlanModal({
                   }`}
                 >
                   {Math.abs(remaining) <= 1
-                    ? "Total matches charge amount ✓"
+                    ? "Total matches amount ✓"
                     : `Remaining: ${formatCurrency(Math.abs(remaining))} ${remaining > 0 ? "unallocated" : "over"}`}
                 </div>
               )}
@@ -403,7 +445,7 @@ export function CreatePaymentPlanModal({
           </Button>
           <Button
             onClick={handleCreate}
-            disabled={!selectedCharge}
+            disabled={scope === "charge" ? !selectedCharge : false}
             className="bg-[#FF5000] hover:bg-[#e04600] text-white"
           >
             Create Plan
