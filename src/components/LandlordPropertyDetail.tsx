@@ -60,7 +60,6 @@ import { getAssignedManager, setAssignedManager, subscribeToFMStore, MOCK_FM_LIS
 import { getRecurringCharges, subscribeToRecurringCharges, type RecurringCharge } from "@/lib/recurringChargesStore";
 import { CreatePaymentPlanModal, type ChargeOption } from "./CreatePaymentPlanModal";
 import { PlanScopePickerModal, type PlanScope } from "./PlanScopePickerModal";
-import { PaymentPlansModal } from "./PaymentPlansModal";
 import {
   PropertyDetailWithHistory,
   KYCApplicationSummary,
@@ -183,7 +182,6 @@ export default function LandlordPropertyDetail({
   const [showScopePicker, setShowScopePicker] = useState(false);
   const [showPaymentPlanModal, setShowPaymentPlanModal] = useState(false);
   const [paymentPlanScope, setPaymentPlanScope] = useState<PlanScope>("tenancy");
-  const [showPaymentPlansListModal, setShowPaymentPlansListModal] = useState(false);
 
   useEffect(() => {
     return subscribeToFMStore(() => fmTick((n) => n + 1));
@@ -1745,7 +1743,23 @@ export default function LandlordPropertyDetail({
                   {/* Payment Plans row */}
                   <button
                     type="button"
-                    onClick={() => setShowPaymentPlansListModal(true)}
+                    onClick={() => {
+                      const seen = new Set<string>();
+                      const charges = [
+                        ...(propertyData.rent ? [{ name: "Rent", amount: propertyData.rent }] : []),
+                        ...((propertyData.serviceCharge ?? 0) > 0 ? [{ name: "Service Charge", amount: propertyData.serviceCharge! }] : []),
+                        ...((propertyData.legalFee ?? 0) > 0 ? [{ name: "Legal Fee", amount: propertyData.legalFee! }] : []),
+                        ...((propertyData.agencyFee ?? 0) > 0 ? [{ name: "Agency Fee", amount: propertyData.agencyFee! }] : []),
+                        ...(propertyData.additionalFees?.map((f) => ({ name: f.name, amount: f.amount })) ?? []),
+                        ...getRecurringCharges(propertyData.name || "").map((c) => ({ name: c.feeName, amount: c.amount })),
+                      ].filter((c) => { if (seen.has(c.name)) return false; seen.add(c.name); return true; });
+                      const params = new URLSearchParams({
+                        property: propertyData?.name || "",
+                        tenant: propertyData?.currentTenant?.id || "",
+                        charges: JSON.stringify(charges),
+                      });
+                      router.push(`/landlord/payment-plans?${params.toString()}`);
+                    }}
                     className="flex items-center gap-1 ml-[28px] mb-4 text-left group cursor-pointer"
                   >
                     <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">
@@ -2450,17 +2464,6 @@ export default function LandlordPropertyDetail({
               : undefined
           }
           isLoading={isEditingTenancy}
-        />
-      )}
-
-      {/* Payment Plans list modal */}
-      {propertyData?.currentTenant && (
-        <PaymentPlansModal
-          open={showPaymentPlansListModal}
-          onClose={() => setShowPaymentPlansListModal(false)}
-          propertyName={propertyData.name || ""}
-          tenantId={propertyData.currentTenant.id}
-          onCreatePlan={() => setShowScopePicker(true)}
         />
       )}
 

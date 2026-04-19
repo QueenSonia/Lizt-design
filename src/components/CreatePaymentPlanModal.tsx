@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, AlertCircle, ChevronLeft } from "lucide-react";
 import {
   Dialog,
@@ -61,24 +61,27 @@ function formatCurrency(n: number): string {
 function addPeriod(base: Date, frequency: Frequency, count: number): Date {
   const d = new Date(base);
   switch (frequency) {
-    case "weekly":
-      d.setDate(d.getDate() + count * 7);
-      break;
-    case "monthly":
-      d.setMonth(d.getMonth() + count);
-      break;
-    case "quarterly":
-      d.setMonth(d.getMonth() + count * 3);
-      break;
-    case "annually":
-      d.setFullYear(d.getFullYear() + count);
-      break;
+    case "weekly":  d.setDate(d.getDate() + count * 7); break;
+    case "monthly": d.setMonth(d.getMonth() + count); break;
+    case "quarterly": d.setMonth(d.getMonth() + count * 3); break;
+    case "annually": d.setFullYear(d.getFullYear() + count); break;
   }
   return d;
 }
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+function buildEqualInstallments(total: number, n: number, frequency: Frequency, startDate: string): Installment[] {
+  const base = Math.floor(total / n);
+  const remainder = total - base * n;
+  const origin = startDate ? new Date(startDate + "T00:00:00") : new Date();
+  return Array.from({ length: n }, (_, i) => ({
+    id: generateId(),
+    amount: String(i === n - 1 ? base + remainder : base),
+    dueDate: toISODate(addPeriod(origin, frequency, i)),
+  }));
 }
 
 const FREQ_LABELS: Record<Frequency, string> = {
@@ -108,39 +111,44 @@ export function CreatePaymentPlanModal({
   const tenancyTotal = charges.reduce((sum, c) => sum + c.amount, 0);
   const chargeObj = charges.find((c) => c.name === selectedCharge) ?? null;
   const total = scope === "tenancy" ? tenancyTotal : (chargeObj?.amount ?? 0);
-  const isReady = scope === "tenancy" ? true : !!chargeObj;
+  const isReady = scope === "tenancy" ? total > 0 : !!chargeObj;
 
-  // Reset when modal opens with a new scope
-  useEffect(() => {
-    if (open) {
-      setSelectedCharge("");
-      setPlanType("equal");
-      setNumInstallments("2");
-      setFrequency("monthly");
-      setStartDate("");
-      setInstallments([]);
-      setErrors([]);
-    }
-  }, [open, scope]);
+  // Track previous open state to detect open transition
+  const prevOpenRef = useRef(false);
 
-  // Re-generate equal schedule whenever relevant inputs change
+  // When modal opens, reset everything and seed schedule
+  if (open && !prevOpenRef.current) {
+    prevOpenRef.current = true;
+    // Synchronously initialize state for this open
+  }
+  if (!open && prevOpenRef.current) {
+    prevOpenRef.current = false;
+  }
+
+  // Reset on open
   useEffect(() => {
-    if (planType !== "equal" || !isReady || total === 0) return;
-    const n = Math.max(1, parseInt(numInstallments) || 1);
-    const base = Math.floor(total / n);
-    const remainder = total - base * n;
-    const origin = startDate ? new Date(startDate + "T00:00:00") : new Date();
-    setInstallments(
-      Array.from({ length: n }, (_, i) => ({
-        id: generateId(),
-        amount: String(i === n - 1 ? base + remainder : base),
-        dueDate: toISODate(addPeriod(origin, frequency, i)),
-      }))
-    );
+    if (!open) return;
+    setSelectedCharge("");
+    setPlanType("equal");
+    setNumInstallments("2");
+    setFrequency("monthly");
+    setStartDate("");
     setErrors([]);
-  }, [planType, scope, selectedCharge, numInstallments, frequency, startDate]);
+    setInstallments([]);
+  }, [open]);
 
-  // Seed one row for custom when switching to it
+  // Regenerate equal schedule whenever inputs that affect it change
+  // For tenancy: total is known immediately. For charge: waits until chargeObj is set.
+  useEffect(() => {
+    if (!open) return;
+    if (planType !== "equal") return;
+    if (total <= 0) return;
+    const n = Math.max(1, parseInt(numInstallments) || 1);
+    setInstallments(buildEqualInstallments(total, n, frequency, startDate));
+    setErrors([]);
+  }, [open, total, planType, numInstallments, frequency, startDate]);
+
+  // Seed one blank row when switching to custom
   useEffect(() => {
     if (planType === "custom") {
       setInstallments([{ id: generateId(), amount: "", dueDate: "" }]);
@@ -149,9 +157,7 @@ export function CreatePaymentPlanModal({
   }, [planType]);
 
   function updateInstallment(id: string, field: "amount" | "dueDate", value: string) {
-    setInstallments((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
-    );
+    setInstallments((prev) => prev.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
     setErrors([]);
   }
 
@@ -186,10 +192,7 @@ export function CreatePaymentPlanModal({
 
   function handleCreate() {
     const errs = validate();
-    if (errs.length > 0) {
-      setErrors(errs);
-      return;
-    }
+    if (errs.length > 0) { setErrors(errs); return; }
     addPaymentPlan({
       propertyName,
       tenantId,
@@ -219,7 +222,6 @@ export function CreatePaymentPlanModal({
 
   const installmentSum = installments.reduce((acc, r) => acc + parseCurrency(r.amount), 0);
   const remaining = total - installmentSum;
-
   const scopeLabel = scope === "tenancy" ? "Entire Tenancy" : "Specific Charge";
 
   return (
@@ -243,33 +245,33 @@ export function CreatePaymentPlanModal({
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Charge selector — only for Specific Charge */}
+
+          {/* Charge selector — Specific Charge only */}
           {scope === "charge" && (
             <div className="space-y-1.5">
               <Label>Charge</Label>
-              <Select
-                value={selectedCharge}
-                onValueChange={(v) => {
-                  setSelectedCharge(v);
-                  setErrors([]);
-                }}
-              >
+              <Select value={selectedCharge} onValueChange={(v) => { setSelectedCharge(v); setErrors([]); }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a charge" />
                 </SelectTrigger>
                 <SelectContent>
                   {charges.map((c) => (
-                    <SelectItem key={c.name} value={c.name}>
-                      {c.name}
-                    </SelectItem>
+                    <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           )}
 
-          {/* Total amount (read-only) */}
-          {isReady && total > 0 && (
+          {/* No charges warning */}
+          {scope === "tenancy" && tenancyTotal === 0 && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+              No charge data available for this property. Go back to the property page and try again.
+            </div>
+          )}
+
+          {/* Total amount */}
+          {isReady && (
             <div className="space-y-1.5">
               <Label>Total Amount</Label>
               <div className="px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700 font-medium">
@@ -284,7 +286,7 @@ export function CreatePaymentPlanModal({
           )}
 
           {/* Plan type toggle */}
-          {isReady && total > 0 && (
+          {isReady && (
             <div className="space-y-1.5">
               <Label>Plan Type</Label>
               <div className="flex gap-2">
@@ -307,7 +309,7 @@ export function CreatePaymentPlanModal({
           )}
 
           {/* Equal split controls */}
-          {isReady && total > 0 && planType === "equal" && (
+          {isReady && planType === "equal" && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Number of Installments</Label>
@@ -321,18 +323,11 @@ export function CreatePaymentPlanModal({
               </div>
               <div className="space-y-1.5">
                 <Label>Frequency</Label>
-                <Select
-                  value={frequency}
-                  onValueChange={(v) => setFrequency(v as Frequency)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(Object.keys(FREQ_LABELS) as Frequency[]).map((f) => (
-                      <SelectItem key={f} value={f}>
-                        {FREQ_LABELS[f]}
-                      </SelectItem>
+                      <SelectItem key={f} value={f}>{FREQ_LABELS[f]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -349,7 +344,7 @@ export function CreatePaymentPlanModal({
           )}
 
           {/* Installment schedule */}
-          {isReady && total > 0 && installments.length > 0 && (
+          {isReady && installments.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Installment Schedule</Label>
@@ -364,14 +359,11 @@ export function CreatePaymentPlanModal({
                   </button>
                 )}
               </div>
-
-              {/* Header row */}
               <div className="grid grid-cols-[1fr_1fr_auto] gap-2 text-xs text-gray-400 px-1">
                 <span>Amount</span>
                 <span>Due Date</span>
                 <span />
               </div>
-
               <div className="space-y-2">
                 {installments.map((row) => (
                   <div key={row.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
@@ -391,17 +383,10 @@ export function CreatePaymentPlanModal({
                       value={row.dueDate}
                       readOnly={planType === "equal"}
                       className={planType === "equal" ? "bg-gray-50" : ""}
-                      onChange={(e) =>
-                        planType === "custom" &&
-                        updateInstallment(row.id, "dueDate", e.target.value)
-                      }
+                      onChange={(e) => planType === "custom" && updateInstallment(row.id, "dueDate", e.target.value)}
                     />
                     {planType === "custom" && installments.length > 1 ? (
-                      <button
-                        type="button"
-                        onClick={() => removeRow(row.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                      >
+                      <button type="button" onClick={() => removeRow(row.id)} className="text-gray-400 hover:text-red-500 transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     ) : (
@@ -410,14 +395,8 @@ export function CreatePaymentPlanModal({
                   </div>
                 ))}
               </div>
-
-              {/* Running total for custom */}
               {planType === "custom" && total > 0 && (
-                <div
-                  className={`text-xs mt-1 ${
-                    Math.abs(remaining) <= 1 ? "text-green-600" : "text-orange-500"
-                  }`}
-                >
+                <div className={`text-xs mt-1 ${Math.abs(remaining) <= 1 ? "text-green-600" : "text-orange-500"}`}>
                   {Math.abs(remaining) <= 1
                     ? "Total matches amount ✓"
                     : `Remaining: ${formatCurrency(Math.abs(remaining))} ${remaining > 0 ? "unallocated" : "over"}`}
@@ -440,12 +419,10 @@ export function CreatePaymentPlanModal({
         </div>
 
         <DialogFooter className="gap-2 pt-2">
-          <Button variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={handleClose}>Cancel</Button>
           <Button
             onClick={handleCreate}
-            disabled={scope === "charge" ? !selectedCharge : false}
+            disabled={scope === "charge" ? !selectedCharge : !isReady}
             className="bg-[#FF5000] hover:bg-[#e04600] text-white"
           >
             Create Plan

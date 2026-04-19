@@ -39,6 +39,21 @@ const _plans: PaymentPlan[] = [
     ],
   },
   {
+    id: "pp-seed-003",
+    propertyName: "Lekki Phase 1 Duplex",
+    tenantId: "t-001",
+    chargeName: "Entire Tenancy",
+    totalAmount: 2510000,
+    planType: "equal",
+    createdAt: "2027-05-01T00:00:00.000Z",
+    installments: [
+      { id: "pi-003-1", amount: 627500, dueDate: "2027-06-01", status: "paid" },
+      { id: "pi-003-2", amount: 627500, dueDate: "2027-07-01", status: "pending" },
+      { id: "pi-003-3", amount: 627500, dueDate: "2027-08-01", status: "pending" },
+      { id: "pi-003-4", amount: 627500, dueDate: "2027-09-01", status: "pending" },
+    ],
+  },
+  {
     id: "pp-seed-002",
     propertyName: "Lekki Phase 1 Duplex",
     tenantId: "t-001",
