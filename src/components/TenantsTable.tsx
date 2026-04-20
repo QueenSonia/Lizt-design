@@ -16,6 +16,7 @@ const mockTenants = [
     avatar: 'https://images.unsplash.com/photo-1494790108755-2616b9ba05a9?w=100',
     property: 'Block B, Apt 2B',
     rent: 800000,
+    outstandingBalance: 0,
     rentExpiryDate: new Date('2025-08-01'),
     status: 'active',
     paymentStatus: 'paid',
@@ -29,6 +30,7 @@ const mockTenants = [
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
     property: 'Block A, Apt 7A',
     rent: 1200000,
+    outstandingBalance: 1200000,
     rentExpiryDate: new Date('2025-12-15'),
     status: 'active',
     paymentStatus: 'overdue',
@@ -42,6 +44,7 @@ const mockTenants = [
     avatar: null,
     property: 'Block C, Apt 12C',
     rent: 950000,
+    outstandingBalance: 950000,
     rentExpiryDate: new Date('2024-06-30'),
     status: 'expired',
     paymentStatus: 'paid',
@@ -55,6 +58,7 @@ const mockTenants = [
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
     property: 'Garden Heights - Unit 5B',
     rent: 750000,
+    outstandingBalance: 0,
     rentExpiryDate: new Date('2025-09-20'),
     status: 'active',
     paymentStatus: 'paid',
@@ -68,6 +72,7 @@ const mockTenants = [
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
     property: 'Sunset Towers - Unit 8A',
     rent: 850000,
+    outstandingBalance: 425000,
     rentExpiryDate: new Date('2025-11-10'),
     status: 'active',
     paymentStatus: 'pending',
@@ -81,6 +86,7 @@ const mockTenants = [
     avatar: null,
     property: 'Ocean View Apartments - Unit 3C',
     rent: 1100000,
+    outstandingBalance: 0,
     rentExpiryDate: new Date('2025-07-25'),
     status: 'active',
     paymentStatus: 'paid',
@@ -94,6 +100,7 @@ const mockTenants = [
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
     property: 'City Center Complex - Unit 6A',
     rent: 980000,
+    outstandingBalance: 0,
     rentExpiryDate: new Date('2025-10-05'),
     status: 'active',
     paymentStatus: 'paid',
@@ -276,6 +283,9 @@ export function TenantsTable({
               </SortButton>
             </TableHead>
             <TableHead className="py-4 px-6">
+              Outstanding Balance
+            </TableHead>
+            <TableHead className="py-4 px-6">
               Status
             </TableHead>
             <TableHead className="py-4 px-6">
@@ -321,6 +331,18 @@ export function TenantsTable({
                 <span className="text-sm font-medium text-gray-900">
                   {formatCurrency(tenant.rent)}
                 </span>
+              </TableCell>
+              <TableCell className="py-4 px-6">
+                {tenant.outstandingBalance > 0 ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onTenantClick(tenant.id.toString()); }}
+                    className="text-sm font-semibold text-red-600 hover:text-red-700 hover:underline transition-colors"
+                  >
+                    {formatCurrency(tenant.outstandingBalance)}
+                  </button>
+                ) : (
+                  <span className="text-sm text-gray-400">—</span>
+                )}
               </TableCell>
               <TableCell className="py-4 px-6">
                 {getStatusBadge(tenant.status)}

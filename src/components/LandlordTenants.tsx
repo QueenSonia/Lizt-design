@@ -540,7 +540,7 @@ export default function LandlordTenants({
               {/* Desktop Table */}
               <div className="hidden lg:block space-y-3">
                 <div className="grid grid-cols-12 gap-4 px-6 pb-2">
-                  <div className="col-span-4">
+                  <div className="col-span-3">
                     <button
                       onClick={() => handleSort("name")}
                       className={`flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors ${
@@ -552,7 +552,7 @@ export default function LandlordTenants({
                       Name
                     </button>
                   </div>
-                  <div className="col-span-4">
+                  <div className="col-span-3">
                     <button
                       onClick={() => handleSort("property")}
                       className={`flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors ${
@@ -575,6 +575,11 @@ export default function LandlordTenants({
                     >
                       Rent Amount
                     </button>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">
+                      Outstanding Balance
+                    </span>
                   </div>
                   <div className="col-span-2">
                     <button
@@ -604,13 +609,13 @@ export default function LandlordTenants({
                       "
                     >
                       <div className="grid grid-cols-12 gap-4 p-6 items-center">
-                        <div className="col-span-4 flex items-center gap-2">
+                        <div className="col-span-3 flex items-center gap-2">
                           <h3 className="text-sm text-gray-900 font-medium">
                             {tenant.name}
                           </h3>
                         </div>
 
-                        <div className="col-span-4">
+                        <div className="col-span-3">
                           <span className="text-sm text-gray-900">
                             {tenant.status === "Active" ? tenant.property : "—"}
                           </span>
@@ -620,6 +625,16 @@ export default function LandlordTenants({
                           <span className="text-sm text-gray-900">
                             {tenant.rent ? formatCurrency(tenant.rent) : "—"}
                           </span>
+                        </div>
+
+                        <div className="col-span-2">
+                          {tenant.outstandingBalance > 0 ? (
+                            <span className="text-sm font-semibold text-red-600">
+                              {formatCurrency(tenant.outstandingBalance)}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
                         </div>
 
                         <div className="col-span-2">
@@ -672,7 +687,7 @@ export default function LandlordTenants({
                                 : "—"}
                             </p>
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-3 gap-3">
                             <div>
                               <p className="text-gray-500 text-xs mb-1">
                                 Rent Amount
@@ -682,6 +697,18 @@ export default function LandlordTenants({
                                   ? formatCurrency(tenant.rent)
                                   : "—"}
                               </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 text-xs mb-1">
+                                Outstanding Balance
+                              </p>
+                              {tenant.outstandingBalance > 0 ? (
+                                <p className="text-sm font-semibold text-red-600">
+                                  {formatCurrency(tenant.outstandingBalance)}
+                                </p>
+                              ) : (
+                                <p className="text-gray-400">—</p>
+                              )}
                             </div>
                             <div>
                               <p className="text-gray-500 text-xs mb-1">
