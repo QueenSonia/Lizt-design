@@ -1878,12 +1878,12 @@ export default function LandlordPropertyDetail({
                             </div>
                           </div>
 
-                          {/* RIGHT — summary card */}
+                          {/* RIGHT — invoice summary card */}
                           <div className="sm:w-[220px] border border-gray-200 rounded-xl bg-white p-5 flex flex-col gap-4">
                             <div>
-                              <p className="text-2xl font-bold text-gray-900">{formatCurrency(nextPaymentAmount)}</p>
+                              <p className="text-2xl font-bold text-gray-900">{formatCurrency(breakdownTotal)}</p>
                               {rentDue && (
-                                <p className="text-sm text-gray-500 mt-1">Next payment due {nextDueLabel}</p>
+                                <p className="text-sm text-gray-500 mt-1">Next invoice is due {nextDueLabel}</p>
                               )}
                             </div>
                             <button
@@ -1891,7 +1891,7 @@ export default function LandlordPropertyDetail({
                               onClick={() => setShowBillingBreakdown(v => !v)}
                               className="w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                             >
-                              {showBillingBreakdown ? "Hide breakdown" : "View full breakdown"}
+                              View all invoices
                             </button>
                           </div>
                         </div>
