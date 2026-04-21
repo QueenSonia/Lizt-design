@@ -131,13 +131,13 @@ function InvoicesTab() {
   return (
     <div className="py-4">
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-8 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[220px]">Due Date</th>
-              <th className="text-left px-8 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
-              <th className="text-left px-8 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[150px]">Status</th>
-              <th className="text-left px-8 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[180px]">Invoice Total</th>
+              <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[200px]">Due Date</th>
+              <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[260px]">Description</th>
+              <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[160px]">Status</th>
+              <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[180px]">Invoice Total</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -147,19 +147,19 @@ function InvoicesTab() {
                 className="hover:bg-gray-50 transition-colors cursor-pointer"
                 onClick={() => {}}
               >
-                <td className="px-8 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
-                <td className="px-8 py-4">
+                <td className="px-10 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
+                <td className="px-10 py-4">
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-gray-400 shrink-0" />
                     <span className="text-sm text-gray-900">{inv.description}</span>
                   </div>
                 </td>
-                <td className="px-8 py-4">
+                <td className="px-10 py-4">
                   <Badge className={`text-xs rounded-full px-2.5 py-0.5 font-medium ${STATUS_STYLES[inv.status]}`}>
                     {inv.status === "upcoming" ? "Upcoming" : inv.status === "paid" ? "Paid" : "Overdue"}
                   </Badge>
                 </td>
-                <td className="px-8 py-4">
+                <td className="px-10 py-4">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900">
                       {inv.total !== null ? formatCurrency(inv.total) : "—"}
