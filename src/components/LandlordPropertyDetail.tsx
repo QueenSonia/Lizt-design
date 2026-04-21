@@ -1921,7 +1921,14 @@ export default function LandlordPropertyDetail({
                             </div>
                             <button
                               type="button"
-                              onClick={() => setShowBillingBreakdown(v => !v)}
+                              onClick={() => {
+                                const params = new URLSearchParams({
+                                  property: propertyData?.name || "",
+                                  tenant: propertyData?.currentTenant?.name || "",
+                                  tab: "invoices",
+                                });
+                                router.push(`/landlord/invoices?${params.toString()}`);
+                              }}
                               className="w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                             >
                               View all invoices
