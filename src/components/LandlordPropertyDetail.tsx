@@ -1817,7 +1817,7 @@ export default function LandlordPropertyDetail({
 
                     return (
                       <div className="pt-4 mt-2 border-t border-gray-100 ml-[28px]">
-                        <div className="max-w-xl">
+                        <div className="w-[90%]">
                         {/* Billing header */}
                         <div className="flex items-baseline gap-1.5 mb-1">
                           <p className="text-xl font-bold text-gray-900">Billing</p>
