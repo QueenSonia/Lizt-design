@@ -1818,15 +1818,18 @@ export default function LandlordPropertyDetail({
                     return (
                       <div className="pt-4 mt-2 border-t border-gray-100 ml-[28px]">
                         {/* Billing header */}
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-base font-semibold text-gray-900">Billing</p>
-                          <button
-                            type="button"
-                            onClick={() => setEditTenancyMode("next-period")}
-                            className="text-xs font-medium text-[#FF5000] hover:underline transition-colors"
-                          >
-                            Edit
-                          </button>
+                        <div className="flex items-end justify-between mb-1">
+                          <p className="text-xl font-bold text-gray-900">Billing</p>
+                          <div className="flex items-center gap-1 text-xs text-gray-400 pb-0.5">
+                            <span>·</span>
+                            <button
+                              type="button"
+                              onClick={() => setEditTenancyMode("next-period")}
+                              className="font-medium text-[#FF5000] hover:underline transition-colors"
+                            >
+                              Edit
+                            </button>
+                          </div>
                         </div>
                         <p className="text-sm text-gray-900 mb-4">
                           The tenant is expected to pay{" "}
@@ -1841,7 +1844,7 @@ export default function LandlordPropertyDetail({
                           <div className="flex-1 border border-gray-200 rounded-xl overflow-hidden bg-white">
                             <div className="divide-y divide-gray-100">
                               {billingGroups.map((group) => {
-                                const isOpen = expandedChargeGroups[group.key] !== false;
+                                const isOpen = expandedChargeGroups[group.key] === true;
                                 return (
                                   <div key={group.key}>
                                     <button
@@ -1853,10 +1856,10 @@ export default function LandlordPropertyDetail({
                                       {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                                     </button>
                                     {isOpen && (
-                                      <div className="px-5 pb-4 space-y-3">
+                                      <div className="px-4 pb-3 space-y-2">
                                         {group.items.map((item, ii) => (
-                                          <div key={ii} className="flex items-start justify-between">
-                                            <div>
+                                          <div key={ii} className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
                                               <span className="text-sm text-gray-700">{item.name}</span>
                                               {item.dueDate && (
                                                 <p className="text-xs text-gray-400 mt-0.5">
@@ -1864,7 +1867,7 @@ export default function LandlordPropertyDetail({
                                                 </p>
                                               )}
                                             </div>
-                                            <span className="text-sm font-medium text-gray-900 ml-4 shrink-0">₦{item.amount.toLocaleString()}</span>
+                                            <span className="text-sm font-medium text-gray-900 shrink-0">₦{item.amount.toLocaleString()}</span>
                                           </div>
                                         ))}
                                       </div>
