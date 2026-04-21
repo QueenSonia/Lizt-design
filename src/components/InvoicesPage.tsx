@@ -134,10 +134,10 @@ function InvoicesTab() {
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[180px]">Due Date</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[120px]">Status</th>
-              <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[160px]">Invoice Total</th>
+              <th className="text-left px-8 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[220px]">Due Date</th>
+              <th className="text-left px-8 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
+              <th className="text-left px-8 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[150px]">Status</th>
+              <th className="text-left px-8 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[180px]">Invoice Total</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -147,20 +147,20 @@ function InvoicesTab() {
                 className="hover:bg-gray-50 transition-colors cursor-pointer"
                 onClick={() => {}}
               >
-                <td className="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
-                <td className="px-5 py-4">
+                <td className="px-8 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
+                <td className="px-8 py-4">
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-gray-400 shrink-0" />
                     <span className="text-sm text-gray-900">{inv.description}</span>
                   </div>
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-8 py-4">
                   <Badge className={`text-xs rounded-full px-2.5 py-0.5 font-medium ${STATUS_STYLES[inv.status]}`}>
                     {inv.status === "upcoming" ? "Upcoming" : inv.status === "paid" ? "Paid" : "Overdue"}
                   </Badge>
                 </td>
-                <td className="px-5 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
+                <td className="px-8 py-4">
+                  <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900">
                       {inv.total !== null ? formatCurrency(inv.total) : "—"}
                     </span>
@@ -190,7 +190,7 @@ export default function InvoicesPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-4xl px-4 sm:px-6 h-14 flex items-center gap-3">
+        <div className="max-w-5xl px-4 sm:px-6 h-14 flex items-center gap-3">
           <button
             type="button"
             onClick={() => router.back()}
@@ -205,7 +205,7 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl px-4 sm:px-6 py-4">
+      <div className="max-w-5xl px-4 sm:px-6 py-4">
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200 mb-2">
           {(["overview", "invoices"] as const).map(tab => (
