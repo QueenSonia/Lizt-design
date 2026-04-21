@@ -1881,7 +1881,8 @@ export default function LandlordPropertyDetail({
                           {/* RIGHT — invoice summary card */}
                           <div className="sm:w-[220px] border border-gray-200 rounded-xl bg-white p-5 flex flex-col gap-4">
                             <div>
-                              <p className="text-2xl font-bold text-gray-900">{formatCurrency(breakdownTotal)}</p>
+                              <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
+                              <p className="text-2xl font-bold text-gray-900">₦600,000</p>
                               {rentDue && (
                                 <p className="text-sm text-gray-500 mt-1">Next invoice is due {nextDueLabel}</p>
                               )}
