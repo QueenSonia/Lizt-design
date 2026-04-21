@@ -138,6 +138,7 @@ function InvoicesTab() {
               <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[260px]">Description</th>
               <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[160px]">Status</th>
               <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[180px]">Invoice Total</th>
+              <th className="w-10 pr-4" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -159,13 +160,11 @@ function InvoicesTab() {
                     {inv.status === "upcoming" ? "Upcoming" : inv.status === "paid" ? "Paid" : "Overdue"}
                   </Badge>
                 </td>
-                <td className="px-10 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">
-                      {inv.total !== null ? formatCurrency(inv.total) : "—"}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
+                <td className="px-10 py-4 text-sm font-medium text-gray-900">
+                  {inv.total !== null ? formatCurrency(inv.total) : "—"}
+                </td>
+                <td className="pr-4 text-right w-10">
+                  <ChevronRight className="w-4 h-4 text-gray-400 inline" />
                 </td>
               </tr>
             ))}
