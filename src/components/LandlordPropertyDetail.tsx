@@ -1818,9 +1818,9 @@ export default function LandlordPropertyDetail({
                     return (
                       <div className="pt-4 mt-2 border-t border-gray-100 ml-[28px]">
                         {/* Billing header */}
-                        <div className="flex items-end justify-between mb-1">
+                        <div className="flex items-baseline gap-1.5 mb-1">
                           <p className="text-xl font-bold text-gray-900">Billing</p>
-                          <div className="flex items-center gap-1 text-xs text-gray-400 pb-0.5">
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
                             <span>·</span>
                             <button
                               type="button"
@@ -1841,7 +1841,7 @@ export default function LandlordPropertyDetail({
                         <div className="flex flex-col sm:flex-row gap-4 items-start mb-4">
 
                           {/* LEFT — collapsible charge groups */}
-                          <div className="flex-1 max-w-xs border border-gray-200 rounded-xl overflow-hidden bg-white">
+                          <div className="flex-1 max-w-sm border border-gray-200 rounded-xl overflow-hidden bg-white">
                             <div className="divide-y divide-gray-100">
                               {billingGroups.map((group) => {
                                 const isOpen = expandedChargeGroups[group.key] === true;
