@@ -131,39 +131,46 @@ function InvoicesTab() {
   return (
     <div className="py-4">
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {/* Table header */}
-        <div className="grid grid-cols-[1fr_1.5fr_auto_auto] gap-4 px-5 py-3 border-b border-gray-100 bg-gray-50">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Due Date</span>
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</span>
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</span>
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Invoice Total</span>
-        </div>
-
-        {/* Rows */}
-        <div className="divide-y divide-gray-100">
-          {MOCK_INVOICES.map(inv => (
-            <button
-              key={inv.id}
-              type="button"
-              className="w-full grid grid-cols-[1fr_1.5fr_auto_auto] gap-4 px-5 py-4 text-left hover:bg-gray-50 transition-colors items-center"
-            >
-              <span className="text-sm text-gray-700">{formatDate(inv.dueDate)}</span>
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                <span className="text-sm text-gray-900">{inv.description}</span>
-              </div>
-              <Badge className={`text-xs rounded-full px-2.5 py-0.5 font-medium capitalize ${STATUS_STYLES[inv.status]}`}>
-                {inv.status === "upcoming" ? "Upcoming" : inv.status === "paid" ? "Paid" : "Overdue"}
-              </Badge>
-              <div className="flex items-center justify-end gap-2">
-                <span className="text-sm font-medium text-gray-900">
-                  {inv.total !== null ? formatCurrency(inv.total) : "—"}
-                </span>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </div>
-            </button>
-          ))}
-        </div>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[180px]">Due Date</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[120px]">Status</th>
+              <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-[160px]">Invoice Total</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {MOCK_INVOICES.map(inv => (
+              <tr
+                key={inv.id}
+                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => {}}
+              >
+                <td className="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                    <span className="text-sm text-gray-900">{inv.description}</span>
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  <Badge className={`text-xs rounded-full px-2.5 py-0.5 font-medium ${STATUS_STYLES[inv.status]}`}>
+                    {inv.status === "upcoming" ? "Upcoming" : inv.status === "paid" ? "Paid" : "Overdue"}
+                  </Badge>
+                </td>
+                <td className="px-5 py-4 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {inv.total !== null ? formatCurrency(inv.total) : "—"}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
