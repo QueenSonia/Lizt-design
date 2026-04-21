@@ -1680,7 +1680,6 @@ export default function LandlordPropertyDetail({
                     const paymentCycle = (propertyData.currentTenant.paymentCycle ?? "annually").toLowerCase();
                     const rentDue = propertyData.rentExpiryDate ?? "";
 
-                    // Build charge items with frequency
                     type ChargeItem = { name: string; amount: number; frequency: string };
                     const allCharges: ChargeItem[] = [];
 
@@ -1704,30 +1703,27 @@ export default function LandlordPropertyDetail({
                       allCharges.push({ name: charge.feeName, amount: charge.amount, frequency: charge.frequency });
                     });
 
-                    // Group by frequency label for display
                     const annualGroup = allCharges.filter(c => ["annually", "annual", "yearly"].includes(c.frequency));
                     const monthlyGroup = allCharges.filter(c => c.frequency === "monthly");
                     const quarterlyGroup = allCharges.filter(c => c.frequency === "quarterly");
                     const weeklyGroup = allCharges.filter(c => c.frequency === "weekly");
                     const oneTimeGroup = allCharges.filter(c => c.frequency === "one-time");
 
-                    const groups: { key: string; label: string; items: ChargeItem[] }[] = [
-                      { key: "annual", label: "Annual Charges", items: annualGroup },
-                      { key: "monthly", label: "Monthly Charges", items: monthlyGroup },
-                      { key: "quarterly", label: "Quarterly Charges", items: quarterlyGroup },
-                      { key: "weekly", label: "Weekly Charges", items: weeklyGroup },
-                      { key: "one-time", label: "One-time Charges", items: oneTimeGroup },
+                    const groups: { label: string; items: ChargeItem[] }[] = [
+                      { label: "Annual Charges", items: annualGroup },
+                      { label: "Monthly Charges", items: monthlyGroup },
+                      { label: "Quarterly Charges", items: quarterlyGroup },
+                      { label: "Weekly Charges", items: weeklyGroup },
+                      { label: "One-time Charges", items: oneTimeGroup },
                     ].filter(g => g.items.length > 0);
 
                     const annualTotal = annualGroup.reduce((s, c) => s + c.amount, 0);
                     const monthlyTotal = monthlyGroup.reduce((s, c) => s + c.amount, 0);
-                    // For "next payment", use the dominant recurring cycle
                     const nextPaymentAmount = annualTotal > 0 ? annualTotal : monthlyTotal > 0 ? monthlyTotal : allCharges.reduce((s, c) => s + c.amount, 0);
                     const nextDueLabel = rentDue
-                      ? new Date(rentDue).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                      ? new Date(rentDue).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
                       : "—";
 
-                    // Build charges param for payment plans nav
                     const seen = new Set<string>();
                     const chargesParam = allCharges.filter(c => {
                       if (seen.has(c.name)) return false;
@@ -1735,55 +1731,68 @@ export default function LandlordPropertyDetail({
                       return true;
                     }).map(c => ({ name: c.name, amount: c.amount }));
 
+                    const billingTotal = allCharges.reduce((s, c) => s + c.amount, 0);
+
                     return (
-                      <div className="mt-6 mb-6 ml-[28px] flex flex-col sm:flex-row gap-4">
-                        {/* Left card — charge groups */}
-                        <div className="flex-1 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                          {groups.map((group, gi) => {
-                            const groupTotal = group.items.reduce((s, c) => s + c.amount, 0);
-                            const isExpanded = expandedChargeGroups[group.key] !== false;
-                            return (
-                              <div key={group.key} className={gi > 0 ? "border-t border-gray-200" : ""}>
+                      <div className="mt-6 mb-6 ml-[28px] flex flex-col sm:flex-row gap-4 items-start">
+
+                        {/* LEFT — main billing card */}
+                        <div className="flex-1 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                          {/* Card header */}
+                          <div className="px-5 py-4 border-b border-gray-100">
+                            <p className="text-sm font-semibold text-gray-900">
+                              The tenant is expected to pay{" "}
+                              <span className="text-[#FF5000]">{formatCurrency(nextPaymentAmount)}</span>
+                              {rentDue ? ` by ${nextDueLabel}` : ""}
+                            </p>
+                            {propertyData.currentTenant.paymentCycle && (
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                Renews {nextDueLabel}
+                                {" · "}
                                 <button
                                   type="button"
-                                  onClick={() => setExpandedChargeGroups(prev => ({ ...prev, [group.key]: !isExpanded }))}
-                                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-100 transition-colors"
+                                  onClick={() => setEditTenancyMode("next-period")}
+                                  className="text-[#FF5000] hover:underline"
                                 >
-                                  <span className="text-sm font-medium text-gray-900">{group.label}</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-gray-900">{formatCurrency(groupTotal)}</span>
-                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                  </div>
+                                  Edit
                                 </button>
-                                {isExpanded && (
-                                  <div className="px-4 pb-3 space-y-2">
-                                    {group.items.map((item, ii) => (
-                                      <div key={ii} className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">{item.name}</span>
-                                        <span className="text-sm text-gray-900">₦{item.amount.toLocaleString()}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Charge sections — plain labels, no buttons */}
+                          <div className="divide-y divide-gray-100">
+                            {groups.map((group) => (
+                              <div key={group.label} className="px-5 py-4">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                                  {group.label}
+                                </p>
+                                <div className="space-y-2">
+                                  {group.items.map((item, ii) => (
+                                    <div key={ii} className="flex items-center justify-between">
+                                      <span className="text-sm text-gray-700">{item.name}</span>
+                                      <span className="text-sm font-medium text-gray-900">₦{item.amount.toLocaleString()}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            );
-                          })}
+                            ))}
+                          </div>
                         </div>
 
-                        {/* Right card — next payment summary */}
-                        <div className="sm:w-[200px] bg-gray-50 rounded-xl border border-gray-200 p-4 flex flex-col justify-between gap-4">
+                        {/* RIGHT — summary card */}
+                        <div className="sm:w-[220px] border border-gray-200 rounded-xl bg-white p-5 flex flex-col gap-4">
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">Next Payment</p>
-                            <p className="text-xl font-bold text-gray-900">{formatCurrency(nextPaymentAmount)}</p>
+                            <p className="text-2xl font-bold text-gray-900">{formatCurrency(nextPaymentAmount)}</p>
                             {rentDue && (
-                              <p className="text-xs text-gray-500 mt-1">Due {nextDueLabel}</p>
+                              <p className="text-sm text-gray-500 mt-1">Next payment due {nextDueLabel}</p>
                             )}
                           </div>
                           <div className="space-y-2">
                             <button
                               type="button"
                               onClick={() => setShowBillingBreakdown(v => !v)}
-                              className="w-full text-center text-xs font-medium text-[#FF5000] hover:underline transition-colors"
+                              className="w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                             >
                               {showBillingBreakdown ? "Hide breakdown" : "View full breakdown"}
                             </button>
@@ -1797,9 +1806,9 @@ export default function LandlordPropertyDetail({
                                 });
                                 router.push(`/landlord/payment-plans?${params.toString()}`);
                               }}
-                              className="w-full text-center text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                              className="w-full text-sm text-gray-500 hover:text-gray-700 py-1 transition-colors"
                             >
-                              Payment Plans
+                              Payment Plans →
                             </button>
                           </div>
                         </div>
@@ -1807,33 +1816,32 @@ export default function LandlordPropertyDetail({
                     );
                   })()}
 
-                  {/* Billing breakdown panel (toggled from right card) */}
-                  {showBillingBreakdown && propertyData.rentExpiryDate &&
-                    (propertyData.pendingRenewalInvoice || propertyData.rent) && (() => {
-                      const recurringRent = propertyData.pendingRenewalInvoice?.rentAmount ?? propertyData.rent ?? 0;
-                      const recurringServiceCharge = propertyData.pendingRenewalInvoice?.serviceCharge ?? propertyData.serviceCharge ?? 0;
-                      const billingTotal = propertyData.pendingRenewalInvoice
-                        ? propertyData.pendingRenewalInvoice.totalAmount
-                        : recurringRent + recurringServiceCharge;
-                      return (
-                        <div className="mx-[28px] mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
-                          <div className="flex justify-between text-gray-700">
-                            <span>Rent</span>
-                            <span className="font-medium">{formatCurrency(recurringRent)}</span>
-                          </div>
-                          {recurringServiceCharge > 0 && (
-                            <div className="flex justify-between text-gray-700">
-                              <span>Service Charge</span>
-                              <span className="font-medium">{formatCurrency(recurringServiceCharge)}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1.5">
-                            <span>Total</span>
-                            <span>{formatCurrency(billingTotal)}</span>
-                          </div>
+                  {/* Billing breakdown panel */}
+                  {showBillingBreakdown && propertyData.rent && (() => {
+                    const recurringRent = propertyData.pendingRenewalInvoice?.rentAmount ?? propertyData.rent ?? 0;
+                    const recurringServiceCharge = propertyData.pendingRenewalInvoice?.serviceCharge ?? propertyData.serviceCharge ?? 0;
+                    const billingTotal = propertyData.pendingRenewalInvoice
+                      ? propertyData.pendingRenewalInvoice.totalAmount
+                      : recurringRent + recurringServiceCharge;
+                    return (
+                      <div className="mx-[28px] mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
+                        <div className="flex justify-between text-gray-700">
+                          <span>Rent</span>
+                          <span className="font-medium">{formatCurrency(recurringRent)}</span>
                         </div>
-                      );
-                    })()}
+                        {recurringServiceCharge > 0 && (
+                          <div className="flex justify-between text-gray-700">
+                            <span>Service Charge</span>
+                            <span className="font-medium">{formatCurrency(recurringServiceCharge)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1.5">
+                          <span>Total</span>
+                          <span>{formatCurrency(billingTotal)}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                 </div>
               )}
