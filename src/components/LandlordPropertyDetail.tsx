@@ -1841,7 +1841,7 @@ export default function LandlordPropertyDetail({
                         <div className="flex flex-col sm:flex-row gap-4 items-start mb-4">
 
                           {/* LEFT — collapsible charge groups */}
-                          <div className="flex-1 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                          <div className="flex-1 max-w-xs border border-gray-200 rounded-xl overflow-hidden bg-white">
                             <div className="divide-y divide-gray-100">
                               {billingGroups.map((group) => {
                                 const isOpen = expandedChargeGroups[group.key] === true;
