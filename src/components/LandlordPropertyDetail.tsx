@@ -1831,7 +1831,7 @@ export default function LandlordPropertyDetail({
                             </button>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-900 mb-4">
+                        <p className="text-sm text-gray-900 mb-2">
                           The tenant is expected to pay{" "}
                           <span className="font-semibold">{formatCurrency(nextPaymentAmount)}</span>
                           {" "}by {nextDueLabel}
@@ -1844,6 +1844,26 @@ export default function LandlordPropertyDetail({
                             <Info className="w-4 h-4" />
                           </button>.
                         </p>
+
+                        {/* Breakdown panel — anchored below summary sentence */}
+                        {showBillingBreakdown && (
+                          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
+                            <div className="flex justify-between text-gray-700">
+                              <span>Rent</span>
+                              <span className="font-medium">{formatCurrency(recurringRent)}</span>
+                            </div>
+                            {recurringServiceCharge > 0 && (
+                              <div className="flex justify-between text-gray-700">
+                                <span>Service Charge</span>
+                                <span className="font-medium">{formatCurrency(recurringServiceCharge)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1.5">
+                              <span>Total</span>
+                              <span>{formatCurrency(breakdownTotal)}</span>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Two-card layout */}
                         <div className="flex flex-col sm:flex-row gap-4 items-start mb-4">
@@ -1905,25 +1925,6 @@ export default function LandlordPropertyDetail({
                           </div>
                         </div>
 
-                        {/* Breakdown panel */}
-                        {showBillingBreakdown && (
-                          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
-                            <div className="flex justify-between text-gray-700">
-                              <span>Rent</span>
-                              <span className="font-medium">{formatCurrency(recurringRent)}</span>
-                            </div>
-                            {recurringServiceCharge > 0 && (
-                              <div className="flex justify-between text-gray-700">
-                                <span>Service Charge</span>
-                                <span className="font-medium">{formatCurrency(recurringServiceCharge)}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1.5">
-                              <span>Total</span>
-                              <span>{formatCurrency(breakdownTotal)}</span>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })()}
