@@ -1846,23 +1846,26 @@ export default function LandlordPropertyDetail({
                           </button>.
                         </p>
 
-                        {/* Breakdown panel — anchored below summary sentence */}
+                        {/* Breakdown panel — same width as left charges card */}
                         {showBillingBreakdown && (
-                          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
-                            <div className="flex justify-between text-gray-700">
-                              <span>Rent</span>
-                              <span className="font-medium">{formatCurrency(recurringRent)}</span>
-                            </div>
-                            {recurringServiceCharge > 0 && (
+                          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                            <div className="flex-1 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
                               <div className="flex justify-between text-gray-700">
-                                <span>Service Charge</span>
-                                <span className="font-medium">{formatCurrency(recurringServiceCharge)}</span>
+                                <span>Rent</span>
+                                <span className="font-medium">{formatCurrency(recurringRent)}</span>
                               </div>
-                            )}
-                            <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1.5">
-                              <span>Total</span>
-                              <span>{formatCurrency(breakdownTotal)}</span>
+                              {recurringServiceCharge > 0 && (
+                                <div className="flex justify-between text-gray-700">
+                                  <span>Service Charge</span>
+                                  <span className="font-medium">{formatCurrency(recurringServiceCharge)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1.5">
+                                <span>Total</span>
+                                <span>{formatCurrency(breakdownTotal)}</span>
+                              </div>
                             </div>
+                            <div className="hidden sm:block sm:w-[220px] shrink-0" />
                           </div>
                         )}
 
