@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ChevronRight, FileText, X } from "lucide-react";
+import { ArrowLeft, ChevronRight, FileText, X, Download } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 
@@ -93,9 +93,127 @@ function formatCurrency(n: number) {
   return `₦${n.toLocaleString()}`;
 }
 
+// ── Invoice Preview Modal ─────────────────────────────────────────────────────
+
+function InvoicePreviewModal({
+  invoice,
+  propertyName,
+  tenantName,
+  onClose,
+}: {
+  invoice: Invoice;
+  propertyName: string;
+  tenantName: string;
+  onClose: () => void;
+}) {
+  const lineTotal = invoice.lines.reduce((s, l) => s + l.amount, 0);
+  const displayTotal = invoice.total ?? lineTotal;
+  const invoiceNumber = `INV-${invoice.id.replace("inv-", "").padStart(4, "0")}`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Modal toolbar */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <p className="text-sm font-semibold text-gray-900">Invoice Preview</p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Invoice document */}
+        <div className="overflow-y-auto flex-1 px-8 py-8 space-y-8">
+          {/* Invoice header */}
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-2xl font-bold text-gray-900">Invoice</p>
+              <p className="text-sm text-gray-400 mt-1">{invoiceNumber}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400">Issue Date</p>
+              <p className="text-sm font-medium text-gray-900 mt-0.5">{formatDate(invoice.dueDate)}</p>
+            </div>
+          </div>
+
+          {/* From / To */}
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">From</p>
+              <p className="text-sm font-medium text-gray-900">Landlord</p>
+              <p className="text-sm text-gray-500 mt-0.5">{propertyName || "Property Management"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Billed To</p>
+              <p className="text-sm font-medium text-gray-900">{tenantName || "Tenant"}</p>
+              <p className="text-sm text-gray-500 mt-0.5">{propertyName}</p>
+            </div>
+          </div>
+
+          {/* Due date */}
+          <div className="flex items-center justify-between py-3 border-t border-b border-gray-100">
+            <p className="text-sm text-gray-500">Due Date</p>
+            <p className="text-sm font-medium text-gray-900">{formatDate(invoice.dueDate)}</p>
+          </div>
+
+          {/* Line items */}
+          <div>
+            <div className="grid grid-cols-[1fr_auto] gap-4 pb-2 border-b border-gray-200">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Description</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Amount</p>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {invoice.lines.map((line, i) => (
+                <div key={i} className="grid grid-cols-[1fr_auto] gap-4 py-3">
+                  <p className="text-sm text-gray-700">{line.name}</p>
+                  <p className="text-sm text-gray-900 text-right">{formatCurrency(line.amount)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Total */}
+          <div className="flex items-center justify-between pt-4 border-t-2 border-gray-200">
+            <p className="text-base font-bold text-gray-900">Total Amount</p>
+            <p className="text-base font-bold text-gray-900">{formatCurrency(displayTotal)}</p>
+          </div>
+
+          {/* Footer note */}
+          <p className="text-xs text-gray-400 text-center pb-2">
+            This invoice covers charges for the period ending {invoice.periodEnd}.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Invoice Drawer ────────────────────────────────────────────────────────────
 
-function InvoiceDrawer({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
+function InvoiceDrawer({
+  invoice,
+  propertyName,
+  tenantName,
+  onClose,
+}: {
+  invoice: Invoice;
+  propertyName: string;
+  tenantName: string;
+  onClose: () => void;
+}) {
+  const [showPreview, setShowPreview] = useState(false);
   const lineTotal = invoice.lines.reduce((s, l) => s + l.amount, 0);
   const displayTotal = invoice.total ?? lineTotal;
 
@@ -175,22 +293,39 @@ function InvoiceDrawer({ invoice, onClose }: { invoice: Invoice; onClose: () => 
           </div>
 
           {/* Actions */}
-          {invoice.status !== "paid" && (
-            <div className="px-6 py-5">
+          <div className="px-6 py-5 space-y-2">
+            <Button
+              variant="outline"
+              className="w-full border-gray-200 text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowPreview(true)}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              View Invoice
+            </Button>
+            {invoice.status !== "paid" && (
               <Button className="w-full bg-[#FF5000] hover:bg-[#e04600] text-white">
                 Mark as Paid
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
+
+      {showPreview && (
+        <InvoicePreviewModal
+          invoice={invoice}
+          propertyName={propertyName}
+          tenantName={tenantName}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
     </>
   );
 }
 
 // ── Invoices Tab ──────────────────────────────────────────────────────────────
 
-function InvoicesTab() {
+function InvoicesTab({ propertyName, tenantName }: { propertyName: string; tenantName: string }) {
   const [selected, setSelected] = useState<Invoice | null>(null);
 
   return (
@@ -238,7 +373,12 @@ function InvoicesTab() {
       </div>
 
       {selected && (
-        <InvoiceDrawer invoice={selected} onClose={() => setSelected(null)} />
+        <InvoiceDrawer
+          invoice={selected}
+          propertyName={propertyName}
+          tenantName={tenantName}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );
@@ -362,7 +502,7 @@ export default function InvoicesPage() {
         </div>
 
         {activeTab === "invoices" ? (
-          <InvoicesTab />
+          <InvoicesTab propertyName={propertyName} tenantName={tenantName} />
         ) : (
           <OverviewTab propertyName={propertyName} tenantName={tenantName} />
         )}
