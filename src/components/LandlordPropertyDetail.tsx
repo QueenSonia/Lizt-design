@@ -1834,7 +1834,15 @@ export default function LandlordPropertyDetail({
                         <p className="text-sm text-gray-900 mb-4">
                           The tenant is expected to pay{" "}
                           <span className="font-semibold">{formatCurrency(nextPaymentAmount)}</span>
-                          {" "}by {nextDueLabel}.
+                          {" "}by {nextDueLabel}
+                          <button
+                            type="button"
+                            onClick={() => setShowBillingBreakdown(v => !v)}
+                            className="inline-flex items-center ml-1 text-gray-400 hover:text-gray-600 transition-colors align-middle"
+                            aria-label="View billing breakdown"
+                          >
+                            <Info className="w-4 h-4" />
+                          </button>.
                         </p>
 
                         {/* Two-card layout */}
