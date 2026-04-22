@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { addPaymentPlan } from "@/lib/paymentPlanStore";
+import { addPaymentPlan, updatePaymentPlan, type PaymentPlan } from "@/lib/paymentPlanStore";
 import type { PlanScope } from "./PlanScopePickerModal";
 
 export interface ChargeOption {
@@ -44,6 +44,7 @@ interface Props {
   tenantId: string;
   charges: ChargeOption[];
   scope: PlanScope;
+  existingPlan?: PaymentPlan; // when set, modal is in edit mode
 }
 
 function generateId() {
@@ -99,7 +100,9 @@ export function CreatePaymentPlanModal({
   tenantId,
   charges,
   scope,
+  existingPlan,
 }: Props) {
+  const isEditMode = !!existingPlan;
   const [selectedCharge, setSelectedCharge] = useState<string>("");
   const [planType, setPlanType] = useState<"equal" | "custom">("equal");
   const [numInstallments, setNumInstallments] = useState("2");
@@ -125,16 +128,29 @@ export function CreatePaymentPlanModal({
     prevOpenRef.current = false;
   }
 
-  // Reset on open
+  // Reset on open — pre-fill if editing
   useEffect(() => {
     if (!open) return;
-    setSelectedCharge("");
-    setPlanType("equal");
-    setNumInstallments("2");
-    setFrequency("monthly");
-    setStartDate("");
     setErrors([]);
-    setInstallments([]);
+    if (existingPlan) {
+      setSelectedCharge(existingPlan.chargeName === "Entire Tenancy" ? "" : existingPlan.chargeName);
+      setPlanType(existingPlan.planType);
+      setNumInstallments(String(existingPlan.installments.length));
+      setFrequency("monthly");
+      setStartDate(existingPlan.installments[0]?.dueDate ?? "");
+      setInstallments(existingPlan.installments.map((i) => ({
+        id: i.id,
+        amount: String(i.amount),
+        dueDate: i.dueDate,
+      })));
+    } else {
+      setSelectedCharge("");
+      setPlanType("equal");
+      setNumInstallments("2");
+      setFrequency("monthly");
+      setStartDate("");
+      setInstallments([]);
+    }
   }, [open]);
 
   // Regenerate equal schedule whenever inputs that affect it change
@@ -193,19 +209,24 @@ export function CreatePaymentPlanModal({
   function handleCreate() {
     const errs = validate();
     if (errs.length > 0) { setErrors(errs); return; }
-    addPaymentPlan({
-      propertyName,
-      tenantId,
-      chargeName: scope === "tenancy" ? "Entire Tenancy" : selectedCharge,
-      totalAmount: total,
-      planType,
-      installments: installments.map((row) => ({
-        id: row.id,
-        amount: parseCurrency(row.amount),
-        dueDate: row.dueDate,
-        status: "pending" as const,
-      })),
-    });
+    const mappedInstallments = installments.map((row) => ({
+      id: row.id,
+      amount: parseCurrency(row.amount),
+      dueDate: row.dueDate,
+      status: "pending" as const,
+    }));
+    if (isEditMode && existingPlan) {
+      updatePaymentPlan(existingPlan.id, { planType, installments: mappedInstallments });
+    } else {
+      addPaymentPlan({
+        propertyName,
+        tenantId,
+        chargeName: scope === "tenancy" ? "Entire Tenancy" : selectedCharge,
+        totalAmount: total,
+        planType,
+        installments: mappedInstallments,
+      });
+    }
     handleClose();
   }
 

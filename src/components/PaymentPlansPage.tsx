@@ -3,12 +3,26 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, ChevronDown, ChevronUp, CreditCard, ArrowLeft, ClipboardList } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, CreditCard, ArrowLeft, ClipboardList, MoreVertical } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
+import {
   getPaymentPlans,
   subscribeToPaymentPlans,
+  removePaymentPlan,
   type PaymentPlan,
 } from "@/lib/paymentPlanStore";
 import {
@@ -55,6 +69,8 @@ export default function PaymentPlansPage() {
   const [showScopePicker, setShowScopePicker] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [planScope, setPlanScope] = useState<PlanScope>("tenancy");
+  const [editingPlan, setEditingPlan] = useState<PaymentPlan | null>(null);
+  const [deleteConfirmPlanId, setDeleteConfirmPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     function syncPlans() { setPlans(getPaymentPlans(propertyName, tenantId)); }
@@ -139,36 +155,66 @@ export default function PaymentPlansPage() {
 
                 return (
                   <div key={plan.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => togglePlan(plan.id)}
-                      className="w-full flex items-center justify-between px-4 py-3.5 text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{plan.chargeName}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {formatCurrency(plan.totalAmount)} · {total} installment{total !== 1 ? "s" : ""} · {paid}/{total} paid
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          className={`text-xs border-0 rounded-full px-2.5 py-0.5 ${
-                            paid === total
-                              ? "bg-green-100 text-green-700"
-                              : paid > 0
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-500"
-                          }`}
-                        >
-                          {paid === total ? "Complete" : paid > 0 ? "In Progress" : "Pending"}
-                        </Badge>
-                        {isExpanded ? (
-                          <ChevronUp className="w-4 h-4 text-gray-400" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-gray-400" />
-                        )}
-                      </div>
-                    </button>
+                    <div className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => togglePlan(plan.id)}
+                        className="flex-1 flex items-center justify-between px-4 py-3.5 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{plan.chargeName}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {formatCurrency(plan.totalAmount)} · {total} installment{total !== 1 ? "s" : ""} · {paid}/{total} paid
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            className={`text-xs border-0 rounded-full px-2.5 py-0.5 ${
+                              paid === total
+                                ? "bg-green-100 text-green-700"
+                                : paid > 0
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-gray-100 text-gray-500"
+                            }`}
+                          >
+                            {paid === total ? "Complete" : paid > 0 ? "In Progress" : "Pending"}
+                          </Badge>
+                          {isExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          )}
+                        </div>
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="p-2 mr-2 text-gray-400 hover:text-gray-600 rounded transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingPlan(plan);
+                              setPlanScope(plan.chargeName === "Entire Tenancy" ? "tenancy" : "charge");
+                              setShowCreateModal(true);
+                            }}
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-600 focus:text-red-600"
+                            onClick={() => setDeleteConfirmPlanId(plan.id)}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
 
                     {isExpanded && (
                       <div className="border-t border-gray-100 divide-y divide-gray-50">
@@ -330,19 +376,45 @@ export default function PaymentPlansPage() {
         }}
       />
 
-      {/* Step 2 — Create Payment Plan */}
+      {/* Step 2 — Create / Edit Payment Plan */}
       <CreatePaymentPlanModal
         open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => { setShowCreateModal(false); setEditingPlan(null); }}
         onBack={() => {
           setShowCreateModal(false);
-          setShowScopePicker(true);
+          setEditingPlan(null);
+          if (!editingPlan) setShowScopePicker(true);
         }}
         propertyName={propertyName}
         tenantId={tenantId}
         scope={planScope}
         charges={charges}
+        existingPlan={editingPlan ?? undefined}
       />
+
+      {/* Delete confirmation */}
+      <Dialog open={!!deleteConfirmPlanId} onOpenChange={(v) => !v && setDeleteConfirmPlanId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Payment Plan</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 py-2">
+            Are you sure you want to delete this payment plan? This action cannot be undone.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmPlanId(null)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => {
+                if (deleteConfirmPlanId) removePaymentPlan(deleteConfirmPlanId);
+                setDeleteConfirmPlanId(null);
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

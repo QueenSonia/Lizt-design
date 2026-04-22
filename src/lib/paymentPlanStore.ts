@@ -112,3 +112,11 @@ export function removePaymentPlan(planId: string) {
     _notify();
   }
 }
+
+export function updatePaymentPlan(planId: string, updates: Pick<PaymentPlan, "planType" | "installments">) {
+  const plan = _plans.find((p) => p.id === planId);
+  if (!plan) return;
+  plan.planType = updates.planType;
+  plan.installments = updates.installments;
+  _notify();
+}
