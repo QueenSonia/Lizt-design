@@ -1845,8 +1845,11 @@ export default function LandlordPropertyDetail({
                           </div>
                         )}
 
-                        {/* Next invoice card */}
-                        <div className="sm:max-w-[340px] border border-gray-200 rounded-xl bg-white p-5 flex flex-col gap-4 mb-4">
+                        {/* Divider */}
+                        <hr className="border-0 border-t border-gray-200 my-5" />
+
+                        {/* Next invoice — flush, no card */}
+                        <div className="sm:max-w-[340px] flex flex-col gap-4 mb-4">
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
                             <p className="text-2xl font-bold text-gray-900">₦600,000</p>
