@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { ArrowLeft, Download, Send, Save, Info } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -14,22 +14,36 @@ import {
   SelectValue,
 } from "./ui/select";
 import { calculateEndDate } from "./RenewTenancyModal";
-import { formatNumberWithCommas, parseFormattedNumber } from "../utilities/utilities";
+import { formatNumberWithCommas } from "../utilities/utilities";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
-function formatDisplayDate(iso: string): string {
+function formatLongDate(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso.includes("T") ? iso : iso + "T00:00:00");
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
-function formatShortDate(iso: string): string {
+function formatShortMonthDate(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso.includes("T") ? iso : iso + "T00:00:00");
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+function formatOrdinalDate(iso: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso.includes("T") ? iso : iso + "T00:00:00");
+  if (isNaN(d.getTime())) return "—";
+  const day = d.getDate();
+  const suffix =
+    day % 10 === 1 && day !== 11 ? "st" :
+    day % 10 === 2 && day !== 12 ? "nd" :
+    day % 10 === 3 && day !== 13 ? "rd" : "th";
+  const month = d.toLocaleDateString("en-US", { month: "long" });
+  const year = d.getFullYear();
+  return `${day}${suffix} of ${month} ${year}`;
 }
 
 function formatNaira(raw: string): string {
@@ -52,12 +66,6 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function longMonthYear(iso: string): string {
-  if (!iso) return "";
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-}
-
 // ── types ──────────────────────────────────────────────────────────────────
 
 export interface RenewTenancyData {
@@ -75,6 +83,9 @@ interface Props {
   propertyName?: string;
   propertyAddress?: string;
   landlordName?: string;
+  landlordCompany?: string;
+  tenantWhatsApp?: string;
+  tenantEmail?: string;
   currentExpiryDate?: string;
   currentRentAmount?: number;
   currentPaymentFrequency?: string;
@@ -91,7 +102,10 @@ export function RenewTenancyScreen({
   tenantAddress = "",
   propertyName = "",
   propertyAddress = "",
-  landlordName = "Landlord",
+  landlordName = "Olatunji Oginni",
+  landlordCompany = "Panda Homes Nigeria Limited",
+  tenantWhatsApp = "09069333649",
+  tenantEmail = "tenant@email.com",
   currentExpiryDate = "",
   currentRentAmount = 0,
   currentPaymentFrequency = "Annually",
@@ -108,6 +122,7 @@ export function RenewTenancyScreen({
   );
   const [additionalFees, setAdditionalFees] = useState("");
   const [customLandlordName, setCustomLandlordName] = useState(landlordName);
+  const [customLandlordCompany, setCustomLandlordCompany] = useState(landlordCompany);
   const [customEndDate, setCustomEndDate] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -122,17 +137,6 @@ export function RenewTenancyScreen({
 
   const autoEndDate = useMemo(() => calculateEndDate(newStartDate, frequency), [newStartDate, frequency]);
   const effectiveEndDate = customEndDate || autoEndDate;
-
-  // ── editable letter state ───────────────────────────────────────────────
-  const [letterSubject, setLetterSubject] = useState(
-    `RENT RENEWAL OFFER FOR RENT OF ${propertyName ? propertyName.toUpperCase() : "PROPERTY"}`
-  );
-  const [letterOpening, setLetterOpening] = useState(
-    `This is to formally notify you that your tenancy over the property situate at ${propertyAddress || propertyName} which you currently occupy expires on the ${formatDisplayDate(currentExpiryDate)}. Following the expiry of your tenancy, we hereby make you an offer to rent the property for another tenancy period upon the following terms:`
-  );
-  const [letterClosing, setLetterClosing] = useState(
-    "This Rent Renewal Offer and the attached Terms of Tenancy (together the “Tenancy Agreement”) shall govern the tenancy relationship between the Landlord and you for the Tenancy Period."
-  );
 
   // ── validation ──────────────────────────────────────────────────────────
   function validate(): boolean {
@@ -161,19 +165,22 @@ export function RenewTenancyScreen({
     setServiceCharge(n && parseFloat(n) > 0 ? formatNumberWithCommas(parseFloat(n)) : "");
   }
 
-  // ── letter computed values ──────────────────────────────────────────────
-  const todayFormatted = formatDisplayDate(todayISO());
+  // ── computed letter values ──────────────────────────────────────────────
+  const letterDate = formatLongDate(todayISO());
   const rentDisplay = formatNaira(rentAmount);
   const serviceChargeDisplay = formatNaira(serviceCharge);
   const additionalFeesDisplay = formatNaira(additionalFees);
   const tenancyTerm = tenancyTermLabel(frequency);
-  const periodDisplay =
-    effectiveEndDate
-      ? `${formatShortDate(newStartDate)}, to ${formatShortDate(effectiveEndDate)}`
-      : `${formatShortDate(newStartDate)}, to —`;
+  const startDisplay = formatShortMonthDate(newStartDate);
+  const endDisplay = formatShortMonthDate(effectiveEndDate);
+  const periodDisplay = effectiveEndDate ? `${startDisplay}, to ${endDisplay}` : `${startDisplay}, to —`;
+  const expiryOrdinal = formatOrdinalDate(currentExpiryDate);
+  const firstName = tenantName.split(" ")[0] || "Sir/Ma";
+  const subjectLine = `RENT RENEWAL OFFER FOR RENT OF ${(propertyName || "PROPERTY").toUpperCase()}${propertyAddress ? " AT " + propertyAddress.toUpperCase() : ""}`;
+  const addressLines = (tenantAddress || "").split(",").map((l) => l.trim()).filter(Boolean);
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col overflow-hidden">
       {/* ── top bar ────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 shrink-0">
         <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -195,30 +202,12 @@ export function RenewTenancyScreen({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-600 border-gray-200 h-8 px-3 text-xs"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-gray-600 border-gray-200 h-8 px-3 text-xs"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onClose} className="text-gray-600 border-gray-200 h-8 px-3 text-xs">Cancel</Button>
+            <Button type="button" variant="outline" size="sm" className="text-gray-600 border-gray-200 h-8 px-3 text-xs">
               <Save className="w-3 h-3 mr-1.5" />
               Save Draft
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-gray-600 border-gray-200 h-8 px-3 text-xs"
-            >
+            <Button type="button" variant="outline" size="sm" className="text-gray-600 border-gray-200 h-8 px-3 text-xs">
               <Download className="w-3 h-3 mr-1.5" />
               Download PDF
             </Button>
@@ -253,38 +242,33 @@ export function RenewTenancyScreen({
             {/* ── LEFT: Form ─────────────────────────────────────────── */}
             <div className="w-[380px] shrink-0 space-y-5">
 
-              {/* Auto-filled info banner */}
               <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 text-xs text-blue-700">
                 <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                 <span>Tenant and property details are pre-filled. Update the fields below to generate the offer letter.</span>
               </div>
 
-              {/* Tenant Name */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tenant Name</Label>
                 <Input value={tenantName} readOnly className="bg-gray-50 text-gray-600 text-sm" />
               </div>
 
-              {/* Property */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Property</Label>
                 <Input value={propertyAddress || propertyName} readOnly className="bg-gray-50 text-gray-600 text-sm" />
               </div>
 
-              {/* Landlord Name */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Landlord Name</Label>
-                <Input
-                  value={customLandlordName}
-                  onChange={(e) => setCustomLandlordName(e.target.value)}
-                  className="text-sm"
-                  placeholder="Landlord name"
-                />
+                <Input value={customLandlordName} onChange={(e) => setCustomLandlordName(e.target.value)} className="text-sm" placeholder="Landlord name" />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Landlord Company</Label>
+                <Input value={customLandlordCompany} onChange={(e) => setCustomLandlordCompany(e.target.value)} className="text-sm" placeholder="Landlord company" />
               </div>
 
               <div className="border-t border-gray-200 pt-1" />
 
-              {/* Payment Frequency */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Payment Frequency <span className="text-red-500">*</span>
@@ -303,19 +287,12 @@ export function RenewTenancyScreen({
                 {errors.frequency && <p className="text-xs text-red-500">{errors.frequency}</p>}
               </div>
 
-              {/* Start Date */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tenancy Start Date</Label>
-                <Input
-                  type="text"
-                  value={formatShortDate(newStartDate)}
-                  readOnly
-                  className="bg-gray-50 text-gray-600 text-sm"
-                />
+                <Input type="text" value={startDisplay} readOnly className="bg-gray-50 text-gray-600 text-sm" />
                 <p className="text-xs text-gray-400">Auto-calculated from previous tenancy end date.</p>
               </div>
 
-              {/* End Date */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tenancy End Date</Label>
                 <Input
@@ -338,43 +315,30 @@ export function RenewTenancyScreen({
 
               <div className="border-t border-gray-200 pt-1" />
 
-              {/* Rent Amount */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Rent Amount <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
-                  <Input
-                    type="text"
-                    placeholder="0"
-                    value={rentAmount}
-                    onChange={(e) => handleRentChange(e.target.value)}
-                    className={`pl-7 text-sm ${errors.rentAmount ? "border-red-400" : ""}`}
-                  />
+                  <Input type="text" placeholder="0" value={rentAmount} onChange={(e) => handleRentChange(e.target.value)} className={`pl-7 text-sm ${errors.rentAmount ? "border-red-400" : ""}`} />
                 </div>
                 {errors.rentAmount && <p className="text-xs text-red-500">{errors.rentAmount}</p>}
               </div>
 
-              {/* Service Charge */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Service Charge</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
-                  <Input
-                    type="text"
-                    placeholder="0"
-                    value={serviceCharge}
-                    onChange={(e) => handleServiceChargeChange(e.target.value)}
-                    className="pl-7 text-sm"
-                  />
+                  <Input type="text" placeholder="0" value={serviceCharge} onChange={(e) => handleServiceChargeChange(e.target.value)} className="pl-7 text-sm" />
                 </div>
                 <p className="text-xs text-gray-400">Leave empty if not applicable.</p>
               </div>
 
-              {/* Additional Fees */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Additional Fees <span className="text-gray-400 font-normal normal-case">(optional)</span></Label>
+                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Additional Fees <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
                   <Input
@@ -391,109 +355,267 @@ export function RenewTenancyScreen({
               </div>
             </div>
 
-            {/* ── RIGHT: Letter Preview ───────────────────────────────── */}
+            {/* ── RIGHT: Letter Preview — mirrors the reference document ─ */}
             <div className="flex-1 min-w-0">
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                {/* document chrome */}
-                <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                  <span className="ml-3 text-xs text-gray-400">Offer Letter Preview — editable</span>
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                className="bg-white shadow-md mx-auto outline-none"
+                style={{
+                  width: "min(100%, 850px)",
+                  minHeight: "1100px",
+                  padding: "80px 90px",
+                  fontFamily: "'Times New Roman', Georgia, serif",
+                  fontSize: "14px",
+                  lineHeight: "1.7",
+                  color: "#222",
+                }}
+              >
+                {/* ── Page 1 ────────────────────────────────────────── */}
+
+                {/* date */}
+                <p style={{ marginBottom: "32px" }}>{letterDate}</p>
+
+                {/* recipient block */}
+                <div style={{ marginBottom: "32px", fontWeight: "bold" }}>
+                  <p>{tenantName}</p>
+                  {addressLines.length > 0 ? (
+                    addressLines.map((line, i) => <p key={i}>{line}</p>)
+                  ) : (
+                    <>
+                      <p>Plot 23, Providence Street</p>
+                      <p>Lekki Phase 1</p>
+                      <p>Lagos State</p>
+                    </>
+                  )}
                 </div>
 
-                {/* document body */}
-                <div className="px-14 py-12 font-serif text-[13.5px] leading-relaxed text-gray-800 min-h-[calc(100vh-180px)]">
+                {/* salutation */}
+                <p style={{ marginBottom: "24px" }}>Dear Mr {firstName},</p>
 
-                  {/* date */}
-                  <p className="mb-8 text-gray-700">{todayFormatted}</p>
+                {/* subject */}
+                <p style={{ fontWeight: "bold", textDecoration: "underline", textTransform: "uppercase", marginBottom: "24px" }}>
+                  {subjectLine}
+                </p>
 
-                  {/* recipient */}
-                  <div className="mb-8 space-y-0.5 font-sans font-semibold text-gray-900 text-sm">
-                    <p>{tenantName}</p>
-                    {tenantAddress ? (
-                      tenantAddress.split(",").map((line, i) => <p key={i}>{line.trim()}</p>)
-                    ) : null}
-                  </div>
+                {/* opening paragraph */}
+                <p style={{ marginBottom: "24px" }}>
+                  This is to formally notify you that your tenancy over the property situate at{" "}
+                  {propertyAddress || propertyName} which you currently occupy expires on the{" "}
+                  {expiryOrdinal}. Following the expiry of your tenancy, we hereby make you an
+                  offer to rent the property for another tenancy period upon the following terms:
+                </p>
 
-                  {/* salutation */}
-                  <p className="mb-6">Dear {tenantName.split(" ")[0] || "Sir/Ma"},</p>
-
-                  {/* subject — editable */}
-                  <div
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => setLetterSubject(e.currentTarget.textContent || "")}
-                    className="mb-6 font-sans font-bold text-sm uppercase underline outline-none focus:bg-yellow-50 rounded px-0.5 -mx-0.5 cursor-text"
-                  >
-                    {letterSubject}
-                  </div>
-
-                  {/* opening paragraph — editable */}
-                  <div
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => setLetterOpening(e.currentTarget.textContent || "")}
-                    className="mb-6 outline-none focus:bg-yellow-50 rounded px-0.5 -mx-0.5 cursor-text"
-                  >
-                    {letterOpening}
-                  </div>
-
-                  {/* terms table */}
-                  <div className="mb-6 space-y-3 pl-4">
-                    <TermRow label="Permitted Use" value="Residential." italic />
-                    <TermRow label="Rent" value={rentDisplay} />
-                    {serviceCharge ? <TermRow label="Service Charge" value={serviceChargeDisplay} footnote="1" /> : null}
-                    {additionalFees ? <TermRow label="Additional Fees" value={additionalFeesDisplay} /> : null}
-                    <TermRow label="Tenancy Term" value={tenancyTerm} italic />
-                    <TermRow label="Tenancy Period" value={periodDisplay} italic />
-                  </div>
-
-                  {/* closing paragraph — editable */}
-                  <div
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => setLetterClosing(e.currentTarget.textContent || "")}
-                    className="mb-10 outline-none focus:bg-yellow-50 rounded px-0.5 -mx-0.5 cursor-text"
-                  >
-                    {letterClosing}
-                  </div>
-
-                  {/* sign-off */}
-                  <p className="mb-10">Yours faithfully,</p>
-
-                  {/* signature block */}
-                  <div className="space-y-0.5">
-                    <p className="font-sans font-bold text-sm text-gray-900">{customLandlordName}</p>
-                    {propertyAddress && (
-                      <p className="text-xs text-gray-500 font-sans">{propertyAddress}</p>
-                    )}
-                  </div>
-
-                  {/* acceptance block */}
-                  <div className="mt-16 pt-8 border-t border-gray-300">
-                    <p className="font-sans font-bold text-sm uppercase mb-3">Acceptance of Terms</p>
-                    <p className="mb-8">
-                      I, <span className="font-semibold">{tenantName.toUpperCase()}</span>, accept the above terms and conditions contained in this Tenancy Agreement dated {todayFormatted}.
-                    </p>
-                    <div className="flex gap-20">
-                      <div className="space-y-1">
-                        <div className="w-44 border-b border-gray-400" />
-                        <p className="text-xs font-sans text-gray-500">Signature</p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="w-44 border-b border-gray-400" />
-                        <p className="text-xs font-sans text-gray-500">Date</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* footnote */}
+                {/* bullet terms */}
+                <ul style={{ listStyle: "disc", paddingLeft: "28px", marginBottom: "24px" }}>
+                  <li style={{ marginBottom: "10px" }}>
+                    <span style={{ fontWeight: "bold", textDecoration: "underline" }}>Permitted Use:</span>{" "}
+                    <span style={{ fontStyle: "italic" }}>Residential.</span>
+                  </li>
+                  <li style={{ marginBottom: "10px" }}>
+                    <span style={{ fontWeight: "bold", textDecoration: "underline" }}>Rent:</span>{" "}
+                    {rentDisplay}
+                  </li>
                   {serviceCharge ? (
-                    <div className="mt-12 pt-4 border-t border-gray-200 text-xs text-gray-500 font-sans">
-                      <sup>1</sup> This covers the associated cost of maintaining general utilities and services which include but are not limited to, the water treatment plant and supply system, meter vending platform, security, cleaning of general areas, and waste management.
-                    </div>
+                    <li style={{ marginBottom: "10px" }}>
+                      <span style={{ fontWeight: "bold", textDecoration: "underline" }}>
+                        Service Charge:<sup>1</sup>
+                      </span>{" "}
+                      {serviceChargeDisplay}
+                    </li>
                   ) : null}
+                  {additionalFees ? (
+                    <li style={{ marginBottom: "10px" }}>
+                      <span style={{ fontWeight: "bold", textDecoration: "underline" }}>Additional Fees:</span>{" "}
+                      {additionalFeesDisplay}
+                    </li>
+                  ) : null}
+                  <li style={{ marginBottom: "10px" }}>
+                    <span style={{ fontWeight: "bold", textDecoration: "underline" }}>Tenancy Term:</span>{" "}
+                    <span style={{ fontStyle: "italic" }}>{tenancyTerm}</span>
+                  </li>
+                  <li style={{ marginBottom: "10px" }}>
+                    <span style={{ fontWeight: "bold", textDecoration: "underline" }}>Tenancy Period:</span>{" "}
+                    <span style={{ fontStyle: "italic" }}>{periodDisplay}</span>
+                  </li>
+                </ul>
+
+                {/* agreement clause */}
+                <p style={{ marginBottom: "24px" }}>
+                  This <span style={{ textDecoration: "underline" }}>Rent Renewal Offer</span> and the attached{" "}
+                  <span style={{ textDecoration: "underline" }}>Terms of Tenancy</span> (together the{" "}
+                  <strong>“Tenancy Agreement”</strong>) shall govern the tenancy relationship between{" "}
+                  <span style={{ textDecoration: "underline" }}>{customLandlordCompany}</span> (
+                  <strong>“the Landlord”</strong>) and you,{" "}
+                  <span style={{ textDecoration: "underline" }}>{tenantName}</span>{" "}
+                  <strong>(“the Tenant”)</strong> for the{" "}
+                  <span style={{ textDecoration: "underline" }}>Tenancy Period</span>.
+                </p>
+
+                {/* sign-off */}
+                <p style={{ marginBottom: "40px" }}>Yours faithfully,</p>
+
+                <p style={{ fontWeight: "bold", marginBottom: "60px" }}>{customLandlordName}</p>
+
+                {/* footnote (only when service charge present) */}
+                {serviceCharge ? (
+                  <div style={{ borderTop: "1px solid #999", paddingTop: "8px", fontSize: "11px", fontStyle: "italic", color: "#444", marginBottom: "40px" }}>
+                    <p>
+                      <sup>1</sup> This covers the associated cost of maintaining general utilities and
+                      services which include but are not limited to, the water treatment plant and supply
+                      system, meter vending platform, security, cleaning of general areas, and waste management.
+                    </p>
+                  </div>
+                ) : null}
+
+                {/* footer */}
+                <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "13px", marginTop: "40px" }}>
+                  <p>{propertyAddress || "17 Ayinde Akinmade Street"}</p>
+                  <p>Lekki Phase 1, Lagos State</p>
+                  <p style={{ color: "#2563eb", textDecoration: "underline", fontWeight: "normal" }}>
+                    www.propertykraft.africa
+                  </p>
+                </div>
+
+                {/* ── Page break ────────────────────────────────────── */}
+                <div style={{ borderTop: "1px dashed #d1d5db", margin: "60px -40px 40px" }} />
+
+                {/* ── Page 2 ────────────────────────────────────────── */}
+
+                <p style={{ fontStyle: "italic", fontWeight: "bold", marginBottom: "12px" }}>for Landlord</p>
+                <p style={{ fontWeight: "bold", textDecoration: "underline", marginBottom: "28px" }}>
+                  TERMS OF TENANCY
+                </p>
+
+                {/* 1. Permitted Use */}
+                <p style={{ fontWeight: "bold", marginBottom: "10px" }}>1. Permitted Use</p>
+                <p style={{ marginBottom: "24px", paddingLeft: "20px" }}>
+                  The Property shall be used solely for residential purposes. Commercial use,
+                  Airbnb/short-let, or subletting is strictly prohibited.
+                </p>
+
+                {/* 2. Conduct & Restrictions */}
+                <p style={{ fontWeight: "bold", marginBottom: "10px" }}>2. Conduct &amp; Restrictions</p>
+                <ul style={{ listStyle: "disc", paddingLeft: "48px", marginBottom: "24px" }}>
+                  <li style={{ marginBottom: "8px" }}>
+                    Pets must remain inside your apartment; pets in common areas are prohibited.
+                  </li>
+                  <li>
+                    You are not to cause to be done or permit any act or operation within the premises
+                    that is illegal or maybe considered a nuisance.
+                  </li>
+                </ul>
+
+                {/* 3. Repairs & Maintenance */}
+                <p style={{ fontWeight: "bold", marginBottom: "10px" }}>3. Repairs &amp; Maintenance</p>
+                <ul style={{ listStyle: "disc", paddingLeft: "48px", marginBottom: "24px" }}>
+                  <li style={{ marginBottom: "8px" }}>Tenant shall be responsible for internal repairs &amp; minor maintenance.</li>
+                  <li style={{ marginBottom: "8px" }}>Landlord shall be responsible for structural repairs and major building systems.</li>
+                  <li>Damage caused by Tenant negligence is Tenant’s responsibility.</li>
+                </ul>
+
+                {/* 4. Access */}
+                <p style={{ fontWeight: "bold", marginBottom: "10px" }}>4. Access</p>
+                <p style={{ marginBottom: "24px", paddingLeft: "20px" }}>
+                  The Landlord may access the Property with reasonable notice for inspections,
+                  repairs, or emergencies.
+                </p>
+
+                {/* 5. Service of Notices */}
+                <p style={{ fontWeight: "bold", marginBottom: "10px" }}>5. Service of Notices</p>
+                <ul style={{ listStyle: "disc", paddingLeft: "48px", marginBottom: "16px" }}>
+                  <li style={{ marginBottom: "8px" }}>
+                    Notices to the Tenant will be considered duly served if delivered by any of the
+                    following methods:
+                    <div style={{ paddingLeft: "28px", marginTop: "8px" }}>
+                      <p>(1) Affixed to the door of the Property;</p>
+                      <p>
+                        (2) Sent via WhatsApp to{" "}
+                        <strong>{tenantWhatsApp}</strong>;
+                      </p>
+                      <p>
+                        (3) Sent via email to{" "}
+                        <strong>{tenantEmail}</strong>.
+                      </p>
+                    </div>
+                  </li>
+                  <li style={{ marginBottom: "8px" }}>
+                    The Tenant shall ensure that the WhatsApp number and email address provided in
+                    this Agreement remain valid and reachable. If the Tenant changes, loses access
+                    to, or is no longer reachable through either contact detail, the Tenant shall
+                    promptly notify the Landlord or the Landlord’s representative in writing and
+                    provide updated contact details.
+                  </li>
+                  <li>
+                    Until such notice of change is received, any notice sent to the last provided
+                    WhatsApp number or email address shall be deemed validly served.
+                  </li>
+                </ul>
+
+                {/* 6. Breach & Termination */}
+                <p style={{ fontWeight: "bold", marginTop: "24px", marginBottom: "10px" }}>6. Breach &amp; Termination</p>
+                <p style={{ marginBottom: "24px", paddingLeft: "20px" }}>
+                  Non-compliance with these terms may result in disconnection from general utilities
+                  and services, termination, and/or eviction.
+                </p>
+
+                {/* 7. Refunds */}
+                <p style={{ fontWeight: "bold", marginBottom: "10px" }}>7. Refunds</p>
+                <ul style={{ listStyle: "disc", paddingLeft: "48px", marginBottom: "24px" }}>
+                  <li style={{ marginBottom: "8px" }}>
+                    If the tenancy is terminated before the expiry date, whether by the Tenant or by
+                    the Landlord (in the case of breach by the Tenant), the Tenant shall only be
+                    entitled to a refund of the rent and service charge for the unused days remaining
+                    on the tenancy from the day the Property is fully vacated, and possesion returned
+                    to the landlord.
+                  </li>
+                  <li style={{ marginBottom: "8px" }}>
+                    Caution deposit and rent refund (if applicable) will be paid to the Tenant only
+                    after the Tenant has fully vacated the Property and returned possession to the
+                    landlord.
+                  </li>
+                  <li>
+                    Deductions from the caution deposit may be made for damages beyond fair wear and
+                    tear or outstanding obligations.
+                  </li>
+                </ul>
+
+                {/* 8. Entire Agreement */}
+                <p style={{ fontWeight: "bold", marginBottom: "10px" }}>8. Entire Agreement</p>
+                <p style={{ marginBottom: "32px", paddingLeft: "20px" }}>
+                  This Agreement constitutes the entire agreement between the parties in relation to
+                  the Property and supersedes all prior discussions, representations or understandings,
+                  whether oral or written.
+                </p>
+
+                {/* Acceptance of Terms */}
+                <p style={{ fontWeight: "bold", textDecoration: "underline", marginBottom: "16px" }}>
+                  ACCEPTANCE OF TERMS
+                </p>
+                <p style={{ marginBottom: "40px" }}>
+                  I, <strong>{tenantName.toUpperCase()},</strong> accept the above terms and conditions
+                  contained in this Tenancy Agreement dated {letterDate}.
+                </p>
+
+                {/* signature lines */}
+                <div style={{ display: "flex", gap: "80px", marginBottom: "60px" }}>
+                  <div>
+                    <p style={{ letterSpacing: "2px" }}>………………………………….</p>
+                    <p>Signature</p>
+                  </div>
+                  <div>
+                    <p style={{ letterSpacing: "2px" }}>………………………..……………</p>
+                    <p>Date</p>
+                  </div>
+                </div>
+
+                {/* footer (page 2) */}
+                <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "13px", marginTop: "40px" }}>
+                  <p>{propertyAddress || "17 Ayinde Akinmade Street"}</p>
+                  <p>Lekki Phase 1, Lagos State</p>
+                  <p style={{ color: "#2563eb", textDecoration: "underline", fontWeight: "normal" }}>
+                    www.propertykraft.africa
+                  </p>
                 </div>
               </div>
             </div>
@@ -501,29 +623,6 @@ export function RenewTenancyScreen({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── sub-components ─────────────────────────────────────────────────────────
-
-function TermRow({
-  label,
-  value,
-  italic,
-  footnote,
-}: {
-  label: string;
-  value: string;
-  italic?: boolean;
-  footnote?: string;
-}) {
-  return (
-    <div className="flex gap-4">
-      <span className="w-36 shrink-0 font-sans font-semibold text-xs uppercase tracking-wide underline">
-        {label}:{footnote ? <sup>{footnote}</sup> : null}
-      </span>
-      <span className={italic ? "italic" : ""}>{value}</span>
     </div>
   );
 }
