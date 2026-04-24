@@ -178,7 +178,6 @@ export default function LandlordPropertyDetail({
   const [editTenancyMode, setEditTenancyMode] = useState<"current" | "next-period" | null>(null);
   const [isEditingTenancy, setIsEditingTenancy] = useState(false);
   const [showBillingBreakdown, setShowBillingBreakdown] = useState(false);
-  const [expandedChargeGroups, setExpandedChargeGroups] = useState<Record<string, boolean>>({ annual: true, monthly: true });
   const [landlordId, setLandlordId] = useState<string | undefined>(undefined);
   const [showFMModal, setShowFMModal] = useState(false);
   const [, fmTick] = useState(0); // forces re-render when store updates
@@ -1781,38 +1780,7 @@ export default function LandlordPropertyDetail({
 
                   {/* ── Billing ──────────────────────────────────────── */}
                   {propertyData.rentExpiryDate && (propertyData.pendingRenewalInvoice || propertyData.rent) && (() => {
-                    const paymentCycle = (propertyData.currentTenant.paymentCycle ?? "annually").toLowerCase();
                     const rentDue = propertyData.rentExpiryDate ?? "";
-
-                    const formatDueLabel = (iso: string) =>
-                      iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
-
-                    type ChargeItem = { name: string; amount: number; frequency: string; dueDate: string };
-                    const allCharges: ChargeItem[] = [];
-                    if (propertyData.rent) allCharges.push({ name: "Rent", amount: propertyData.rent, frequency: paymentCycle, dueDate: rentDue });
-                    if ((propertyData.serviceCharge ?? 0) > 0) allCharges.push({ name: "Service Charge", amount: propertyData.serviceCharge!, frequency: paymentCycle, dueDate: rentDue });
-                    if ((propertyData.legalFee ?? 0) > 0) allCharges.push({ name: "Legal Fee", amount: propertyData.legalFee!, frequency: "one-time", dueDate: rentDue });
-                    if ((propertyData.agencyFee ?? 0) > 0) allCharges.push({ name: "Agency Fee", amount: propertyData.agencyFee!, frequency: "one-time", dueDate: rentDue });
-                    propertyData.additionalFees?.forEach((fee) => allCharges.push({ name: fee.name, amount: fee.amount, frequency: "one-time", dueDate: rentDue }));
-                    getRecurringCharges(propertyData.name || "").forEach((charge) => allCharges.push({ name: charge.feeName, amount: charge.amount, frequency: charge.frequency, dueDate: charge.nextDueDate }));
-
-                    const annualGroup = allCharges.filter(c => ["annually", "annual", "yearly"].includes(c.frequency));
-                    const monthlyGroup = allCharges.filter(c => c.frequency === "monthly");
-                    const quarterlyGroup = allCharges.filter(c => c.frequency === "quarterly");
-                    const weeklyGroup = allCharges.filter(c => c.frequency === "weekly");
-                    const oneTimeGroup = allCharges.filter(c => c.frequency === "one-time");
-
-                    const billingGroups: { key: string; label: string; items: ChargeItem[] }[] = [
-                      { key: "billing-annual", label: "Annual Charges", items: annualGroup },
-                      { key: "billing-monthly", label: "Monthly Charges", items: monthlyGroup },
-                      { key: "billing-quarterly", label: "Quarterly Charges", items: quarterlyGroup },
-                      { key: "billing-weekly", label: "Weekly Charges", items: weeklyGroup },
-                      { key: "billing-onetime", label: "One-time Charges", items: oneTimeGroup },
-                    ].filter(g => g.items.length > 0);
-
-                    const annualTotal = annualGroup.reduce((s, c) => s + c.amount, 0);
-                    const monthlyTotal = monthlyGroup.reduce((s, c) => s + c.amount, 0);
-                    const nextPaymentAmount = annualTotal > 0 ? annualTotal : monthlyTotal > 0 ? monthlyTotal : allCharges.reduce((s, c) => s + c.amount, 0);
 
                     const recurringRent = propertyData.pendingRenewalInvoice?.rentAmount ?? propertyData.rent ?? 0;
                     const recurringServiceCharge = propertyData.pendingRenewalInvoice?.serviceCharge ?? propertyData.serviceCharge ?? 0;
@@ -1843,7 +1811,7 @@ export default function LandlordPropertyDetail({
                         </div>
                         <p className="text-sm text-gray-900 mb-2">
                           The tenant is expected to pay{" "}
-                          <span className="font-semibold">{formatCurrency(nextPaymentAmount)}</span>
+                          <span className="font-semibold">{formatCurrency(breakdownTotal)}</span>
                           {" "}by {nextDueLabel}
                           <button
                             type="button"
@@ -1855,10 +1823,10 @@ export default function LandlordPropertyDetail({
                           </button>.
                         </p>
 
-                        {/* Breakdown panel — same width as left charges card */}
+                        {/* Breakdown panel */}
                         {showBillingBreakdown && (
-                          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                            <div className="flex-1 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
+                          <div className="mb-4 sm:max-w-[340px]">
+                            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
                               <div className="flex justify-between text-gray-700">
                                 <span>Rent</span>
                                 <span className="font-medium">{formatCurrency(recurringRent)}</span>
@@ -1874,77 +1842,34 @@ export default function LandlordPropertyDetail({
                                 <span>{formatCurrency(breakdownTotal)}</span>
                               </div>
                             </div>
-                            <div className="hidden sm:block sm:w-[220px] shrink-0" />
                           </div>
                         )}
 
-                        {/* Two-card layout */}
-                        <div className="flex flex-col sm:flex-row gap-4 items-start mb-4">
-
-                          {/* LEFT — collapsible charge groups */}
-                          <div className="flex-1 border border-gray-200 rounded-xl overflow-hidden bg-white">
-                            <div className="divide-y divide-gray-100">
-                              {billingGroups.map((group) => {
-                                const isOpen = expandedChargeGroups[group.key] === true;
-                                return (
-                                  <div key={group.key}>
-                                    <button
-                                      type="button"
-                                      onClick={() => setExpandedChargeGroups(prev => ({ ...prev, [group.key]: !isOpen }))}
-                                      className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition-colors"
-                                    >
-                                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{group.label}</span>
-                                      {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                    </button>
-                                    {isOpen && (
-                                      <div className="px-4 pb-3 space-y-2">
-                                        {group.items.map((item, ii) => (
-                                          <div key={ii} className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                              <span className="text-sm text-gray-700">{item.name}</span>
-                                              {item.dueDate && (
-                                                <p className="text-xs text-gray-400 mt-0.5">
-                                                  {group.key === "billing-onetime" ? "Due" : "Next due"}: {formatDueLabel(item.dueDate)}
-                                                </p>
-                                              )}
-                                            </div>
-                                            <span className="text-sm font-medium text-gray-900 shrink-0">₦{item.amount.toLocaleString()}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
+                        {/* Next invoice card */}
+                        <div className="sm:max-w-[340px] border border-gray-200 rounded-xl bg-white p-5 flex flex-col gap-4 mb-4">
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
+                            <p className="text-2xl font-bold text-gray-900">₦600,000</p>
+                            {rentDue && (
+                              <p className="text-sm text-gray-500 mt-1">Next invoice is due {nextDueLabel}</p>
+                            )}
                           </div>
-
-                          {/* RIGHT — invoice summary card */}
-                          <div className="sm:w-[220px] border border-gray-200 rounded-xl bg-white p-5 flex flex-col gap-4">
-                            <div>
-                              <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
-                              <p className="text-2xl font-bold text-gray-900">₦600,000</p>
-                              {rentDue && (
-                                <p className="text-sm text-gray-500 mt-1">Next invoice is due {nextDueLabel}</p>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const params = new URLSearchParams({
-                                  property: propertyData?.name || "",
-                                  tenant: propertyData?.currentTenant?.name || "",
-                                  tab: "invoices",
-                                });
-                                router.push(`/landlord/invoices?${params.toString()}`);
-                              }}
-                              className="w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                              View all invoices
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const params = new URLSearchParams({
+                                property: propertyData?.name || "",
+                                tenant: propertyData?.currentTenant?.name || "",
+                                tab: "invoices",
+                              });
+                              router.push(`/landlord/invoices?${params.toString()}`);
+                            }}
+                            className="w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            View all invoices
+                          </button>
                         </div>
-                        </div>{/* end max-w-xl */}
+                        </div>{/* end max-w */}
                       </div>
                     );
                   })()}
