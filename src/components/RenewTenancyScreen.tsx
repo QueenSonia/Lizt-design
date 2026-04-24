@@ -125,11 +125,12 @@ export function RenewTenancyScreen({
   const [additionalFees, setAdditionalFees] = useState("");
   const [customLandlordName, setCustomLandlordName] = useState(landlordName);
   const [customLandlordCompany, setCustomLandlordCompany] = useState(landlordCompany);
+  const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // ── derived dates ───────────────────────────────────────────────────────
-  const newStartDate = useMemo(() => {
+  const autoStartDate = useMemo(() => {
     if (!currentExpiryDate) return todayISO();
     const d = new Date(currentExpiryDate);
     if (isNaN(d.getTime())) return todayISO();
@@ -137,6 +138,7 @@ export function RenewTenancyScreen({
     return d.toISOString().slice(0, 10);
   }, [currentExpiryDate]);
 
+  const newStartDate = customStartDate || autoStartDate;
   const autoEndDate = useMemo(() => calculateEndDate(newStartDate, frequency), [newStartDate, frequency]);
   const effectiveEndDate = customEndDate || autoEndDate;
 
@@ -244,9 +246,25 @@ export function RenewTenancyScreen({
             {/* ── LEFT: Form (secondary) ─────────────────────────────── */}
             <div className="w-[320px] shrink-0 space-y-4 opacity-95">
 
+              {/* 1. Tenancy Start Date */}
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Tenancy Start Date</Label>
+                <Input
+                  type="date"
+                  value={customStartDate || autoStartDate}
+                  onChange={(e) => {
+                    setCustomStartDate(e.target.value);
+                    setCustomEndDate("");
+                  }}
+                  className="text-sm"
+                />
+                <p className="text-xs text-gray-400">Auto-filled from previous tenancy. You can adjust if needed.</p>
+              </div>
+
+              {/* 2. Rent Frequency */}
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
-                  Payment Frequency <span className="text-red-500">*</span>
+                  Rent Frequency <span className="text-red-500">*</span>
                 </Label>
                 <Select value={frequency} onValueChange={(v) => { setFrequency(v); setCustomEndDate(""); setErrors((p) => { const c = { ...p }; delete c.frequency; return c; }); }}>
                   <SelectTrigger className={`text-sm ${errors.frequency ? "border-red-400" : ""}`}>
@@ -262,12 +280,7 @@ export function RenewTenancyScreen({
                 {errors.frequency && <p className="text-xs text-red-500">{errors.frequency}</p>}
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Tenancy Start Date</Label>
-                <Input type="text" value={startDisplay} readOnly className="bg-gray-50 text-gray-600 text-sm" />
-                <p className="text-xs text-gray-400">Auto-calculated from previous tenancy end date.</p>
-              </div>
-
+              {/* 3. Tenancy End Date */}
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Tenancy End Date</Label>
                 <Input
@@ -283,7 +296,7 @@ export function RenewTenancyScreen({
                     <button type="button" className="underline" onClick={() => setCustomEndDate("")}>Reset to auto</button>
                   </p>
                 ) : (
-                  <p className="text-xs text-gray-400">Auto-calculated from frequency. You can adjust manually.</p>
+                  <p className="text-xs text-gray-400">Auto-calculated from rent frequency. You can adjust manually.</p>
                 )}
                 {errors.endDate && <p className="text-xs text-red-500">{errors.endDate}</p>}
               </div>
