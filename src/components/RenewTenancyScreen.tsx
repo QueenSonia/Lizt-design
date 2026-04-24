@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowLeft, Download, Send, Save } from "lucide-react";
+import { ArrowLeft, Download, Send, Save, Plus, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -122,7 +122,7 @@ export function RenewTenancyScreen({
   const [serviceCharge, setServiceCharge] = useState(
     currentServiceCharge ? formatNumberWithCommas(currentServiceCharge) : ""
   );
-  const [additionalFees, setAdditionalFees] = useState("");
+  const [additionalFees, setAdditionalFees] = useState<{ id: string; name: string; amount: string }[]>([]);
   const [customLandlordName, setCustomLandlordName] = useState(landlordName);
   const [customLandlordCompany, setCustomLandlordCompany] = useState(landlordCompany);
   const [customStartDate, setCustomStartDate] = useState("");
@@ -173,7 +173,7 @@ export function RenewTenancyScreen({
   const letterDate = formatLongDate(todayISO());
   const rentDisplay = formatNaira(rentAmount);
   const serviceChargeDisplay = formatNaira(serviceCharge);
-  const additionalFeesDisplay = formatNaira(additionalFees);
+  const activeAdditionalFees = additionalFees.filter((f) => f.name.trim() !== "" || (f.amount && parseFloat(f.amount.replace(/[^0-9.]/g, "")) > 0));
   const tenancyTerm = tenancyTermLabel(frequency);
   const startDisplay = formatShortMonthDate(newStartDate);
   const endDisplay = formatShortMonthDate(effectiveEndDate);
@@ -323,23 +323,66 @@ export function RenewTenancyScreen({
                 <p className="text-xs text-gray-400">Leave empty if not applicable.</p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
-                  Additional Fees <span className="text-gray-400 font-normal normal-case">(optional)</span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
-                  <Input
-                    type="text"
-                    placeholder="0"
-                    value={additionalFees}
-                    onChange={(e) => {
-                      const n = e.target.value.replace(/[^0-9.]/g, "");
-                      setAdditionalFees(n && parseFloat(n) > 0 ? formatNumberWithCommas(parseFloat(n)) : "");
-                    }}
-                    className="pl-7 text-sm"
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+                    Additional Fees <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => setAdditionalFees((prev) => [...prev, { id: Math.random().toString(36).slice(2, 9), name: "", amount: "" }])}
+                    className="flex items-center gap-1 text-xs text-[#FF5000] hover:underline"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Fee
+                  </button>
                 </div>
+
+                {additionalFees.length === 0 ? (
+                  <p className="text-xs text-gray-400">No additional fees. Click "Add Fee" to include one.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {additionalFees.map((fee) => (
+                      <div key={fee.id} className="grid grid-cols-[1fr_110px_auto] gap-2 items-center">
+                        <Input
+                          type="text"
+                          placeholder="e.g. Legal Fee, Agency Fee"
+                          value={fee.name}
+                          onChange={(e) =>
+                            setAdditionalFees((prev) =>
+                              prev.map((f) => (f.id === fee.id ? { ...f, name: e.target.value } : f))
+                            )
+                          }
+                          className="text-sm"
+                        />
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
+                          <Input
+                            type="text"
+                            placeholder="0"
+                            value={fee.amount}
+                            onChange={(e) => {
+                              const n = e.target.value.replace(/[^0-9.]/g, "");
+                              const formatted = n && parseFloat(n) > 0 ? formatNumberWithCommas(parseFloat(n)) : "";
+                              setAdditionalFees((prev) =>
+                                prev.map((f) => (f.id === fee.id ? { ...f, amount: formatted } : f))
+                              );
+                            }}
+                            className="pl-6 text-sm"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAdditionalFees((prev) => prev.filter((f) => f.id !== fee.id))}
+                          className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                          aria-label="Remove fee"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -470,12 +513,14 @@ export function RenewTenancyScreen({
                       {serviceChargeDisplay}
                     </li>
                   ) : null}
-                  {additionalFees ? (
-                    <li style={{ marginBottom: "10px" }}>
-                      <span style={{ fontWeight: "bold", textDecoration: "underline" }}>Additional Fees:</span>{" "}
-                      {additionalFeesDisplay}
+                  {activeAdditionalFees.map((fee) => (
+                    <li key={fee.id} style={{ marginBottom: "10px" }}>
+                      <span style={{ fontWeight: "bold", textDecoration: "underline" }}>
+                        {fee.name.trim() || "Additional Fee"}:
+                      </span>{" "}
+                      {formatNaira(fee.amount)}
                     </li>
-                  ) : null}
+                  ))}
                   <li style={{ marginBottom: "10px" }}>
                     <span style={{ fontWeight: "bold", textDecoration: "underline" }}>Tenancy Term:</span>{" "}
                     <span style={{ fontStyle: "italic" }}>{tenancyTerm}</span>
