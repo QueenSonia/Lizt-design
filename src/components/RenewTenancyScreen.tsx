@@ -244,15 +244,6 @@ export function RenewTenancyScreen({
             {/* ── LEFT: Form (secondary) ─────────────────────────────── */}
             <div className="w-[320px] shrink-0 space-y-4 opacity-95">
 
-              {/* Read-only context */}
-              <div className="space-y-1 text-xs text-gray-400 pb-1">
-                <p><span className="text-gray-500">Tenant:</span> {tenantName}</p>
-                <p><span className="text-gray-500">Property:</span> {propertyAddress || propertyName}</p>
-                <p><span className="text-gray-500">Landlord:</span> {customLandlordName}</p>
-              </div>
-
-              <div className="border-t border-gray-200 pt-1" />
-
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
                   Payment Frequency <span className="text-red-500">*</span>
