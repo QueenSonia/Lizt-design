@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowLeft, Download, Send, Save, Info } from "lucide-react";
+import { ArrowLeft, Download, Send, Save } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -180,7 +180,7 @@ export function RenewTenancyScreen({
   const addressLines = (tenantAddress || "").split(",").map((l) => l.trim()).filter(Boolean);
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col overflow-hidden">
       {/* ── top bar ────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 shrink-0">
         <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -235,42 +235,37 @@ export function RenewTenancyScreen({
       </div>
 
       {/* ── body ───────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto px-6 py-6">
-          <div className="flex gap-6 items-start">
+      <div className="flex-1 overflow-y-auto bg-white">
+        <div className="max-w-[1400px] mx-auto px-6 py-10">
+          <div className="flex gap-10 items-start">
 
-            {/* ── LEFT: Form ─────────────────────────────────────────── */}
-            <div className="w-[380px] shrink-0 space-y-5">
-
-              <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 text-xs text-blue-700">
-                <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                <span>Tenant and property details are pre-filled. Update the fields below to generate the offer letter.</span>
-              </div>
+            {/* ── LEFT: Form (secondary) ─────────────────────────────── */}
+            <div className="w-[320px] shrink-0 space-y-4 opacity-95">
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tenant Name</Label>
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Tenant Name</Label>
                 <Input value={tenantName} readOnly className="bg-gray-50 text-gray-600 text-sm" />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Property</Label>
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Property</Label>
                 <Input value={propertyAddress || propertyName} readOnly className="bg-gray-50 text-gray-600 text-sm" />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Landlord Name</Label>
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Landlord Name</Label>
                 <Input value={customLandlordName} onChange={(e) => setCustomLandlordName(e.target.value)} className="text-sm" placeholder="Landlord name" />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Landlord Company</Label>
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Landlord Company</Label>
                 <Input value={customLandlordCompany} onChange={(e) => setCustomLandlordCompany(e.target.value)} className="text-sm" placeholder="Landlord company" />
               </div>
 
               <div className="border-t border-gray-200 pt-1" />
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
                   Payment Frequency <span className="text-red-500">*</span>
                 </Label>
                 <Select value={frequency} onValueChange={(v) => { setFrequency(v); setCustomEndDate(""); setErrors((p) => { const c = { ...p }; delete c.frequency; return c; }); }}>
@@ -288,13 +283,13 @@ export function RenewTenancyScreen({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tenancy Start Date</Label>
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Tenancy Start Date</Label>
                 <Input type="text" value={startDisplay} readOnly className="bg-gray-50 text-gray-600 text-sm" />
                 <p className="text-xs text-gray-400">Auto-calculated from previous tenancy end date.</p>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tenancy End Date</Label>
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Tenancy End Date</Label>
                 <Input
                   type="date"
                   value={customEndDate || autoEndDate}
@@ -316,7 +311,7 @@ export function RenewTenancyScreen({
               <div className="border-t border-gray-200 pt-1" />
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
                   Rent Amount <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
@@ -327,7 +322,7 @@ export function RenewTenancyScreen({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Service Charge</Label>
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Service Charge</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₦</span>
                   <Input type="text" placeholder="0" value={serviceCharge} onChange={(e) => handleServiceChargeChange(e.target.value)} className="pl-7 text-sm" />
@@ -336,7 +331,7 @@ export function RenewTenancyScreen({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
                   Additional Fees <span className="text-gray-400 font-normal normal-case">(optional)</span>
                 </Label>
                 <div className="relative">
@@ -356,19 +351,22 @@ export function RenewTenancyScreen({
             </div>
 
             {/* ── RIGHT: Letter Preview — mirrors the reference document ─ */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 flex justify-center">
               <div
                 contentEditable
                 suppressContentEditableWarning
-                className="bg-white shadow-md mx-auto outline-none"
+                className="bg-white mx-auto outline-none rounded-sm"
                 style={{
-                  width: "min(100%, 850px)",
+                  width: "min(100%, 780px)",
                   minHeight: "1100px",
-                  padding: "80px 90px",
+                  padding: "64px 72px",
                   fontFamily: "'Times New Roman', Georgia, serif",
                   fontSize: "14px",
                   lineHeight: "1.7",
                   color: "#222",
+                  boxShadow:
+                    "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06), 0 24px 48px rgba(0,0,0,0.05)",
+                  border: "1px solid rgba(0,0,0,0.04)",
                 }}
               >
                 {/* ── Page 1 ────────────────────────────────────────── */}
