@@ -158,6 +158,28 @@ export function RenewTenancyScreen({
     onConfirm({ rentAmount, paymentFrequency: frequency, serviceCharge, endDate: customEndDate || undefined });
   }
 
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  function handleSave() {
+    try {
+      const payload = {
+        frequency,
+        rentAmount,
+        serviceCharge,
+        additionalFees,
+        customStartDate,
+        customEndDate,
+        customLandlordName,
+        customLandlordCompany,
+        savedAt: new Date().toISOString(),
+      };
+      const key = `renewal-draft:${propertyName || "default"}:${tenantName || "default"}`;
+      window.localStorage.setItem(key, JSON.stringify(payload));
+      setSavedAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+    } catch {
+      // silently ignore storage errors
+    }
+  }
+
   function handleRentChange(v: string) {
     const n = v.replace(/[^0-9.]/g, "");
     setRentAmount(n ? formatNumberWithCommas(parseFloat(n)) : "");
@@ -206,10 +228,10 @@ export function RenewTenancyScreen({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} className="text-gray-600 border-gray-200 h-8 px-3 text-xs">Cancel</Button>
-            <Button type="button" variant="outline" size="sm" className="text-gray-600 border-gray-200 h-8 px-3 text-xs">
+            {savedAt && <span className="text-[11px] text-gray-400">Saved at {savedAt}</span>}
+            <Button type="button" variant="outline" size="sm" onClick={handleSave} className="text-gray-600 border-gray-200 h-8 px-3 text-xs">
               <Save className="w-3 h-3 mr-1.5" />
-              Save Draft
+              Save
             </Button>
             <Button type="button" variant="outline" size="sm" className="text-gray-600 border-gray-200 h-8 px-3 text-xs">
               <Download className="w-3 h-3 mr-1.5" />
