@@ -1664,6 +1664,14 @@ export default function LandlordPropertyDetail({
                           : "—"}
                       </p>
                     </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Tenancy End Date</p>
+                      <p className="text-sm text-gray-900 font-medium">
+                        {propertyData.rentExpiryDate
+                          ? formatDate(propertyData.rentExpiryDate)
+                          : "—"}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Outstanding Balance */}
