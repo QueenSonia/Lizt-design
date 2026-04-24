@@ -54,6 +54,7 @@ import {
   RenewTenancyData,
   calculateEndDate,
 } from "./RenewTenancyModal";
+import { RenewTenancyScreen } from "./RenewTenancyScreen";
 import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
 import { LandlordTopNav } from "./LandlordTopNav";
 import { SetRentPriceRangeModal } from "./SetRentPriceRangeModal";
@@ -2523,14 +2524,15 @@ export default function LandlordPropertyDetail({
         />
       )}
 
-      {/* Renew Tenancy Modal */}
+      {/* Renew Tenancy Screen */}
       {showRenewTenancyModal && propertyData?.currentTenant && (
-        <RenewTenancyModal
-          isOpen={showRenewTenancyModal}
+        <RenewTenancyScreen
           onClose={() => setShowRenewTenancyModal(false)}
           onConfirm={confirmRenewTenancy}
           tenantName={propertyData.currentTenant.name}
           propertyName={propertyData.name}
+          propertyAddress={propertyData.address || propertyData.name}
+          landlordName="Olatunji Oginni"
           currentExpiryDate={propertyData.rentExpiryDate || ""}
           currentRentAmount={
             propertyData.pendingRenewalInvoice?.rentAmount ??
