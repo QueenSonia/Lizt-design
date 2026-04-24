@@ -1729,9 +1729,9 @@ export default function LandlordPropertyDetail({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 my-8 ml-[28px]">
                         {entries.map((entry, i) => (
                           <div key={i}>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm text-gray-900 font-medium">{entry.name}</span>
-                              <span className="text-sm font-semibold text-gray-900">— ₦{entry.amount.toLocaleString()}</span>
+                            <div className="flex items-baseline justify-between gap-4">
+                              <span className="text-sm text-gray-600">{entry.name}</span>
+                              <span className="text-sm font-semibold text-gray-900 tabular-nums">₦{entry.amount.toLocaleString()}</span>
                             </div>
                             {entry.kind === "recurring" ? (
                               <p className="text-xs text-gray-400 mt-0.5">
