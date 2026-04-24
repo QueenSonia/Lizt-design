@@ -84,6 +84,7 @@ interface Props {
   propertyAddress?: string;
   landlordName?: string;
   landlordCompany?: string;
+  landlordLogoUrl?: string;
   tenantWhatsApp?: string;
   tenantEmail?: string;
   currentExpiryDate?: string;
@@ -104,6 +105,7 @@ export function RenewTenancyScreen({
   propertyAddress = "",
   landlordName = "Olatunji Oginni",
   landlordCompany = "Panda Homes Nigeria Limited",
+  landlordLogoUrl,
   tenantWhatsApp = "09069333649",
   tenantEmail = "tenant@email.com",
   currentExpiryDate = "",
@@ -371,20 +373,75 @@ export function RenewTenancyScreen({
               >
                 {/* ── Page 1 ────────────────────────────────────────── */}
 
-                {/* date */}
-                <p style={{ marginBottom: "32px" }}>{letterDate}</p>
+                {/* Letterhead: left = date + recipient, right = logo */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: "32px",
+                    marginBottom: "32px",
+                    flexWrap: "wrap",
+                  }}
+                  contentEditable={false}
+                >
+                  <div style={{ flex: "1 1 auto", minWidth: "0" }}>
+                    {/* date */}
+                    <p style={{ marginBottom: "24px" }} contentEditable suppressContentEditableWarning>
+                      {letterDate}
+                    </p>
 
-                {/* recipient block */}
-                <div style={{ marginBottom: "32px", fontWeight: "bold" }}>
-                  <p>{tenantName}</p>
-                  {addressLines.length > 0 ? (
-                    addressLines.map((line, i) => <p key={i}>{line}</p>)
+                    {/* recipient block */}
+                    <div style={{ fontWeight: "bold" }} contentEditable suppressContentEditableWarning>
+                      <p>{tenantName}</p>
+                      {addressLines.length > 0 ? (
+                        addressLines.map((line, i) => <p key={i}>{line}</p>)
+                      ) : (
+                        <>
+                          <p>Plot 23, Providence Street</p>
+                          <p>Lekki Phase 1</p>
+                          <p>Lagos State</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Logo / placeholder */}
+                  {landlordLogoUrl ? (
+                    <img
+                      src={landlordLogoUrl}
+                      alt={`${customLandlordCompany} logo`}
+                      style={{
+                        flex: "0 0 auto",
+                        width: "110px",
+                        height: "auto",
+                        objectFit: "contain",
+                      }}
+                    />
                   ) : (
-                    <>
-                      <p>Plot 23, Providence Street</p>
-                      <p>Lekki Phase 1</p>
-                      <p>Lagos State</p>
-                    </>
+                    <div
+                      style={{
+                        flex: "0 0 auto",
+                        width: "110px",
+                        height: "110px",
+                        border: "1px dashed #cbd5e1",
+                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#94a3b8",
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        textAlign: "center",
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        backgroundColor: "#f8fafc",
+                      }}
+                      aria-label="Landlord logo placeholder"
+                    >
+                      Logo
+                    </div>
                   )}
                 </div>
 
