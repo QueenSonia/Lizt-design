@@ -244,24 +244,11 @@ export function RenewTenancyScreen({
             {/* ── LEFT: Form (secondary) ─────────────────────────────── */}
             <div className="w-[320px] shrink-0 space-y-4 opacity-95">
 
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Tenant Name</Label>
-                <Input value={tenantName} readOnly className="bg-gray-50 text-gray-600 text-sm" />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Property</Label>
-                <Input value={propertyAddress || propertyName} readOnly className="bg-gray-50 text-gray-600 text-sm" />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Landlord Name</Label>
-                <Input value={customLandlordName} onChange={(e) => setCustomLandlordName(e.target.value)} className="text-sm" placeholder="Landlord name" />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Landlord Company</Label>
-                <Input value={customLandlordCompany} onChange={(e) => setCustomLandlordCompany(e.target.value)} className="text-sm" placeholder="Landlord company" />
+              {/* Read-only context */}
+              <div className="space-y-1 text-xs text-gray-400 pb-1">
+                <p><span className="text-gray-500">Tenant:</span> {tenantName}</p>
+                <p><span className="text-gray-500">Property:</span> {propertyAddress || propertyName}</p>
+                <p><span className="text-gray-500">Landlord:</span> {customLandlordName}</p>
               </div>
 
               <div className="border-t border-gray-200 pt-1" />
