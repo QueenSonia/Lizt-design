@@ -711,13 +711,13 @@ export function RenewTenancyScreen({
                 </p>
 
                 {/* signature lines */}
-                <div style={{ display: "flex", gap: "80px", marginBottom: "60px" }}>
-                  <div>
-                    <p style={{ letterSpacing: "2px" }}>………………………………….</p>
+                <div className="flex flex-col gap-6 sm:flex-row sm:gap-20" style={{ marginBottom: "60px" }}>
+                  <div className="w-full sm:w-auto sm:min-w-[220px]">
+                    <div style={{ borderBottom: "1px solid #555", height: "1px", width: "100%", marginBottom: "6px" }} />
                     <p>Signature</p>
                   </div>
-                  <div>
-                    <p style={{ letterSpacing: "2px" }}>………………………..……………</p>
+                  <div className="w-full sm:w-auto sm:min-w-[220px]">
+                    <div style={{ borderBottom: "1px solid #555", height: "1px", width: "100%", marginBottom: "6px" }} />
                     <p>Date</p>
                   </div>
                 </div>
