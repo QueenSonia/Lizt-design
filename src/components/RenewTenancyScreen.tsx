@@ -264,7 +264,7 @@ export function RenewTenancyScreen({
       {/* ── body ───────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto bg-white">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 md:py-10 pb-32 md:pb-10">
-          <div className="flex flex-col-reverse md:flex-row gap-6 md:gap-10 items-stretch md:items-start">
+          <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-stretch md:items-start">
 
             {/* ── LEFT: Form (secondary) ─────────────────────────────── */}
             <div className="w-full md:w-[320px] md:shrink-0 space-y-5 md:space-y-4 opacity-95">
