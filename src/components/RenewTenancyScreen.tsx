@@ -227,7 +227,8 @@ export function RenewTenancyScreen({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Desktop action cluster */}
+          <div className="hidden md:flex items-center gap-2">
             {savedAt && <span className="text-[11px] text-gray-400">Saved at {savedAt}</span>}
             <Button type="button" variant="outline" size="sm" onClick={handleSave} className="text-gray-600 border-gray-200 h-8 px-3 text-xs">
               <Save className="w-3 h-3 mr-1.5" />
@@ -262,11 +263,11 @@ export function RenewTenancyScreen({
 
       {/* ── body ───────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto bg-white">
-        <div className="max-w-[1400px] mx-auto px-6 py-10">
-          <div className="flex gap-10 items-start">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 md:py-10 pb-32 md:pb-10">
+          <div className="flex flex-col-reverse md:flex-row gap-6 md:gap-10 items-stretch md:items-start">
 
             {/* ── LEFT: Form (secondary) ─────────────────────────────── */}
-            <div className="w-[320px] shrink-0 space-y-4 opacity-95">
+            <div className="w-full md:w-[320px] md:shrink-0 space-y-5 md:space-y-4 opacity-95">
 
               {/* 1. Tenancy Start Date */}
               <div className="space-y-1.5">
@@ -413,11 +414,10 @@ export function RenewTenancyScreen({
               <div
                 contentEditable
                 suppressContentEditableWarning
-                className="bg-white mx-auto outline-none rounded-sm"
+                className="bg-white mx-auto outline-none rounded-sm w-full md:w-auto px-5 py-6 md:px-[72px] md:py-[64px]"
                 style={{
-                  width: "min(100%, 780px)",
+                  maxWidth: "780px",
                   minHeight: "1100px",
-                  padding: "64px 72px",
                   fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
                   fontSize: "14px",
                   lineHeight: "1.7",
@@ -469,7 +469,7 @@ export function RenewTenancyScreen({
                       alt={`${customLandlordCompany} logo`}
                       style={{
                         flex: "0 0 auto",
-                        width: "110px",
+                        width: "clamp(64px, 14vw, 110px)",
                         height: "auto",
                         objectFit: "contain",
                       }}
@@ -478,8 +478,8 @@ export function RenewTenancyScreen({
                     <div
                       style={{
                         flex: "0 0 auto",
-                        width: "110px",
-                        height: "110px",
+                        width: "clamp(64px, 14vw, 110px)",
+                        aspectRatio: "1 / 1",
                         border: "1px dashed #cbd5e1",
                         borderRadius: "6px",
                         display: "flex",
@@ -735,6 +735,37 @@ export function RenewTenancyScreen({
 
           </div>
         </div>
+      </div>
+
+      {/* ── Mobile sticky action bar ──────────────────────────────────── */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-10 bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-2" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        <Button type="button" variant="outline" size="sm" onClick={handleSave} className="flex-1 text-gray-700 border-gray-200 h-10 text-xs">
+          <Save className="w-3.5 h-3.5 mr-1.5" />
+          Save
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="flex-1 text-gray-700 border-gray-200 h-10 text-xs">
+          <Download className="w-3.5 h-3.5 mr-1.5" />
+          PDF
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleSend}
+          disabled={isLoading}
+          className="flex-[1.4] bg-[#FF5000] hover:bg-[#e04600] text-white h-10 text-xs"
+        >
+          {isLoading ? (
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Sending…
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5" />
+              Send
+            </span>
+          )}
+        </Button>
       </div>
     </div>
   );
