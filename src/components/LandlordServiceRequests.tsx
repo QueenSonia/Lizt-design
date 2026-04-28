@@ -65,6 +65,84 @@ const SOURCE_LABEL: Record<RequestSource, string> = {
   facility_manager: "Facility Manager",
 };
 
+const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
+  {
+    id: "sr-001",
+    request_id: "SR-001",
+    tenant_name: "James Okafor",
+    reporter_name: "James Okafor",
+    source: "tenant",
+    property_name: "Lekki Phase 1 Duplex",
+    issue_category: "Plumbing",
+    description: "Kitchen sink is leaking and water pools under the cabinet.",
+    status: "open",
+    date_reported: "2026-04-25T09:30:00.000Z",
+    updated_at: "2026-04-26T11:00:00.000Z",
+    tenant_id: "t-001",
+    property_id: "p-001",
+  },
+  {
+    id: "sr-002",
+    request_id: "SR-002",
+    tenant_name: "Adaeze Nwosu",
+    reporter_name: "Adaeze Nwosu",
+    source: "tenant",
+    property_name: "Ikoyi 2-Bed Apartment",
+    issue_category: "Electrical",
+    description: "Living room sockets stopped working after last power outage.",
+    status: "in_progress",
+    date_reported: "2026-04-22T14:10:00.000Z",
+    updated_at: "2026-04-27T08:20:00.000Z",
+    tenant_id: "t-002",
+    property_id: "p-002",
+  },
+  {
+    id: "sr-003",
+    request_id: "SR-003",
+    tenant_name: "—",
+    reporter_name: "Tobi Adekunle",
+    source: "facility_manager",
+    property_name: "Lekki Phase 1 Duplex",
+    issue_category: "Common Area",
+    description: "Driveway gate motor is jammed; needs replacement bracket.",
+    status: "open",
+    date_reported: "2026-04-26T07:45:00.000Z",
+    updated_at: "2026-04-27T13:00:00.000Z",
+    tenant_id: "",
+    property_id: "p-001",
+  },
+  {
+    id: "sr-004",
+    request_id: "SR-004",
+    tenant_name: "—",
+    reporter_name: "Chinwe Obi",
+    source: "facility_manager",
+    property_name: "Ikoyi 2-Bed Apartment",
+    issue_category: "Inspection",
+    description: "Quarterly inspection found a cracked tile in the bathroom.",
+    status: "resolved",
+    date_reported: "2026-04-18T10:00:00.000Z",
+    updated_at: "2026-04-24T16:30:00.000Z",
+    tenant_id: "",
+    property_id: "p-002",
+  },
+  {
+    id: "sr-005",
+    request_id: "SR-005",
+    tenant_name: "Emmanuel Etim",
+    reporter_name: "Emmanuel Etim",
+    source: "tenant",
+    property_name: "Victoria Island Studio",
+    issue_category: "HVAC",
+    description: "Air conditioner not cooling, just blowing warm air.",
+    status: "urgent",
+    date_reported: "2026-04-27T19:05:00.000Z",
+    updated_at: "2026-04-27T19:05:00.000Z",
+    tenant_id: "t-003",
+    property_id: "p-003",
+  },
+];
+
 export default function LandlordServiceRequests({
   onBack,
   onMenuClick,
@@ -95,7 +173,8 @@ export default function LandlordServiceRequests({
 
   console.log("Service requests query state:", { data, isLoading, error });
 
-  const requests: ServiceRequest[] = data?.service_requests || [];
+  const apiRequests: ServiceRequest[] = data?.service_requests || [];
+  const requests: ServiceRequest[] = apiRequests.length > 0 ? apiRequests : MOCK_SERVICE_REQUESTS;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
