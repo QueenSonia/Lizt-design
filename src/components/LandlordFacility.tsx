@@ -990,15 +990,24 @@ export function LandlordFacility({
         <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
           {selectedRequest && (() => {
             const currentStatus = statusOverrides[selectedRequest.id] ?? selectedRequest.status;
+            const source = resolveSource(selectedRequest);
+            const isResolved = currentStatus.toLowerCase() === "resolved";
+            const isApproved = ["in_progress", "resolved", "closed"].includes(currentStatus.toLowerCase());
+            const setStatus = (next: string, message: string) => {
+              setStatusOverrides((prev) => ({ ...prev, [selectedRequest.id]: next }));
+              setSelectedRequest((r) => (r ? { ...r, status: next } : r));
+              toast.success(message);
+            };
             return (
               <>
+                {/* Header: title (left) + status badge (top-right) */}
                 <DialogHeader>
-                  <div className="flex items-start gap-3 pr-2">
-                    <DialogTitle className="text-lg leading-snug flex-1">
+                  <div className="flex items-start gap-3 pr-8">
+                    <DialogTitle className="text-lg font-semibold leading-snug flex-1">
                       {selectedRequest.description}
                     </DialogTitle>
                     <span
-                      className={`shrink-0 mt-1 text-xs px-2.5 py-1 rounded-full border ${
+                      className={`shrink-0 mt-0.5 text-xs px-2.5 py-1 rounded-full border ${
                         ({
                           open: "bg-yellow-100 text-yellow-700 border-yellow-200",
                           pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
@@ -1015,7 +1024,7 @@ export function LandlordFacility({
                   </div>
                 </DialogHeader>
 
-                <div className="space-y-5 py-2">
+                <div className="space-y-6 py-2">
                   {/* Details */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                     <div>
@@ -1025,7 +1034,7 @@ export function LandlordFacility({
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Reported by</p>
                       <p className="text-gray-900">
-                        {SOURCE_LABEL[resolveSource(selectedRequest)]} – {reporterName(selectedRequest)}
+                        {SOURCE_LABEL[source]} – {reporterName(selectedRequest)}
                       </p>
                     </div>
                     <div>
@@ -1067,48 +1076,24 @@ export function LandlordFacility({
                       </div>
                     </div>
                   )}
-
-                  {/* Update status */}
-                  <div>
-                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Update Status</p>
-                    <Select
-                      value={currentStatus}
-                      onValueChange={(v) => {
-                        setStatusOverrides((prev) => ({ ...prev, [selectedRequest.id]: v }));
-                        setSelectedRequest((r) => (r ? { ...r, status: v } : r));
-                        toast.success(`Status updated to ${formatStatusLabel(v)}`);
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="resolved">Resolved</SelectItem>
-                        <SelectItem value="reopened">Reopened</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
-                <DialogFooter className="gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedRequest(null)}
-                  >
-                    Close
-                  </Button>
+                {/* Context-aware actions */}
+                <DialogFooter className="gap-2 sm:justify-end">
+                  {source === "facility_manager" && (
+                    <Button
+                      variant="outline"
+                      disabled={isApproved}
+                      onClick={() => setStatus("in_progress", "Request approved")}
+                      className="border-[#FF5000] text-[#FF5000] hover:bg-[#FFF3EB]"
+                    >
+                      {isApproved ? "Approved" : "Approve Request"}
+                    </Button>
+                  )}
                   <Button
                     className="bg-[#FF5000] hover:bg-[#e04600] text-white"
-                    disabled={currentStatus.toLowerCase() === "resolved"}
-                    onClick={() => {
-                      setStatusOverrides((prev) => ({ ...prev, [selectedRequest.id]: "resolved" }));
-                      setSelectedRequest((r) => (r ? { ...r, status: "resolved" } : r));
-                      toast.success("Marked as Resolved");
-                    }}
+                    disabled={isResolved}
+                    onClick={() => setStatus("resolved", "Marked as Resolved")}
                   >
                     Mark as Resolved
                   </Button>
