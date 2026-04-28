@@ -637,7 +637,6 @@ export function LandlordFacility({
                       )}
                       {facilityManagerRequests.length > 0 && (
                         <section>
-                          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">From Facility Managers</h3>
                           <div className="space-y-4">{facilityManagerRequests.map(renderCard)}</div>
                         </section>
                       )}
