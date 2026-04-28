@@ -12,6 +12,7 @@ import {
 import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import AddManagerModal from "./AddManagerModal";
 import { toast } from "sonner";
 import {
@@ -302,6 +303,8 @@ export function LandlordFacility({
   const [statusFilter, setStatusFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState<"all" | RequestSource>("all");
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
   const page = 1;
   const size = 50;
 
@@ -593,14 +596,25 @@ export function LandlordFacility({
                 const renderCard = (request: ServiceRequest) => (
                   <div
                     key={request.id}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedRequest(request)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedRequest(request);
+                      }
+                    }}
+                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <h3 className="text-lg text-gray-900 flex-1">{request.description}</h3>
-                      <StatusBadgeDropdown
-                        status={formatStatusLabel(request.status) as "Open" | "Resolved" | "Reopened" | "Closed" | "Pending" | "In Progress" | "Urgent"}
-                        statusHistory={formatStatusHistory(request.statusHistory)}
-                      />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <StatusBadgeDropdown
+                          status={formatStatusLabel(statusOverrides[request.id] ?? request.status) as "Open" | "Resolved" | "Reopened" | "Closed" | "Pending" | "In Progress" | "Urgent"}
+                          statusHistory={formatStatusHistory(request.statusHistory)}
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center gap-2">
@@ -970,6 +984,140 @@ export function LandlordFacility({
           </div>
         </div>
       )}
+
+      {/* ── Service Request Detail Modal ─────────────────────────────────── */}
+      <Dialog open={!!selectedRequest} onOpenChange={(v) => !v && setSelectedRequest(null)}>
+        <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          {selectedRequest && (() => {
+            const currentStatus = statusOverrides[selectedRequest.id] ?? selectedRequest.status;
+            return (
+              <>
+                <DialogHeader>
+                  <div className="flex items-start gap-3 pr-2">
+                    <DialogTitle className="text-lg leading-snug flex-1">
+                      {selectedRequest.description}
+                    </DialogTitle>
+                    <span
+                      className={`shrink-0 mt-1 text-xs px-2.5 py-1 rounded-full border ${
+                        ({
+                          open: "bg-yellow-100 text-yellow-700 border-yellow-200",
+                          pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
+                          in_progress: "bg-blue-100 text-blue-700 border-blue-200",
+                          resolved: "bg-green-100 text-green-700 border-green-200",
+                          urgent: "bg-red-100 text-red-700 border-red-200",
+                          reopened: "bg-red-100 text-red-700 border-red-200",
+                          closed: "bg-gray-100 text-gray-700 border-gray-200",
+                        } as Record<string, string>)[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-700 border-gray-200"
+                      }`}
+                    >
+                      {formatStatusLabel(currentStatus)}
+                    </span>
+                  </div>
+                </DialogHeader>
+
+                <div className="space-y-5 py-2">
+                  {/* Details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Property</p>
+                      <p className="text-gray-900">{selectedRequest.property_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Reported by</p>
+                      <p className="text-gray-900">
+                        {SOURCE_LABEL[resolveSource(selectedRequest)]} – {reporterName(selectedRequest)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Date Reported</p>
+                      <p className="text-gray-900">{formatDateTime(selectedRequest.date_reported)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
+                      <p className="text-gray-900">
+                        {getRelativeTime(selectedRequest.updated_at || selectedRequest.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Description</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-line">
+                      {selectedRequest.description}
+                    </p>
+                  </div>
+
+                  {/* Media */}
+                  {selectedRequest.issue_images && selectedRequest.issue_images.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Attachments</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {selectedRequest.issue_images.map((src, i) => (
+                          <a
+                            key={i}
+                            href={src}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50"
+                          >
+                            <img src={src} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Update status */}
+                  <div>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Update Status</p>
+                    <Select
+                      value={currentStatus}
+                      onValueChange={(v) => {
+                        setStatusOverrides((prev) => ({ ...prev, [selectedRequest.id]: v }));
+                        setSelectedRequest((r) => (r ? { ...r, status: v } : r));
+                        toast.success(`Status updated to ${formatStatusLabel(v)}`);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                        <SelectItem value="reopened">Reopened</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <DialogFooter className="gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedRequest(null)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    className="bg-[#FF5000] hover:bg-[#e04600] text-white"
+                    disabled={currentStatus.toLowerCase() === "resolved"}
+                    onClick={() => {
+                      setStatusOverrides((prev) => ({ ...prev, [selectedRequest.id]: "resolved" }));
+                      setSelectedRequest((r) => (r ? { ...r, status: "resolved" } : r));
+                      toast.success("Marked as Resolved");
+                    }}
+                  >
+                    Mark as Resolved
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
