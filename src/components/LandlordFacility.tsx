@@ -484,31 +484,7 @@ export function LandlordFacility({
           <>
             {/* Service Requests */}
             <div>
-              {/* Source filter chips */}
-              <div className="mb-4 flex items-center gap-2 flex-wrap">
-                {([
-                  { value: "all", label: "All" },
-                  { value: "tenant", label: "Tenants" },
-                  { value: "facility_manager", label: "Facility Managers" },
-                ] as const).map((opt) => {
-                  const active = sourceFilter === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setSourceFilter(opt.value)}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                        active
-                          ? "bg-[#FF5000] text-white border-[#FF5000]"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm mb-6 max-w-xl">
+              <div className="bg-white rounded-xl p-4 shadow-sm mb-2 max-w-xl">
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -559,6 +535,31 @@ export function LandlordFacility({
                     </PopoverContent>
                   </Popover>
                 </div>
+              </div>
+
+              {/* Source filter — secondary refinement */}
+              <div className="mb-5 flex items-center gap-1.5 flex-wrap">
+                {([
+                  { value: "all", label: "All" },
+                  { value: "tenant", label: "Tenants" },
+                  { value: "facility_manager", label: "Facility Managers" },
+                ] as const).map((opt) => {
+                  const active = sourceFilter === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setSourceFilter(opt.value)}
+                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                        active
+                          ? "bg-gray-900 text-white border-gray-900"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {loadingRequests && (
