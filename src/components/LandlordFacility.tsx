@@ -484,7 +484,7 @@ export function LandlordFacility({
           <>
             {/* Service Requests */}
             <div>
-              <div className="bg-white rounded-xl p-4 shadow-sm mb-2 max-w-xl">
+              <div className="bg-white rounded-xl p-4 shadow-sm mb-6 max-w-xl">
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -538,7 +538,7 @@ export function LandlordFacility({
               </div>
 
               {/* Source filter — secondary refinement */}
-              <div className="mb-5 flex items-center gap-1.5 flex-wrap">
+              <div className="mb-2.5 flex items-center gap-1.5 flex-wrap">
                 {([
                   { value: "all", label: "All" },
                   { value: "tenant", label: "Tenants" },
