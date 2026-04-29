@@ -17,6 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -181,6 +188,7 @@ export default function LandlordCommonAreaDetail({ }: Props) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
 
   const handleApprove = (requestId: string) => {
     setAllAreas((prev) =>
@@ -195,6 +203,7 @@ export default function LandlordCommonAreaDetail({ }: Props) {
           : a,
       ),
     );
+    setSelectedRequest((r) => (r && r.id === requestId ? { ...r, status: "in_progress" } : r));
   };
 
   const filteredRequests = useMemo(() => {
@@ -312,7 +321,16 @@ export default function LandlordCommonAreaDetail({ }: Props) {
               {filteredRequests.map((req) => (
                 <div
                   key={req.id}
-                  className={`bg-white rounded-xl p-5 shadow-sm border ${req.status === "pending_approval" ? "border-orange-100" : "border-gray-100"}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedRequest(req)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedRequest(req);
+                    }
+                  }}
+                  className={`bg-white rounded-xl p-5 shadow-sm border cursor-pointer transition-all hover:shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1 ${req.status === "pending_approval" ? "border-orange-100" : "border-gray-100"}`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex-1 min-w-0">
@@ -339,7 +357,7 @@ export default function LandlordCommonAreaDetail({ }: Props) {
                     {req.status === "pending_approval" && (
                       <Button
                         size="sm"
-                        onClick={() => handleApprove(req.id)}
+                        onClick={(e) => { e.stopPropagation(); handleApprove(req.id); }}
                         className="bg-[#FF5000] hover:bg-[#E64800] text-white text-xs h-7 px-3 shrink-0"
                       >
                         Approve
@@ -353,6 +371,64 @@ export default function LandlordCommonAreaDetail({ }: Props) {
         </div>
       </div>
 
+      {/* ── Service Request Detail Modal ─────────────────────────────────── */}
+      <Dialog open={!!selectedRequest} onOpenChange={(v) => !v && setSelectedRequest(null)}>
+        <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          {selectedRequest && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-3 pr-8">
+                  <DialogTitle className="text-lg font-semibold leading-snug flex-1">
+                    {selectedRequest.issue_category}
+                  </DialogTitle>
+                  <span
+                    className={`shrink-0 mt-0.5 text-xs px-2.5 py-1 rounded-full border ${
+                      STATUS_COLORS[selectedRequest.status] ?? STATUS_COLORS.closed
+                    }`}
+                  >
+                    {formatStatusLabel(selectedRequest.status)}
+                  </span>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 py-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Location</p>
+                    <p className="text-gray-900">{area.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Reported by</p>
+                    <p className="text-gray-900">{selectedRequest.reported_by}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-gray-400 mb-0.5">Date Reported</p>
+                    <p className="text-gray-900">{formatDate(selectedRequest.date_reported)}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Description</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-line">
+                    {selectedRequest.description || "No additional description provided."}
+                  </p>
+                </div>
+              </div>
+
+              {selectedRequest.status === "pending_approval" && (
+                <DialogFooter className="sm:justify-end">
+                  <Button
+                    onClick={() => handleApprove(selectedRequest.id)}
+                    className="bg-[#FF5000] hover:bg-[#E64800] text-white"
+                  >
+                    Approve
+                  </Button>
+                </DialogFooter>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
