@@ -991,7 +991,6 @@ export function LandlordFacility({
           {selectedRequest && (() => {
             const currentStatus = statusOverrides[selectedRequest.id] ?? selectedRequest.status;
             const source = resolveSource(selectedRequest);
-            const isResolved = currentStatus.toLowerCase() === "resolved";
             const isApproved = ["in_progress", "resolved", "closed"].includes(currentStatus.toLowerCase());
             const setStatus = (next: string, message: string) => {
               setStatusOverrides((prev) => ({ ...prev, [selectedRequest.id]: next }));
@@ -1078,26 +1077,24 @@ export function LandlordFacility({
                   )}
                 </div>
 
-                {/* Context-aware actions */}
-                <DialogFooter className="gap-2 sm:justify-end">
-                  {source === "facility_manager" && (
+                {/* Context-aware footer */}
+                {source === "facility_manager" ? (
+                  <DialogFooter className="sm:justify-end">
                     <Button
-                      variant="outline"
                       disabled={isApproved}
                       onClick={() => setStatus("in_progress", "Request approved")}
-                      className="border-[#FF5000] text-[#FF5000] hover:bg-[#FFF3EB]"
+                      className="bg-[#FF5000] hover:bg-[#e04600] text-white"
                     >
                       {isApproved ? "Approved" : "Approve Request"}
                     </Button>
-                  )}
-                  <Button
-                    className="bg-[#FF5000] hover:bg-[#e04600] text-white"
-                    disabled={isResolved}
-                    onClick={() => setStatus("resolved", "Marked as Resolved")}
-                  >
-                    Mark as Resolved
-                  </Button>
-                </DialogFooter>
+                  </DialogFooter>
+                ) : (
+                  <div className="flex justify-end pt-2">
+                    <p className="text-xs text-gray-500 italic">
+                      Sent to facility team for resolution
+                    </p>
+                  </div>
+                )}
               </>
             );
           })()}
