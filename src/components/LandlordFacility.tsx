@@ -252,6 +252,18 @@ export function LandlordFacility({
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [propPopoverOpen, setPropPopoverOpen] = useState(false);
+  const [confirmDeleteManager, setConfirmDeleteManager] = useState(false);
+
+  const deleteManager = () => {
+    if (!detailManager) return;
+    detailManager.assigned_properties.forEach((prop) => setStoreFMAssignment(prop, null));
+    setManagers((prev) => prev.filter((m) => m.id !== detailManager.id));
+    setConfirmDeleteManager(false);
+    setDetailManager(null);
+    setIsEditingManager(false);
+    setPropPopoverOpen(false);
+    toast.success("Facility Manager deleted successfully");
+  };
 
   const ALL_PROPERTIES = [
     "Lekki Phase 1 Duplex",
@@ -922,8 +934,12 @@ export function LandlordFacility({
                 </>
               ) : (
                 <>
-                  <Button variant="outline" className="flex-1" onClick={() => { setDetailManager(null); setPropPopoverOpen(false); }}>
-                    Close
+                  <Button
+                    variant="outline"
+                    onClick={() => setConfirmDeleteManager(true)}
+                    className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    Delete
                   </Button>
                   <Button
                     className="flex-1 bg-[#FF5000] hover:bg-[#E64800] text-white"
@@ -937,6 +953,28 @@ export function LandlordFacility({
           </div>
         </div>
       )}
+
+      {/* Delete Facility Manager confirmation */}
+      <Dialog open={confirmDeleteManager} onOpenChange={setConfirmDeleteManager}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Facility Manager?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 py-2">
+            This will remove{" "}
+            <span className="font-medium text-gray-900">{detailManager?.name}</span>{" "}
+            from all assigned properties. Existing service requests will remain unchanged.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmDeleteManager(false)}>
+              Cancel
+            </Button>
+            <Button onClick={deleteManager} className="bg-red-600 hover:bg-red-700 text-white">
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Common Area modal */}
       {showAddAreaModal && (
