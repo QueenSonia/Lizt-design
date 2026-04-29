@@ -14,12 +14,14 @@ import {
   User,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
 import { toast } from "sonner";
+import { removeFacilityManager } from "@/lib/facilityManagerStore";
 
 // Mock data for facility managers
 const mockFacilityManagers = [
@@ -71,17 +73,18 @@ export default function LandlordFacilityManagerDetail({
   onBack,
 }: LandlordFacilityManagerDetailProps) {
   const manager = mockFacilityManagers.find((fm) => fm.id === managerId);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleEdit = () => {
     toast.success("Edit facility manager feature coming soon!");
   };
 
-  const handleRemove = () => {
-    if (manager) {
-      toast.success(`${manager.name} has been removed successfully!`);
-      // In a real app, this would update the state and navigate back
-      onBack();
-    }
+  const handleConfirmDelete = () => {
+    if (!manager) return;
+    removeFacilityManager(manager.id);
+    setConfirmDelete(false);
+    toast.success("Facility Manager deleted successfully");
+    onBack();
   };
 
   const formatDate = (dateString: string) => {
@@ -134,27 +137,20 @@ export default function LandlordFacilityManagerDetail({
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Edit className="w-4 h-4 mr-2" />
-              Actions
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={handleEdit}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Details
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleRemove}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Remove Manager
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleEdit}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setConfirmDelete(true)}
+            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
+          </Button>
+        </div>
       </div>
 
       {/* Contact Information */}
@@ -221,6 +217,29 @@ export default function LandlordFacilityManagerDetail({
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete confirmation */}
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Facility Manager?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 py-2">
+            This will remove <span className="font-medium text-gray-900">{manager.name}</span> from all assigned properties. Existing service requests will remain unchanged.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

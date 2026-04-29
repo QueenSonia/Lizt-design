@@ -58,3 +58,19 @@ export function getPropertiesForManager(managerId: string): string[] {
     .filter(([, mid]) => mid === managerId)
     .map(([prop]) => prop);
 }
+
+/**
+ * Remove a facility manager from the system. Unassigns them from every
+ * property they were managing. Past service requests are kept untouched —
+ * this only mutates the FM list and the property-assignment map.
+ */
+export function removeFacilityManager(managerId: string) {
+  const idx = MOCK_FM_LIST.findIndex((m) => m.id === managerId);
+  if (idx !== -1) {
+    MOCK_FM_LIST.splice(idx, 1);
+  }
+  for (const [prop, mid] of Array.from(_assignments.entries())) {
+    if (mid === managerId) _assignments.delete(prop);
+  }
+  _notify();
+}
