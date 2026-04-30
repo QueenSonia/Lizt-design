@@ -647,30 +647,30 @@ export function LandlordKYCApplicationDetail({
           </div>
         </div>
 
-        {/* Row 2: Outstanding Balance, Offer Status Badge, Download PDF, Attach Tenant */}
+        {/* Row 2: Application status, Offer Status Badge, Download PDF, Attach Tenant */}
         <div className="px-4 sm:px-6 py-2 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
-            {/* Outstanding / Credit Balance — clickable breakdown */}
-            <button
-              onClick={() => setShowBreakdownModal(true)}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-gray-100 transition-colors"
-            >
-              {creditBalance > 0 ? (
-                <>
-                  <span className="text-xs text-gray-500">Credit</span>
-                  <span className="text-sm font-semibold text-green-600">
-                    ₦{creditBalance.toLocaleString()}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-xs text-gray-500">Outstanding</span>
-                  <span className={`text-sm font-semibold ${outstandingBalance > 0 ? "text-[#FF5000]" : "text-gray-900"}`}>
-                    ₦{outstandingBalance.toLocaleString()}
-                  </span>
-                </>
-              )}
-            </button>
+            {(() => {
+              const statusLabel =
+                application.status === "Attached"
+                  ? "Approved"
+                  : application.status === "Rejected"
+                    ? "Rejected"
+                    : application.status === "Pending Completion"
+                      ? "Pending Completion"
+                      : "Pending Review";
+              const statusClass =
+                application.status === "Attached"
+                  ? "bg-green-50 text-green-700 border-green-200"
+                  : application.status === "Rejected"
+                    ? "bg-red-50 text-red-700 border-red-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200";
+              return (
+                <Badge className={`${statusClass} border px-3 py-1 text-xs`}>
+                  {statusLabel}
+                </Badge>
+              );
+            })()}
             {application.offerStatus === "pending" && (
               <button onClick={onViewOfferLetter} className="cursor-pointer">
                 <Badge
@@ -710,14 +710,6 @@ export function LandlordKYCApplicationDetail({
             >
               Attach tenant
             </Button>
-            <Button
-              onClick={() => { resetInvoiceModal(); setShowGenerateInvoiceModal(true); }}
-              size="sm"
-              className="h-8 text-xs bg-[#FF5000] hover:bg-[#E64500] text-white flex items-center gap-1.5"
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Generate Invoice</span>
-            </Button>
           </div>
         </div>
 
@@ -750,13 +742,6 @@ export function LandlordKYCApplicationDetail({
       <div className="px-4 sm:px-6 pt-6 pb-16 space-y-6">
         {activeTab === "overview" && (
           <>
-            {/* Tenancy status banner */}
-            {!application.tenantOffer && !application.offerLetter && (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-gray-400 shrink-0" />
-                <p className="text-sm text-gray-500">No active tenancy linked</p>
-              </div>
-            )}
             {/* Offer banner (no duplicate badge) */}
             {/* {(application.offerLetterStatus === "pending" ||
               application.offerStatus === "pending") && (
@@ -1456,395 +1441,6 @@ export function LandlordKYCApplicationDetail({
         </DialogContent>
       </Dialog>
 
-      {/* Outstanding Balance Breakdown Modal */}
-      <Dialog
-        open={showBreakdownModal}
-        onOpenChange={(open) => {
-          if (!open) { setShowBreakdownModal(false); setIsAdjustingBalance(false); }
-        }}
-      >
-        <DialogContent
-          className="w-[98vw] !max-w-[98vw] max-h-[90vh] overflow-y-auto"
-          data-modal="outstanding-balance"
-        >
-          <DialogHeader>
-            <DialogTitle>Outstanding Balance Breakdown</DialogTitle>
-          </DialogHeader>
-
-          {!isAdjustingBalance && (
-            <button
-              onClick={handleBreakdownDownload}
-              disabled={downloading}
-              className="absolute right-10 top-4 rounded-sm opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-gray-700 transition-opacity disabled:opacity-50"
-              title="Download breakdown"
-            >
-              <Download className={`w-4 h-4 ${downloading ? "animate-bounce" : ""}`} />
-            </button>
-          )}
-
-          {(() => {
-            const displayedBalance = breakdownRows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
-            const draftBalance = breakdownDraft.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
-            const activeBalance = isAdjustingBalance ? draftBalance : displayedBalance;
-
-            const formatRowDate = (iso: string) => {
-              const d = new Date(iso);
-              return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-            };
-
-            return (
-              <div className="space-y-5 mt-4">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    {activeBalance < 0 ? (
-                      <>
-                        <p className="text-sm text-slate-500 mb-1">Credit Balance</p>
-                        <p className="text-2xl font-semibold text-green-600">₦{Math.abs(activeBalance).toLocaleString()}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">Automatically applied to the next rent cycle</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-slate-500 mb-1">Outstanding Balance</p>
-                        <p className="text-2xl font-semibold text-orange-600">₦{activeBalance.toLocaleString()}</p>
-                      </>
-                    )}
-                  </div>
-
-                  {!isAdjustingBalance ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0 border-slate-300 text-slate-700 hover:bg-slate-50"
-                      onClick={() => { setBreakdownDraft(breakdownRows.map((r) => ({ ...r }))); setIsAdjustingBalance(true); }}
-                    >
-                      <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                      Adjust Balance
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2 shrink-0">
-                      <Button size="sm" variant="outline" className="border-slate-300 text-slate-600"
-                        onClick={() => { setBreakdownDraft(breakdownRows.map((r) => ({ ...r }))); setIsAdjustingBalance(false); }}>
-                        Cancel
-                      </Button>
-                      <Button size="sm" className="bg-[#FF5000] hover:bg-[#E64500] text-white"
-                        onClick={() => { setBreakdownRows(breakdownDraft.map((r) => ({ ...r }))); setIsAdjustingBalance(false); }}>
-                        Save Changes
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
-                {isAdjustingBalance && (
-                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                    Edit mode — modify amounts, descriptions, or dates. Delete rows with ×. Changes apply when you save.
-                  </p>
-                )}
-
-                {breakdownDraft.length === 0 && !isAdjustingBalance ? (
-                  <p className="text-sm text-slate-400 text-center py-4">No transactions yet</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className={`border-b ${isAdjustingBalance ? "border-amber-200 bg-amber-50/50" : "border-slate-200"}`}>
-                          <th className="text-left py-3 px-3 text-slate-500 font-medium whitespace-nowrap w-[120px]">Date</th>
-                          <th className="text-left py-3 px-3 text-slate-500 font-medium">Description</th>
-                          <th className="text-right py-3 px-3 text-slate-500 font-medium whitespace-nowrap w-[140px]">Amount</th>
-                          <th className="text-right py-3 px-3 text-slate-500 font-medium whitespace-nowrap w-[140px]">Balance</th>
-                          {isAdjustingBalance && <th className="w-8" />}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(isAdjustingBalance ? breakdownDraft : breakdownRows).map((row, index) => {
-                          const rows = isAdjustingBalance ? breakdownDraft : breakdownRows;
-                          const runningBalance = rows.slice(0, index + 1).reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
-                          const amt = parseFloat(row.amount) || 0;
-                          return (
-                            <tr key={row.id} className={`border-b last:border-b-0 ${isAdjustingBalance ? "border-amber-100 bg-amber-50/30 hover:bg-amber-50/60" : "border-slate-100"}`}>
-                              <td className="py-3 px-3 text-slate-500 whitespace-nowrap">
-                                {isAdjustingBalance ? (
-                                  <input type="date" value={row.date}
-                                    onChange={(e) => setBreakdownDraft((prev) => prev.map((r) => r.id === row.id ? { ...r, date: e.target.value } : r))}
-                                    className="w-full border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#FF5000] focus:border-[#FF5000]" />
-                                ) : formatRowDate(row.date)}
-                              </td>
-                              <td className="py-3 px-3 text-slate-700">
-                                {isAdjustingBalance ? (
-                                  <input type="text" value={row.description}
-                                    onChange={(e) => setBreakdownDraft((prev) => prev.map((r) => r.id === row.id ? { ...r, description: e.target.value } : r))}
-                                    className="w-full border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#FF5000] focus:border-[#FF5000]" />
-                                ) : row.description}
-                              </td>
-                              <td className={`py-3 px-3 text-right whitespace-nowrap font-medium ${amt < 0 ? "text-emerald-600" : "text-slate-900"}`}>
-                                {isAdjustingBalance ? (
-                                  <input type="number" value={row.amount}
-                                    onChange={(e) => setBreakdownDraft((prev) => prev.map((r) => r.id === row.id ? { ...r, amount: e.target.value } : r))}
-                                    className="w-full border border-slate-300 rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-1 focus:ring-[#FF5000] focus:border-[#FF5000]" />
-                                ) : (amt < 0 ? `-₦${Math.abs(amt).toLocaleString()}` : `+₦${amt.toLocaleString()}`)}
-                              </td>
-                              <td className={`py-3 px-3 text-right whitespace-nowrap font-medium ${runningBalance > 0 ? "text-orange-600" : runningBalance < 0 ? "text-emerald-600" : "text-slate-900"}`}>
-                                {runningBalance < 0 ? `Credit ₦${Math.abs(runningBalance).toLocaleString()}` : `₦${runningBalance.toLocaleString()}`}
-                              </td>
-                              {isAdjustingBalance && (
-                                <td className="py-3 px-1 text-center">
-                                  <button type="button"
-                                    onClick={() => setBreakdownDraft((prev) => prev.filter((r) => r.id !== row.id))}
-                                    className="text-slate-400 hover:text-red-500 transition-colors p-0.5 rounded"
-                                    title="Delete row">
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </td>
-                              )}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
-
-      {/* Generate Invoice Modal */}
-      <Dialog
-        open={showGenerateInvoiceModal}
-        onOpenChange={(open) => { if (!open) { setShowGenerateInvoiceModal(false); resetInvoiceModal(); } }}
-      >
-        <DialogContent className="bg-white max-w-lg max-h-[90vh] overflow-y-auto">
-          {invoiceStep === "form" ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Generate Invoice</DialogTitle>
-              </DialogHeader>
-
-              <div className="space-y-5 py-2">
-                {/* Tenant (read-only) */}
-                <div>
-                  <label className="block text-sm text-gray-700 mb-1.5">Tenant</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-900">
-                    {tenantName || "—"}
-                  </div>
-                </div>
-
-                {/* Invoice Items */}
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">
-                    Invoice Items <span className="text-red-500">*</span>
-                  </label>
-                  <div className="space-y-3">
-                    {invoiceForm.items.map((item, idx) => (
-                      <div key={idx} className="flex gap-2 items-start">
-                        <div className="flex-1 space-y-1">
-                          <Input
-                            placeholder="Fee name (e.g. Diesel Fee)"
-                            value={item.feeName}
-                            onChange={(e) => {
-                              const items = [...invoiceForm.items];
-                              items[idx] = { ...items[idx], feeName: e.target.value };
-                              setInvoiceForm((f) => ({ ...f, items }));
-                              const errs = [...invoiceItemErrors];
-                              errs[idx] = { ...errs[idx], feeName: "" };
-                              setInvoiceItemErrors(errs);
-                            }}
-                            className={invoiceItemErrors[idx]?.feeName ? "border-red-500" : ""}
-                          />
-                          {invoiceItemErrors[idx]?.feeName && (
-                            <p className="text-xs text-red-500">{invoiceItemErrors[idx].feeName}</p>
-                          )}
-                        </div>
-                        <div className="w-36 space-y-1">
-                          <Input
-                            placeholder="Amount"
-                            value={item.amount}
-                            onChange={(e) => {
-                              const items = [...invoiceForm.items];
-                              items[idx] = { ...items[idx], amount: e.target.value };
-                              setInvoiceForm((f) => ({ ...f, items }));
-                              const errs = [...invoiceItemErrors];
-                              errs[idx] = { ...errs[idx], amount: "" };
-                              setInvoiceItemErrors(errs);
-                            }}
-                            className={invoiceItemErrors[idx]?.amount ? "border-red-500" : ""}
-                          />
-                          {invoiceItemErrors[idx]?.amount && (
-                            <p className="text-xs text-red-500">{invoiceItemErrors[idx].amount}</p>
-                          )}
-                        </div>
-                        {invoiceForm.items.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setInvoiceForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
-                              setInvoiceItemErrors((e) => e.filter((_, i) => i !== idx));
-                            }}
-                            className="mt-2 text-gray-400 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInvoiceForm((f) => ({ ...f, items: [...f.items, { feeName: "", amount: "" }] }));
-                      setInvoiceItemErrors((e) => [...e, { feeName: "", amount: "" }]);
-                    }}
-                    className="mt-3 flex items-center gap-1.5 text-sm text-[#FF5000] hover:text-[#E64500] transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Item
-                  </button>
-
-                  {/* Total */}
-                  <div className="mt-4 flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-md border border-gray-200">
-                    <span className="text-sm text-gray-600">Total Amount</span>
-                    <span className="text-sm font-semibold text-gray-900">₦{invoiceTotal.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {/* Due Date */}
-                <div>
-                  <label className="block text-sm text-gray-700 mb-1.5">
-                    Due Date <span className="text-red-500">*</span>
-                  </label>
-                  <DatePickerInput
-                    value={invoiceForm.dueDate}
-                    onChange={(date) => { setInvoiceForm((f) => ({ ...f, dueDate: date })); setInvoiceDueDateError(""); }}
-                    placeholder="Select due date"
-                    className={invoiceDueDateError ? "border-red-500" : ""}
-                  />
-                  {invoiceDueDateError && <p className="text-xs text-red-500 mt-1">{invoiceDueDateError}</p>}
-                </div>
-
-                {/* Frequency */}
-                <div>
-                  <label className="block text-sm text-gray-700 mb-1.5">Frequency</label>
-                  <Select
-                    value={invoiceForm.frequency}
-                    onValueChange={(v) => setInvoiceForm((f) => ({ ...f, frequency: v as typeof f.frequency }))}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="one_time">One-time</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="annually">Annually</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end pt-2">
-                <Button variant="outline" onClick={() => { setShowGenerateInvoiceModal(false); resetInvoiceModal(); }}>Cancel</Button>
-                <Button className="bg-[#FF5000] hover:bg-[#E64500] text-white" onClick={() => { if (validateInvoiceForm()) setInvoiceStep("preview"); }}>Continue</Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Invoice Preview</DialogTitle>
-              </DialogHeader>
-
-              <div className="py-2">
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="bg-[#FF5000] px-6 py-5 flex items-center justify-between">
-                    <div>
-                      <p className="text-white/80 text-xs uppercase tracking-wide mb-1">Invoice</p>
-                      <p className="text-white font-semibold text-lg">#{String(Date.now()).slice(-6)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/80 text-xs mb-0.5">Date Issued</p>
-                      <p className="text-white text-sm">{new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
-                    </div>
-                  </div>
-
-                  <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Billed To</p>
-                      <p className="text-sm font-semibold text-gray-900">{tenantName}</p>
-                      {application?.email && <p className="text-xs text-gray-500 mt-0.5">{application.email}</p>}
-                      {(application as any)?.phone && <p className="text-xs text-gray-500">{(application as any).phone}</p>}
-                    </div>
-                    <div className="sm:text-right">
-                      <div className="mb-3">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Due Date</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {invoiceForm.dueDate ? invoiceForm.dueDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Frequency</p>
-                        <p className="text-sm text-gray-900 capitalize">{invoiceForm.frequency.replace("_", " ")}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="px-6 py-4">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-100">
-                          <th className="text-left py-2 text-xs text-gray-500 font-medium uppercase tracking-wide">Description</th>
-                          <th className="text-right py-2 text-xs text-gray-500 font-medium uppercase tracking-wide">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoiceForm.items.map((item, idx) => (
-                          <tr key={idx} className="border-b border-gray-50 last:border-0">
-                            <td className="py-3 text-gray-900">{item.feeName}</td>
-                            <td className="py-3 text-right text-gray-900">₦{(parseFloat(item.amount.replace(/,/g, "")) || 0).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-700">Total Due</span>
-                    <span className="text-lg font-bold text-[#FF5000]">₦{invoiceTotal.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end pt-2">
-                <Button variant="outline" onClick={() => setInvoiceStep("form")}>Back / Edit</Button>
-                <Button
-                  className="bg-[#FF5000] hover:bg-[#E64500] text-white"
-                  onClick={() => {
-                    if (invoiceForm.frequency !== "one_time" && propertyName) {
-                      invoiceForm.items.forEach((item) => {
-                        const amount = parseFloat(item.amount.replace(/,/g, ""));
-                        if (item.feeName.trim() && !isNaN(amount) && amount > 0) {
-                          addRecurringCharge(propertyName, {
-                            id: `rc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                            feeName: item.feeName.trim(),
-                            amount,
-                            frequency: invoiceForm.frequency,
-                            nextDueDate: invoiceForm.dueDate
-                              ? invoiceForm.dueDate.toISOString().split("T")[0]
-                              : new Date().toISOString().split("T")[0],
-                          });
-                        }
-                      });
-                    }
-                    setShowGenerateInvoiceModal(false);
-                    resetInvoiceModal();
-                  }}
-                >
-                  Confirm &amp; Generate Invoice
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
