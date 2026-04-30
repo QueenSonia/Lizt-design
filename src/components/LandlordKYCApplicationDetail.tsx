@@ -24,8 +24,16 @@ import {
   Trash2,
   Receipt,
   Pencil,
+  Wallet,
   X,
 } from "lucide-react";
+import {
+  addWalletFee,
+  getWalletBalance,
+  getWalletFees,
+  subscribeToWalletFees,
+  type WalletFee,
+} from "@/lib/applicantWalletStore";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -175,6 +183,52 @@ export function LandlordKYCApplicationDetail({
   // WhatsApp chat
   const [chatLogs, setChatLogs] = useState<any[]>([]);
   const [isLoadingChatLogs, setIsLoadingChatLogs] = useState(false);
+
+  // ─── Wallet (applicant fee tracker) ──────────────────────────────────────
+  const [walletFees, setWalletFees] = useState<WalletFee[]>(() =>
+    getWalletFees(application.id),
+  );
+  useEffect(() => {
+    setWalletFees(getWalletFees(application.id));
+    return subscribeToWalletFees(() => {
+      setWalletFees(getWalletFees(application.id));
+    });
+  }, [application.id]);
+  const walletBalance = walletFees.reduce((sum, f) => sum + f.amount, 0);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showAddFeeModal, setShowAddFeeModal] = useState(false);
+  const [feeForm, setFeeForm] = useState<{
+    feeName: string;
+    amount: string;
+    paymentDate: Date | null;
+  }>({ feeName: "", amount: "", paymentDate: null });
+  const [feeFormErrors, setFeeFormErrors] = useState<{
+    feeName: string;
+    amount: string;
+    paymentDate: string;
+  }>({ feeName: "", amount: "", paymentDate: "" });
+  const resetFeeForm = () => {
+    setFeeForm({ feeName: "", amount: "", paymentDate: null });
+    setFeeFormErrors({ feeName: "", amount: "", paymentDate: "" });
+  };
+  const handleSaveFee = () => {
+    const errs = { feeName: "", amount: "", paymentDate: "" };
+    if (!feeForm.feeName.trim()) errs.feeName = "Fee name is required";
+    const amountNum = parseFloat(feeForm.amount.replace(/,/g, ""));
+    if (!feeForm.amount.trim() || !Number.isFinite(amountNum) || amountNum <= 0)
+      errs.amount = "Enter a valid amount";
+    if (!feeForm.paymentDate) errs.paymentDate = "Payment date is required";
+    setFeeFormErrors(errs);
+    if (errs.feeName || errs.amount || errs.paymentDate) return;
+    addWalletFee(application.id, {
+      id: `fee-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      feeName: feeForm.feeName.trim(),
+      amount: amountNum,
+      paymentDate: feeForm.paymentDate!.toISOString(),
+    });
+    setShowAddFeeModal(false);
+    resetFeeForm();
+  };
 
   const resendKYCMutation = useResendKYCCompletionLinkMutation();
 
@@ -667,9 +721,20 @@ export function LandlordKYCApplicationDetail({
           </div>
         </div>
 
-        {/* Row 2: Offer Status Badge, Download PDF, Attach Tenant */}
+        {/* Row 2: Wallet, Offer Status Badge, Download PDF, Add Fee, Attach Tenant */}
         <div className="px-4 sm:px-6 py-2 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowWalletModal(true)}
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1 border border-gray-200 bg-gray-50 hover:bg-[#FFF3EB] hover:border-[#FF5000]/30 transition-colors"
+              title="View wallet breakdown"
+            >
+              <Wallet className="w-3.5 h-3.5 text-[#FF5000]" />
+              <span className="text-xs text-gray-500">Wallet</span>
+              <span className="text-sm font-semibold text-gray-900">
+                {formatNaira(walletBalance)}
+              </span>
+            </button>
             {application.offerStatus === "pending" && (
               <button onClick={onViewOfferLetter} className="cursor-pointer">
                 <Badge
@@ -700,6 +765,15 @@ export function LandlordKYCApplicationDetail({
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Download PDF</span>
+            </Button>
+            <Button
+              onClick={() => { resetFeeForm(); setShowAddFeeModal(true); }}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1.5 h-8 text-xs hover:bg-[#FFF3EB] hover:border-[#FF5000] hover:text-[#FF5000]"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Add Fee</span>
             </Button>
             <Button
               onClick={onAttachTenant}
@@ -1427,6 +1501,191 @@ export function LandlordKYCApplicationDetail({
                 Save Entry
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Fee Modal */}
+      <Dialog
+        open={showAddFeeModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAddFeeModal(false);
+            resetFeeForm();
+          }
+        }}
+      >
+        <DialogContent className="bg-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Fee</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm text-gray-700">
+                Fee Name <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="e.g. Legal Fee, Inspection Fee"
+                value={feeForm.feeName}
+                onChange={(e) => {
+                  setFeeForm((f) => ({ ...f, feeName: e.target.value }));
+                  if (feeFormErrors.feeName)
+                    setFeeFormErrors((errs) => ({ ...errs, feeName: "" }));
+                }}
+                className={feeFormErrors.feeName ? "border-red-500" : ""}
+              />
+              {feeFormErrors.feeName && (
+                <p className="text-xs text-red-500">{feeFormErrors.feeName}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-gray-700">
+                Amount <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="₦ Amount"
+                value={feeForm.amount}
+                onChange={(e) => {
+                  setFeeForm((f) => ({ ...f, amount: e.target.value }));
+                  if (feeFormErrors.amount)
+                    setFeeFormErrors((errs) => ({ ...errs, amount: "" }));
+                }}
+                className={feeFormErrors.amount ? "border-red-500" : ""}
+              />
+              {feeFormErrors.amount && (
+                <p className="text-xs text-red-500">{feeFormErrors.amount}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-gray-700">
+                Payment Date <span className="text-red-500">*</span>
+              </label>
+              <DatePickerInput
+                value={feeForm.paymentDate}
+                onChange={(date) => {
+                  setFeeForm((f) => ({ ...f, paymentDate: date }));
+                  if (feeFormErrors.paymentDate)
+                    setFeeFormErrors((errs) => ({ ...errs, paymentDate: "" }));
+                }}
+                placeholder="Select payment date"
+                className={feeFormErrors.paymentDate ? "border-red-500" : ""}
+              />
+              {feeFormErrors.paymentDate && (
+                <p className="text-xs text-red-500">{feeFormErrors.paymentDate}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddFeeModal(false);
+                resetFeeForm();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#FF5000] hover:bg-[#E64500] text-white"
+              onClick={handleSaveFee}
+            >
+              Save Fee
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Wallet Breakdown Modal */}
+      <Dialog
+        open={showWalletModal}
+        onOpenChange={(open) => {
+          if (!open) setShowWalletModal(false);
+        }}
+      >
+        <DialogContent className="bg-white max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Wallet Breakdown</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Wallet Balance</p>
+                <p className="text-2xl font-semibold text-[#FF5000]">
+                  {formatNaira(walletBalance)}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setShowWalletModal(false);
+                  resetFeeForm();
+                  setShowAddFeeModal(true);
+                }}
+                className="shrink-0 hover:bg-[#FFF3EB] hover:border-[#FF5000] hover:text-[#FF5000]"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                Add Fee
+              </Button>
+            </div>
+
+            <Separator />
+
+            {walletFees.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-6">
+                No fees recorded yet
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 px-3 text-slate-500 font-medium">
+                        Fee Name
+                      </th>
+                      <th className="text-right py-3 px-3 text-slate-500 font-medium whitespace-nowrap w-[160px]">
+                        Amount
+                      </th>
+                      <th className="text-right py-3 px-3 text-slate-500 font-medium whitespace-nowrap w-[160px]">
+                        Date Paid
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {walletFees.map((fee) => (
+                      <tr
+                        key={fee.id}
+                        className="border-b last:border-b-0 border-slate-100"
+                      >
+                        <td className="py-3 px-3 text-slate-700">
+                          {fee.feeName}
+                        </td>
+                        <td className="py-3 px-3 text-right whitespace-nowrap font-medium text-slate-900">
+                          {formatNaira(fee.amount)}
+                        </td>
+                        <td className="py-3 px-3 text-right whitespace-nowrap text-slate-500">
+                          {new Date(fee.paymentDate).toLocaleDateString(
+                            "en-GB",
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            },
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
