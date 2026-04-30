@@ -647,30 +647,9 @@ export function LandlordKYCApplicationDetail({
           </div>
         </div>
 
-        {/* Row 2: Application status, Offer Status Badge, Download PDF, Attach Tenant */}
+        {/* Row 2: Offer Status Badge, Download PDF, Attach Tenant */}
         <div className="px-4 sm:px-6 py-2 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
-            {(() => {
-              const statusLabel =
-                application.status === "Attached"
-                  ? "Approved"
-                  : application.status === "Rejected"
-                    ? "Rejected"
-                    : application.status === "Pending Completion"
-                      ? "Pending Completion"
-                      : "Pending Review";
-              const statusClass =
-                application.status === "Attached"
-                  ? "bg-green-50 text-green-700 border-green-200"
-                  : application.status === "Rejected"
-                    ? "bg-red-50 text-red-700 border-red-200"
-                    : "bg-amber-50 text-amber-700 border-amber-200";
-              return (
-                <Badge className={`${statusClass} border px-3 py-1 text-xs`}>
-                  {statusLabel}
-                </Badge>
-              );
-            })()}
             {application.offerStatus === "pending" && (
               <button onClick={onViewOfferLetter} className="cursor-pointer">
                 <Badge
