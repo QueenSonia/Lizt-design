@@ -926,44 +926,46 @@ export function LandlordKYCApplicationDetail({
             </div>
 
             {/* Tenancy Application Information - shown everywhere except from tenant detail */}
-            {showTenancyInfo && application.tenantOffer && (
-              <div className="bg-white rounded-xl p-4 shadow-sm">
-                <h3 className="text-gray-900 mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[#FF5000]" />
-                  Tenancy Application Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InfoRow
-                    label="Intended Use of Property"
-                    value={application.tenantOffer.intendedUse}
-                  />
-                  <InfoRow
-                    label="Number of Occupants"
-                    value={application.tenantOffer.numberOfOccupants}
-                  />
-                  <InfoRow
-                    label="Vehicle / Parking Requirements"
-                    value={application.tenantOffer.numberOfCarsOwned}
-                  />
-                  <InfoRow
-                    label="Proposed Rent Amount"
-                    value={
-                      application.tenantOffer.proposedRentAmount
-                        ? `₦${Number(application.tenantOffer.proposedRentAmount).toLocaleString()}`
-                        : undefined
-                    }
-                  />
-                  <InfoRow
-                    label="Proposed Rent Payment Frequency"
-                    value={application.tenantOffer.rentPaymentFrequency}
-                  />
-                  <InfoRow
-                    label="Additional Notes"
-                    value={application.tenantOffer.additionalNotes}
-                  />
+            {showTenancyInfo && (() => {
+              const flat = application as IKycApplication & {
+                proposedRentAmount?: string | number;
+                rentPaymentFrequency?: string;
+                intendedUseOfProperty?: string;
+                numberOfOccupants?: string;
+                parkingNeeds?: string;
+                numberOfCarsOwned?: string;
+                additionalNotes?: string;
+              };
+              const offer = application.tenantOffer;
+              const intendedUse = offer?.intendedUse ?? flat.intendedUseOfProperty;
+              const numberOfOccupants = offer?.numberOfOccupants ?? flat.numberOfOccupants;
+              const numberOfCarsOwned =
+                offer?.numberOfCarsOwned ?? flat.numberOfCarsOwned ?? flat.parkingNeeds;
+              const proposedRentRaw = offer?.proposedRentAmount ?? flat.proposedRentAmount;
+              const proposedRentAmount =
+                proposedRentRaw !== undefined && proposedRentRaw !== null && proposedRentRaw !== ""
+                  ? `₦${Number(proposedRentRaw).toLocaleString()}`
+                  : undefined;
+              const rentPaymentFrequency =
+                offer?.rentPaymentFrequency ?? flat.rentPaymentFrequency;
+              const additionalNotes = offer?.additionalNotes ?? flat.additionalNotes;
+              return (
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <h3 className="text-gray-900 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-[#FF5000]" />
+                    Tenancy Application Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <InfoRow label="Intended Use of Property" value={intendedUse} />
+                    <InfoRow label="Number of Occupants" value={numberOfOccupants} />
+                    <InfoRow label="Vehicle / Parking Requirements" value={numberOfCarsOwned} />
+                    <InfoRow label="Proposed Rent Amount" value={proposedRentAmount} />
+                    <InfoRow label="Proposed Rent Payment Frequency" value={rentPaymentFrequency} />
+                    <InfoRow label="Additional Notes" value={additionalNotes} />
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Referral Agent - shown everywhere except from tenant detail */}
             {showTenancyInfo && application.referralAgent && (
