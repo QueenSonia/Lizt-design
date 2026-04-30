@@ -273,7 +273,7 @@ function KYCApplicationDetailContent() {
     name: `${appData.firstName || "Unknown"} ${appData.lastName || "User"}`,
     email: appData.email || "No email provided",
     phone: appData.phoneNumber || "No phone provided",
-    occupation: appData.occupation || "——",
+    occupation: appData.occupation || "Not provided",
     idType: "National ID", // Default since it's not in the API response
     submittedDate: appData.submissionDate || new Date().toISOString(),
     status:
@@ -286,62 +286,62 @@ function KYCApplicationDetailContent() {
             : ("Rejected" as const),
 
     // Personal Details
-    surname: appData.lastName || "——",
-    otherNames: appData.firstName || "——",
-    contactAddress: appData.contactAddress || "——",
-    nationality: appData.nationality || "——",
-    stateOfOrigin: appData.stateOfOrigin || "——",
-    sex: appData.gender || "——",
-    dateOfBirth: appData.dateOfBirth || "——",
+    surname: appData.lastName || "Not provided",
+    otherNames: appData.firstName || "Not provided",
+    contactAddress: appData.contactAddress || "Not provided",
+    nationality: appData.nationality || "Not provided",
+    stateOfOrigin: appData.stateOfOrigin || "Not provided",
+    sex: appData.gender || "Not provided",
+    dateOfBirth: appData.dateOfBirth || "Not provided",
     passportPhoto:
       appData.passportPhotoUrl || appData.documents?.passportPhoto || undefined,
-    religion: appData.religion || "——",
+    religion: appData.religion || "Not provided",
 
     // Professional
-    profession: appData.occupation || "——",
-    positionInWorkplace: appData.jobTitle || "——",
-    jobTitle: appData.jobTitle || "——",
-    placeOfWork: appData.employerName || "——",
+    profession: appData.occupation || "Not provided",
+    positionInWorkplace: appData.jobTitle || "Not provided",
+    jobTitle: appData.jobTitle || "Not provided",
+    placeOfWork: appData.employerName || "Not provided",
 
     // Marital Status
-    maritalStatus: appData.maritalStatus || "——",
+    maritalStatus: appData.maritalStatus || "Not provided",
 
     // Employment Details
-    employmentStatus: appData.employmentStatus || "——",
-    levelOfEducation: appData.employmentStatus || "——",
-    employerName: appData.employerName || "——",
-    workPhone: appData.workPhoneNumber || appData.employerPhoneNumber || "——",
-    monthlyIncome: appData.monthlyNetIncome || "——",
-    officeAddress: appData.workAddress || appData.employerAddress || "——",
+    employmentStatus: appData.employmentStatus || "Not provided",
+    levelOfEducation: appData.employmentStatus || "Not provided",
+    employerName: appData.employerName || "Not provided",
+    workPhone: appData.workPhoneNumber || appData.employerPhoneNumber || "Not provided",
+    monthlyIncome: appData.monthlyNetIncome || "Not provided",
+    officeAddress: appData.workAddress || appData.employerAddress || "Not provided",
     yearsAtEmployer:
-      appData.lengthOfEmployment || appData.businessDuration || "——",
+      appData.lengthOfEmployment || appData.businessDuration || "Not provided",
 
     // Self-employed specific fields
-    natureOfBusiness: appData.natureOfBusiness || "——",
-    businessName: appData.businessName || "——",
-    businessAddress: appData.businessAddress || "——",
-    businessDuration: appData.businessDuration || "——",
+    natureOfBusiness: appData.natureOfBusiness || "Not provided",
+    businessName: appData.businessName || "Not provided",
+    businessAddress: appData.businessAddress || "Not provided",
+    businessDuration: appData.businessDuration || "Not provided",
 
     // Next of Kin - handle both flat fields and nested reference1
     nextOfKin: (() => {
       // Check for flat next of kin fields first (from backend transformApplicationForFrontend)
       if (appData.nextOfKinFullName || appData.nextOfKinPhoneNumber) {
         return {
-          fullName: appData.nextOfKinFullName || "——",
-          address: appData.nextOfKinAddress || "——",
-          relationship: appData.nextOfKinRelationship || "——",
-          phone: appData.nextOfKinPhoneNumber || "——",
-          email: appData.nextOfKinEmail || "——",
+          fullName: appData.nextOfKinFullName || "Not provided",
+          address: appData.nextOfKinAddress || "Not provided",
+          relationship: appData.nextOfKinRelationship || "Not provided",
+          phone: appData.nextOfKinPhoneNumber || "Not provided",
+          email: appData.nextOfKinEmail || "Not provided",
         };
       }
       // Fallback to nested reference1 structure
       if (appData.reference1) {
         return {
-          fullName: appData.reference1.name || "——",
-          address: appData.reference1.address || "——",
-          relationship: appData.reference1.relationship || "——",
-          phone: appData.reference1.phoneNumber || "——",
-          email: appData.reference1.email || "——",
+          fullName: appData.reference1.name || "Not provided",
+          address: appData.reference1.address || "Not provided",
+          relationship: appData.reference1.relationship || "Not provided",
+          phone: appData.reference1.phoneNumber || "Not provided",
+          email: appData.reference1.email || "Not provided",
         };
       }
       return undefined;
@@ -403,8 +403,8 @@ function KYCApplicationDetailContent() {
     referralAgent:
       appData.referralAgentFullName || appData.referralAgentPhoneNumber
         ? {
-            fullName: appData.referralAgentFullName || "——",
-            phoneNumber: appData.referralAgentPhoneNumber || "——",
+            fullName: appData.referralAgentFullName || "Not provided",
+            phoneNumber: appData.referralAgentPhoneNumber || "Not provided",
           }
         : undefined,
 

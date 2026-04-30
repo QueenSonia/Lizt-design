@@ -435,14 +435,34 @@ export function LandlordKYCApplicationDetail({
       year: "numeric",
     });
 
-  const InfoRow = ({ label, value }: { label: string; value: any }) => {
-    if (!value && value !== 0) return null;
-    return (
-      <div className="space-y-1">
-        <label className="text-sm text-gray-500">{label}</label>
-        <p className="text-gray-900">{value}</p>
-      </div>
-    );
+  const isEmptyValue = (value: unknown): boolean => {
+    if (value === null || value === undefined) return true;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return (
+        trimmed === "" ||
+        trimmed === "-" ||
+        trimmed === "——" ||
+        trimmed === "—" ||
+        trimmed === "₦NaN"
+      );
+    }
+    if (typeof value === "number") return Number.isNaN(value);
+    return false;
+  };
+
+  const InfoRow = ({ label, value }: { label: string; value: any }) => (
+    <div className="space-y-1">
+      <label className="text-sm text-gray-500">{label}</label>
+      <p className="text-gray-900">{isEmptyValue(value) ? "Not provided" : value}</p>
+    </div>
+  );
+
+  const formatNaira = (raw: unknown): string => {
+    if (isEmptyValue(raw)) return "Not provided";
+    const n = typeof raw === "number" ? raw : Number(String(raw).replace(/[^\d.-]/g, ""));
+    if (!Number.isFinite(n)) return "Not provided";
+    return `₦${n.toLocaleString()}`;
   };
 
   // ==================== DOCUMENTS LOGIC ====================
@@ -862,11 +882,7 @@ export function LandlordKYCApplicationDetail({
                     <InfoRow label="Work Phone" value={application.workPhone} />
                     <InfoRow
                       label="Monthly Income"
-                      value={
-                        application.monthlyIncome
-                          ? `₦${Number(application.monthlyIncome).toLocaleString()}`
-                          : undefined
-                      }
+                      value={formatNaira(application.monthlyIncome)}
                     />
                     <InfoRow
                       label="Years at Employer"
@@ -895,11 +911,7 @@ export function LandlordKYCApplicationDetail({
                     />
                     <InfoRow
                       label="Monthly Income"
-                      value={
-                        application.monthlyIncome
-                          ? `₦${Number(application.monthlyIncome).toLocaleString()}`
-                          : undefined
-                      }
+                      value={formatNaira(application.monthlyIncome)}
                     />
                   </>
                 )}
@@ -942,10 +954,7 @@ export function LandlordKYCApplicationDetail({
               const numberOfCarsOwned =
                 offer?.numberOfCarsOwned ?? flat.numberOfCarsOwned ?? flat.parkingNeeds;
               const proposedRentRaw = offer?.proposedRentAmount ?? flat.proposedRentAmount;
-              const proposedRentAmount =
-                proposedRentRaw !== undefined && proposedRentRaw !== null && proposedRentRaw !== ""
-                  ? `₦${Number(proposedRentRaw).toLocaleString()}`
-                  : undefined;
+              const proposedRentAmount = formatNaira(proposedRentRaw);
               const rentPaymentFrequency =
                 offer?.rentPaymentFrequency ?? flat.rentPaymentFrequency;
               const additionalNotes = offer?.additionalNotes ?? flat.additionalNotes;
