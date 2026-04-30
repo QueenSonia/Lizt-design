@@ -124,7 +124,7 @@ export default function AddManagerModal({ isOpen, onClose, onAdd }: AddManagerMo
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0" align="start" style={{ width: "var(--radix-popover-trigger-width)" }}>
-                <ul className="py-1 max-h-48 overflow-y-auto">
+                <ul className="py-1 px-1 max-h-[250px] overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:#d1d5db_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
                   {ALL_PROPERTIES.map((prop) => {
                     const selected = assignedProperties.includes(prop)
                     return (

@@ -263,10 +263,7 @@ export default function LandlordKYCList({
     if (totalAmount === 0) return null;
 
     if (amountPaid === 0) {
-      return {
-        label: "Not Started",
-        color: "bg-gray-100 text-gray-700 border-gray-200",
-      };
+      return null;
     } else if (amountPaid >= totalAmount) {
       return {
         label: "Fully Paid",
@@ -278,20 +275,6 @@ export default function LandlordKYCList({
         color: "bg-yellow-100 text-yellow-700 border-yellow-200",
       };
     }
-  };
-
-  // Helper to calculate payment percentage
-  const getPaymentPercentage = (
-    application: KYCApplicationWithFlatFields,
-  ): number => {
-    if (!application.offerLetter) return 0;
-
-    const amountPaid = application.offerLetter.amountPaid || 0;
-    const totalAmount = application.offerLetter.totalAmount || 0;
-
-    if (totalAmount === 0) return 0;
-
-    return Math.min(100, Math.round((amountPaid / totalAmount) * 100));
   };
 
   // Helper to build offer letter data from application
@@ -418,40 +401,6 @@ export default function LandlordKYCList({
                       </p>
                     </div>
                   </div>
-
-                  {/* Payment Progress Section - Only show if offer letter exists */}
-                  {(() => {
-                    const extApp = application as KYCApplicationWithFlatFields;
-                    if (extApp.offerLetter && extApp.offerLetter.totalAmount) {
-                      const amountPaid = extApp.offerLetter.amountPaid || 0;
-                      const totalAmount = extApp.offerLetter.totalAmount || 0;
-                      const percentage = getPaymentPercentage(extApp);
-
-                      return (
-                        <div className="pt-2 border-t border-gray-100">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs text-gray-500">
-                              Payment Progress
-                            </p>
-                            <p className="text-xs font-medium text-gray-900">
-                              {formatCurrency(amountPaid)} /{" "}
-                              {formatCurrency(totalAmount)}
-                            </p>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                            <div
-                              className="bg-[#FF5000] h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            {percentage}% paid
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
 
                   <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                     <p className="text-xs text-gray-400">
