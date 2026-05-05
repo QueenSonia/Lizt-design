@@ -1,10 +1,11 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Ico, FmIconName } from "./Icon";
 import { useIsMobile } from "./helpers";
 import { useFmContext } from "./FacilityManagerProvider";
 import { useAuth } from "@/contexts/AuthContext";
+import { LogoutConfirmationModal } from "@/components/modals/LogoutConfirmationModal";
 
 const LOGO_FULL = (
   <svg
@@ -323,6 +324,7 @@ export function FacilityManagerSidebar() {
     isMobileSidebarOpen,
     setMobileSidebarOpen,
   } = useFmContext();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Initialize collapsed state for mobile
   useEffect(() => {
@@ -355,8 +357,22 @@ export function FacilityManagerSidebar() {
       }
     : null;
 
+  const requestLogout = () => setShowLogoutModal(true);
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
+  };
+
+  const logoutModal = (
+    <LogoutConfirmationModal
+      isOpen={showLogoutModal}
+      onClose={() => setShowLogoutModal(false)}
+      onConfirm={confirmLogout}
+    />
+  );
+
   if (isMobile) {
-    if (!isMobileSidebarOpen) return null;
+    if (!isMobileSidebarOpen) return logoutModal;
     return (
       <>
         <div
@@ -389,25 +405,29 @@ export function FacilityManagerSidebar() {
             onSearch={setSearch}
             issuesBadge={hasUnseenIssues}
             user={fmUser}
-            onLogout={logout}
+            onLogout={requestLogout}
           />
         </div>
+        {logoutModal}
       </>
     );
   }
 
   return (
-    <SidebarInner
-      active={active}
-      onNav={handleNav}
-      col={sidebarCollapsed}
-      setCol={(next) => setSidebarCollapsed(next)}
-      mobile={false}
-      search={search}
-      onSearch={setSearch}
-      issuesBadge={hasUnseenIssues}
-      user={fmUser}
-      onLogout={logout}
-    />
+    <>
+      <SidebarInner
+        active={active}
+        onNav={handleNav}
+        col={sidebarCollapsed}
+        setCol={(next) => setSidebarCollapsed(next)}
+        mobile={false}
+        search={search}
+        onSearch={setSearch}
+        issuesBadge={hasUnseenIssues}
+        user={fmUser}
+        onLogout={requestLogout}
+      />
+      {logoutModal}
+    </>
   );
 }
