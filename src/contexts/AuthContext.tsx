@@ -115,11 +115,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    setUser(null);
-    persist(null);
-    if (typeof window !== "undefined") {
-      window.location.href = "/signin";
+    // Clear storage and force a full reload before touching React state.
+    // Updating user state in-place causes the dashboard layout to swap from
+    // the FM tree to the landlord tree mid-render, unmounting the
+    // FacilityManagerProvider while FM screens are still alive — which throws.
+    if (typeof window === "undefined") {
+      setUser(null);
+      return;
     }
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.location.href = "/signin";
   };
 
   const switchRole = (role: UserRole) => {
