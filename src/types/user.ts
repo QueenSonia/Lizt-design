@@ -1,9 +1,10 @@
-export type UserRole = "landlord" | "";
+export type UserRole = "landlord" | "facility-manager" | "";
 
 export interface User {
   id: string;
   email: string;
   role: UserRole;
+  roles: UserRole[];
   name?: string;
   createdAt: Date;
   lastLogin?: Date;

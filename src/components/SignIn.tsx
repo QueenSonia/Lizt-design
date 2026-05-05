@@ -1,14 +1,18 @@
-/* eslint-disable */
+"use client";
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Phone } from "lucide-react";
+import { Eye, EyeOff, Mail, Phone, X, Building, Wrench } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useLoginMutation } from "@/services/users/mutation";
-import { User } from "@/types/user";
-import { transformBackendUser } from "@/utils/auth";
+import { User, UserRole } from "@/types/user";
+import {
+  authenticate,
+  buildUser,
+  MOCK_ACCOUNTS,
+  MockAccount,
+} from "@/contexts/AuthContext";
 
 interface SignInProps {
   onSignInSuccess: (user: User) => void;
@@ -16,6 +20,16 @@ interface SignInProps {
   onLogoClick?: () => void;
   isLoading?: boolean;
 }
+
+const ROLE_LABEL: Record<Exclude<UserRole, "">, string> = {
+  landlord: "Landlord",
+  "facility-manager": "Facility Manager",
+};
+
+const ROLE_DESCRIPTION: Record<Exclude<UserRole, "">, string> = {
+  landlord: "Manage properties, tenants, rent, and applicants.",
+  "facility-manager": "Triage maintenance issues and inspect common areas.",
+};
 
 export function SignIn({
   onSignInSuccess,
@@ -31,62 +45,32 @@ export function SignIn({
     password?: string;
     general?: string;
   }>({});
+  const [pendingAccount, setPendingAccount] = useState<MockAccount | null>(
+    null
+  );
+  const [demoCardOpen, setDemoCardOpen] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const loginMutation = useLoginMutation();
-
-  // Smart validation to detect email or phone number
   const validateIdentifier = (value: string) => {
     const trimmedValue = value.trim();
-
-    if (!trimmedValue) {
-      return "Email or phone number is required";
-    }
-
+    if (!trimmedValue) return "Email or phone number is required";
     const phonePattern = /^[\+]?[\d\s\-\(\)]{10,}$/;
     const isPhone = phonePattern.test(trimmedValue.replace(/\s/g, ""));
-
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isEmail = emailPattern.test(trimmedValue);
-
     if (!isPhone && !isEmail) {
       return "Please enter a valid email address or phone number";
     }
-
-    if (isPhone) {
-      const cleanPhone = trimmedValue.replace(/[\s\-\(\)\+]/g, "");
-      if (cleanPhone.length < 10 || cleanPhone.length > 15) {
-        return "Please enter a valid phone number";
-      }
-    }
-
     return null;
   };
 
   const getIdentifierType = (value: string): "email" | "phone" | "unknown" => {
     const trimmedValue = value.trim();
-
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailPattern.test(trimmedValue)) {
-      return "email";
-    }
-
+    if (emailPattern.test(trimmedValue)) return "email";
     const phonePattern = /^[\+]?[\d\s\-\(\)]{10,}$/;
-    if (phonePattern.test(trimmedValue.replace(/\s/g, ""))) {
-      return "phone";
-    }
-
+    if (phonePattern.test(trimmedValue.replace(/\s/g, ""))) return "phone";
     return "unknown";
-  };
-
-  const formatPhoneNumber = (value: string) => {
-    const cleaned = value.replace(/[^\d+]/g, "");
-    if (cleaned.startsWith("+")) {
-      return cleaned;
-    }
-    if (cleaned.length === 11 && cleaned.startsWith("0")) {
-      return `+234${cleaned.slice(1)}`;
-    }
-    return cleaned;
   };
 
   const getPlaceholderText = () => {
@@ -115,56 +99,41 @@ export function SignIn({
 
   const validateForm = () => {
     const newErrors: { identifier?: string; password?: string } = {};
-
     const identifierError = validateIdentifier(identifier);
-    if (identifierError) {
-      newErrors.identifier = identifierError;
-    }
-
+    if (identifierError) newErrors.identifier = identifierError;
     if (!password.trim()) {
       newErrors.password = "Password is required";
     } else if (password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const finishLogin = (account: MockAccount, role: UserRole) => {
+    onSignInSuccess(buildUser(account, role));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
-    if (!validateForm()) {
+    if (!validateForm()) return;
+    setSubmitting(true);
+    const account = authenticate(identifier, password);
+    setSubmitting(false);
+    if (!account) {
+      setErrors({ general: "Invalid credentials. Please try again." });
       return;
     }
-
-    try {
-      const formattedIdentifier =
-        getIdentifierType(identifier) === "phone"
-          ? formatPhoneNumber(identifier)
-          : identifier.trim().toLowerCase();
-
-      const result = await loginMutation.mutateAsync({
-        identifier: formattedIdentifier,
-        password,
-      });
-
-      // Transform the user data to match the User type
-      const transformedUser = transformBackendUser(result.user);
-
-      // Call the success callback with the user object
-      onSignInSuccess(transformedUser);
-    } catch (error: any) {
-      setErrors({
-        general: error.message || "Invalid credentials. Please try again.",
-      });
+    if (account.roles.length === 1) {
+      finishLogin(account, account.roles[0]);
+      return;
     }
+    setPendingAccount(account);
   };
 
   const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setIdentifier(value);
+    setIdentifier(e.target.value);
     if (errors.identifier || errors.general) {
       setErrors((prev) => ({
         ...prev,
@@ -175,8 +144,7 @@ export function SignIn({
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setPassword(value);
+    setPassword(e.target.value);
     if (errors.password || errors.general) {
       setErrors((prev) => ({
         ...prev,
@@ -193,9 +161,13 @@ export function SignIn({
     } else {
       toast.info("Password reset instructions will be sent to your email.");
     }
-    if (onForgotPassword) {
-      onForgotPassword();
-    }
+    if (onForgotPassword) onForgotPassword();
+  };
+
+  const useDemoAccount = (account: MockAccount) => {
+    setIdentifier(account.email);
+    setPassword(account.password);
+    setErrors({});
   };
 
   return (
@@ -218,115 +190,164 @@ export function SignIn({
       <div className="flex flex-col justify-center min-h-screen">
         <div className="mx-4 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-6 px-4 shadow-sm border border-slate-200 rounded-xl sm:py-8 sm:px-10">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {errors.general && (
-                <div className="rounded-md bg-red-50 border border-red-200 p-4">
-                  <div className="text-sm text-red-700">{errors.general}</div>
+            {pendingAccount ? (
+              <div className="space-y-5">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Choose a role to continue
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {pendingAccount.name} has access to multiple workspaces.
+                    Pick one to start.
+                  </p>
                 </div>
-              )}
-
-              <div>
-                <Label
-                  htmlFor="identifier"
-                  className="block text-sm font-medium text-slate-700"
+                <div className="space-y-3">
+                  {pendingAccount.roles
+                    .filter((r): r is Exclude<UserRole, ""> => r !== "")
+                    .map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => finishLogin(pendingAccount, role)}
+                        className="w-full text-left flex items-start gap-3 p-4 rounded-lg border border-slate-200 hover:border-[#FF5000] hover:bg-orange-50 transition-colors"
+                      >
+                        <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-md bg-orange-50 text-[#FF5000]">
+                          {role === "landlord" ? (
+                            <Building className="h-5 w-5" />
+                          ) : (
+                            <Wrench className="h-5 w-5" />
+                          )}
+                        </span>
+                        <span className="flex-1">
+                          <span className="block text-sm font-semibold text-slate-900">
+                            Continue as {ROLE_LABEL[role]}
+                          </span>
+                          <span className="block text-xs text-slate-500 mt-0.5">
+                            {ROLE_DESCRIPTION[role]}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPendingAccount(null)}
+                  className="text-xs text-slate-500 hover:text-[#FF5000]"
                 >
-                  Email or Phone Number
-                </Label>
-                <div className="mt-1 relative">
-                  <Input
-                    id="identifier"
-                    name="identifier"
-                    type="text"
-                    autoComplete="username"
-                    required
-                    placeholder={getPlaceholderText()}
-                    value={identifier}
-                    onChange={handleIdentifierChange}
-                    className={`w-full px-3 py-2 ${
-                      getInputIcon() ? "pl-10" : ""
-                    } border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm ${
-                      errors.identifier ? "border-red-300" : "border-slate-300"
-                    }`}
-                  />
-                  {getInputIcon() && (
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      {getInputIcon()}
-                    </div>
-                  )}
-                  {errors.identifier && (
-                    <p className="mt-2 text-sm text-red-600">
-                      {errors.identifier}
-                    </p>
-                  )}
-                </div>
+                  ← Use different credentials
+                </button>
               </div>
+            ) : (
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                {errors.general && (
+                  <div className="rounded-md bg-red-50 border border-red-200 p-4">
+                    <div className="text-sm text-red-700">{errors.general}</div>
+                  </div>
+                )}
 
-              <div className="mt-8">
-                <Label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-slate-700"
-                >
-                  Password
-                </Label>
-                <div className="mt-1 relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    required
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={handlePasswordChange}
-                    className={`w-full px-3 py-2 pr-10 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm ${
-                      errors.password ? "border-red-300" : "border-slate-300"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
+                <div>
+                  <Label
+                    htmlFor="identifier"
+                    className="block text-sm font-medium text-slate-700"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-slate-400 hover:text-slate-600" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                    Email or Phone Number
+                  </Label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="identifier"
+                      name="identifier"
+                      type="text"
+                      autoComplete="username"
+                      required
+                      placeholder={getPlaceholderText()}
+                      value={identifier}
+                      onChange={handleIdentifierChange}
+                      className={`w-full px-3 py-2 ${
+                        getInputIcon() ? "pl-10" : ""
+                      } border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm ${
+                        errors.identifier ? "border-red-300" : "border-slate-300"
+                      }`}
+                    />
+                    {getInputIcon() && (
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        {getInputIcon()}
+                      </div>
                     )}
-                  </button>
-                  {errors.password && (
-                    <p className="mt-2 text-sm text-red-600">
-                      {errors.password}
-                    </p>
-                  )}
+                    {errors.identifier && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {errors.identifier}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-2 text-right">
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    className="text-xs text-slate-500 hover:text-[#FF5000] transition-colors duration-200"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-              </div>
 
-              <div className="mt-16">
-                <Button
-                  type="submit"
-                  disabled={isLoading || loginMutation.isPending}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#FF5000] hover:bg-[#E04500] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF5000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                >
-                  {isLoading || loginMutation.isPending ? (
-                    <div className="flex items-center">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Signing in...
-                    </div>
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
-              </div>
-            </form>
+                <div className="mt-8">
+                  <Label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-slate-700"
+                  >
+                    Password
+                  </Label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      required
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={handlePasswordChange}
+                      className={`w-full px-3 py-2 pr-10 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:border-[#FF5000] text-sm ${
+                        errors.password ? "border-red-300" : "border-slate-300"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                      )}
+                    </button>
+                    {errors.password && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {errors.password}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-xs text-slate-500 hover:text-[#FF5000] transition-colors duration-200"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-16">
+                  <Button
+                    type="submit"
+                    disabled={isLoading || submitting}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#FF5000] hover:bg-[#E04500] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF5000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  >
+                    {isLoading || submitting ? (
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Signing in...
+                      </div>
+                    ) : (
+                      "Sign In"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
 
           <div className="mt-8 text-center">
@@ -336,6 +357,94 @@ export function SignIn({
           </div>
         </div>
       </div>
+
+      <DemoCredentialsCard
+        open={demoCardOpen}
+        onClose={() => setDemoCardOpen(false)}
+        onUse={useDemoAccount}
+      />
+      {!demoCardOpen && (
+        <button
+          type="button"
+          onClick={() => setDemoCardOpen(true)}
+          className="fixed bottom-4 right-4 z-40 px-4 py-2 rounded-full bg-slate-900 text-white text-xs font-semibold shadow-lg hover:bg-slate-800 transition"
+        >
+          Show demo accounts
+        </button>
+      )}
+    </div>
+  );
+}
+
+function DemoCredentialsCard({
+  open,
+  onClose,
+  onUse,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onUse: (account: MockAccount) => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed bottom-4 right-4 z-40 w-[320px] max-w-[calc(100vw-32px)] rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden">
+      <div className="flex items-start justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#FF5000]">
+            Design demo
+          </p>
+          <p className="text-sm font-semibold text-slate-900 mt-0.5">
+            Try a sample account
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Hide demo credentials"
+          className="text-slate-400 hover:text-slate-600 transition-colors -mt-1 -mr-1 p-1"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <ul className="divide-y divide-slate-100">
+        {MOCK_ACCOUNTS.map((account) => (
+          <li key={account.id} className="px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900 truncate">
+                  {account.name}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {account.roles
+                    .map((r) =>
+                      r === "landlord"
+                        ? "Landlord"
+                        : r === "facility-manager"
+                        ? "Facility Manager"
+                        : ""
+                    )
+                    .filter(Boolean)
+                    .join(" + ")}
+                  {account.roles.length > 1 && " — picks role on sign-in"}
+                </p>
+                <p className="text-[11px] text-slate-600 mt-1.5 font-mono break-all">
+                  {account.email}
+                </p>
+                <p className="text-[11px] text-slate-600 font-mono">
+                  {account.password}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onUse(account)}
+                className="shrink-0 text-[11px] font-semibold text-[#FF5000] hover:text-[#E04500] border border-[#FF5000] rounded-md px-2.5 py-1 transition-colors"
+              >
+                Use
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -7,6 +7,8 @@ import { useMobile } from "@/contexts/MobileContext";
 import { LoadingFallback } from "@/components/LoadingFallback";
 import { SidebarSkeleton } from "@/components/SidebarSkeleton";
 import { usePathname, useRouter } from "next/navigation";
+import { FacilityManagerProvider } from "@/components/facility-manager/FacilityManagerProvider";
+import { FacilityManagerSidebar } from "@/components/facility-manager/FacilityManagerSidebar";
 
 export default function DashboardLayout({
   children,
@@ -27,7 +29,6 @@ export default function DashboardLayout({
     logout();
   };
 
-  // Show skeleton while checking authentication
   if (isLoading) {
     return (
       <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -41,9 +42,37 @@ export default function DashboardLayout({
     );
   }
 
+  if (user?.role === "facility-manager") {
+    return (
+      <FacilityManagerProvider>
+        <div
+          className="fm-root"
+          style={{
+            display: "flex",
+            height: "100vh",
+            overflow: "hidden",
+            background: "#F5F4F1",
+          }}
+        >
+          <FacilityManagerSidebar />
+          <main
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              overflow: "hidden",
+            }}
+          >
+            <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+          </main>
+        </div>
+      </FacilityManagerProvider>
+    );
+  }
+
   return (
     <div className="flex bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Mobile sidebar overlay */}
       {isMobile && isMobileSidebarOpen && (
         <div className="fixed inset-0 bg-black/20 z-30 lg:hidden pointer-events-none">
           <div
@@ -53,7 +82,6 @@ export default function DashboardLayout({
         </div>
       )}
 
-      {/* Desktop sidebar - always visible on large screens */}
       <div className="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0 lg:z-20">
         <Suspense fallback={<LoadingFallback />}>
           <LandlordSidebar
@@ -65,7 +93,6 @@ export default function DashboardLayout({
         </Suspense>
       </div>
 
-      {/* Mobile sidebar - only visible when open on mobile */}
       {isMobile && isMobileSidebarOpen && (
         <div
           className={`

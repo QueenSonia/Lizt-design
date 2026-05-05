@@ -157,4 +157,18 @@ export const screenMap: ScreenMap = {
       })),
     ),
   },
+  "facility-manager": {
+    dashboard: lazy(
+      () => import("@/components/facility-manager/FacilityManagerDashboard")
+    ),
+    issues: lazy(
+      () => import("@/components/facility-manager/FacilityManagerIssues")
+    ),
+    properties: lazy(
+      () => import("@/components/facility-manager/FacilityManagerProperties")
+    ),
+    "common-areas": lazy(
+      () => import("@/components/facility-manager/FacilityManagerCommonAreas")
+    ),
+  },
 };
