@@ -171,4 +171,24 @@ export const screenMap: ScreenMap = {
       () => import("@/components/facility-manager/FacilityManagerCommonAreas")
     ),
   },
+  admin: {
+    dashboard: lazy(() => import("@/components/admin/AdminDashboard")),
+    properties: lazy(() => import("@/components/admin/AdminProperties")),
+    landlords: lazy(() => import("@/components/admin/AdminLandlords")),
+    tenants: lazy(() => import("@/components/admin/AdminTenants")),
+    "facility-managers": lazy(
+      () => import("@/components/admin/AdminFacilityManagers")
+    ),
+    "kyc-applications": lazy(
+      () => import("@/components/admin/AdminKycApplications")
+    ),
+    payments: lazy(() => import("@/components/admin/AdminPayments")),
+    "service-requests": lazy(
+      () => import("@/components/admin/AdminServiceRequests")
+    ),
+    reports: lazy(() => import("@/components/admin/AdminReports")),
+    notifications: lazy(() => import("@/components/admin/AdminNotifications")),
+    "activity-logs": lazy(() => import("@/components/admin/AdminActivityLogs")),
+    settings: lazy(() => import("@/components/admin/AdminSettingsPage")),
+  },
 };

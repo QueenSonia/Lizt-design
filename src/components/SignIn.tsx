@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Phone, X, Building, Wrench } from "lucide-react";
+import { Eye, EyeOff, Mail, Phone, X, Building, Wrench, ShieldCheck } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -24,11 +24,13 @@ interface SignInProps {
 const ROLE_LABEL: Record<Exclude<UserRole, "">, string> = {
   landlord: "Landlord",
   "facility-manager": "Facility Manager",
+  admin: "Admin",
 };
 
 const ROLE_DESCRIPTION: Record<Exclude<UserRole, "">, string> = {
   landlord: "Manage properties, tenants, rent, and applicants.",
   "facility-manager": "Triage maintenance issues and inspect common areas.",
+  admin: "Oversee platform-wide activity, users, and operations.",
 };
 
 export function SignIn({
@@ -214,8 +216,10 @@ export function SignIn({
                         <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-md bg-orange-50 text-[#FF5000]">
                           {role === "landlord" ? (
                             <Building className="h-5 w-5" />
-                          ) : (
+                          ) : role === "facility-manager" ? (
                             <Wrench className="h-5 w-5" />
+                          ) : (
+                            <ShieldCheck className="h-5 w-5" />
                           )}
                         </span>
                         <span className="flex-1">
@@ -421,6 +425,8 @@ function DemoCredentialsCard({
                         ? "Landlord"
                         : r === "facility-manager"
                         ? "Facility Manager"
+                        : r === "admin"
+                        ? "Admin"
                         : ""
                     )
                     .filter(Boolean)

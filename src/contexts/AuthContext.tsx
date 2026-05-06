@@ -40,6 +40,13 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
     roles: ["landlord", "facility-manager"],
     name: "Adunni Coker",
   },
+  {
+    id: "admin-1",
+    email: "admin@lizt.co",
+    password: "password123",
+    roles: ["admin"],
+    name: "Super Admin",
+  },
 ];
 
 export function authenticate(

@@ -27,8 +27,7 @@ export default function SignInPage() {
     });
 
     // Instead of going to home page, redirect directly to dashboard
-    const initialScreen = user.role === "admin" ? "reports" : "dashboard";
-    const dashboardUrl = `/${user.role}/${initialScreen}`;
+    const dashboardUrl = `/${user.role}/dashboard`;
 
     // Check if returnUrl is just root or sign-in page, if so ignore it
     const isRootOrAuth =

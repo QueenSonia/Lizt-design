@@ -1,5 +1,5 @@
 "use client";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { LandlordSidebar } from "@/components/LandlordSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigation } from "@/contexts/NavigationContext";
@@ -9,6 +9,17 @@ import { SidebarSkeleton } from "@/components/SidebarSkeleton";
 import { usePathname, useRouter } from "next/navigation";
 import { FacilityManagerProvider } from "@/components/facility-manager/FacilityManagerProvider";
 import { FacilityManagerSidebar } from "@/components/facility-manager/FacilityManagerSidebar";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import type { UserRole } from "@/types/user";
+
+const KNOWN_ROLES: UserRole[] = ["landlord", "facility-manager", "admin"];
+
+function getRoleFromPath(pathname: string): UserRole | null {
+  const segment = pathname.split("/")[1];
+  return (KNOWN_ROLES as string[]).includes(segment)
+    ? (segment as UserRole)
+    : null;
+}
 
 export default function DashboardLayout({
   children,
@@ -29,6 +40,29 @@ export default function DashboardLayout({
     logout();
   };
 
+  // Route guard: redirect users whose role does not match the URL segment.
+  const pathRole = getRoleFromPath(pathname);
+  useEffect(() => {
+    if (isLoading) return;
+    if (!pathRole) return;
+    if (!user) {
+      router.replace(`/signin?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    if (user.role !== pathRole) {
+      const initialScreen = user.role === "admin" ? "dashboard" : "dashboard";
+      router.replace(`/${user.role}/${initialScreen}`);
+    }
+  }, [isLoading, pathRole, user, pathname, router]);
+
+  if (!isLoading && pathRole && (!user || user.role !== pathRole)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <LoadingFallback />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -38,6 +72,17 @@ export default function DashboardLayout({
         <div className="flex-1 lg:pl-72">
           <div className="h-full bg-gradient-to-br from-slate-50 to-slate-100" />
         </div>
+      </div>
+    );
+  }
+
+  if (user?.role === "admin") {
+    return (
+      <div className="flex h-screen overflow-hidden bg-slate-50">
+        <AdminSidebar />
+        <main className="flex-1 overflow-auto">
+          <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+        </main>
       </div>
     );
   }

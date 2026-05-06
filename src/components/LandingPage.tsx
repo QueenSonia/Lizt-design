@@ -873,8 +873,7 @@ export function LandingPage() {
 
   const handleGetStarted = () => {
     if (isAuthenticated && user?.role) {
-      const initialScreen = user.role === "admin" ? "reports" : "dashboard";
-      router.push(`/${user.role}/${initialScreen}`);
+      router.push(`/${user.role}/dashboard`);
     } else {
       router.push("/signin");
     }
