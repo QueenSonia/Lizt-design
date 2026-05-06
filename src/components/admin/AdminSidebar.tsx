@@ -69,31 +69,39 @@ export function AdminSidebar() {
           collapsed ? "w-[72px]" : "w-[260px]"
         }`}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-between px-4 py-5 border-b border-slate-800">
-          <button
-            onClick={() => router.push("/admin/dashboard")}
-            className="flex items-center gap-2 min-w-0"
-          >
-            <div className="size-8 rounded-md bg-[#FF5000] flex items-center justify-center shrink-0">
-              <ShieldCheck className="size-4 text-white" />
-            </div>
-            {!collapsed && (
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-white truncate">Lizt Admin</div>
-                <div className="text-[10px] text-slate-400 truncate">Platform Console</div>
-              </div>
-            )}
-          </button>
+        {/* Logo + role header */}
+        <div className="relative border-b border-slate-800">
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="absolute top-3 right-3 p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors z-10"
             aria-label="Toggle sidebar"
           >
             {collapsed ? (
               <ChevronRight className="size-4" />
             ) : (
               <ChevronLeft className="size-4" />
+            )}
+          </button>
+          <button
+            onClick={() => router.push("/admin/dashboard")}
+            className="w-full flex flex-col items-start text-left px-5 pt-6 pb-5 gap-3"
+          >
+            <Image
+              src="/lizt-white.svg"
+              alt="Lizt"
+              width={64}
+              height={24}
+              className={`object-contain ${collapsed ? "h-5 w-auto" : "h-6 w-auto"}`}
+            />
+            {!collapsed && (
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-white tracking-tight leading-tight">
+                  Admin
+                </div>
+                <div className="text-[11px] text-slate-400 tracking-wide mt-0.5">
+                  Platform Console
+                </div>
+              </div>
             )}
           </button>
         </div>
@@ -163,15 +171,6 @@ export function AdminSidebar() {
           </button>
         </div>
 
-        <div className="px-4 pb-3">
-          <Image
-            src="/lizt-white.svg"
-            alt="Lizt"
-            width={56}
-            height={20}
-            className={`opacity-50 ${collapsed ? "hidden" : "block"}`}
-          />
-        </div>
       </aside>
 
       <LogoutConfirmationModal

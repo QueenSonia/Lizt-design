@@ -439,6 +439,223 @@ export const ACTIVITY_LOGS = [
   },
 ];
 
+// ─── Platform Intelligence Mock Data ───────────────────────────────
+
+export const APARTMENT_TYPE_MIX = [
+  { type: "1-Bedroom", count: 1842, share: 37.8 },
+  { type: "2-Bedroom", count: 1654, share: 33.9 },
+  { type: "3-Bedroom", count: 982, share: 20.1 },
+  { type: "Studio", count: 261, share: 5.4 },
+  { type: "4+ Bedroom", count: 137, share: 2.8 },
+];
+
+export const TENANT_GENDER = [
+  { label: "Male", value: 54.2, color: "#FF5000" },
+  { label: "Female", value: 43.6, color: "#1E293B" },
+  { label: "Undisclosed", value: 2.2, color: "#94A3B8" },
+];
+
+export const TENANT_AGE_BANDS = [
+  { band: "18–24", count: 312 },
+  { band: "25–34", count: 2104 },
+  { band: "35–44", count: 1486 },
+  { band: "45–54", count: 692 },
+  { band: "55+", count: 282 },
+];
+
+export const OCCUPANCY_TREND = [
+  { month: "Jun", occupancy: 84.2 },
+  { month: "Jul", occupancy: 86.1 },
+  { month: "Aug", occupancy: 87.4 },
+  { month: "Sep", occupancy: 88.9 },
+  { month: "Oct", occupancy: 90.1 },
+  { month: "Nov", occupancy: 90.7 },
+  { month: "Dec", occupancy: 91.4 },
+];
+
+export const TENANT_GROWTH = [
+  { month: "Jun", new: 218, churned: 41 },
+  { month: "Jul", new: 264, churned: 52 },
+  { month: "Aug", new: 312, churned: 47 },
+  { month: "Sep", new: 298, churned: 61 },
+  { month: "Oct", new: 341, churned: 58 },
+  { month: "Nov", new: 376, churned: 49 },
+  { month: "Dec", new: 412, churned: 54 },
+];
+
+export const KYC_FUNNEL = [
+  { stage: "Submitted", count: 1284 },
+  { stage: "In Review", count: 947 },
+  { stage: "Approved", count: 812 },
+  { stage: "Rejected", count: 135 },
+];
+
+export const KYC_RATES = {
+  approvalRate: 85.7,
+  rejectionRate: 14.3,
+  avgReviewHours: 6.4,
+  pendingOver48h: 12,
+};
+
+export const LOCATION_BREAKDOWN = [
+  {
+    area: "Lekki",
+    properties: 412,
+    occupancy: 94.2,
+    avgRent: 2_400_000,
+    vacancy: 5.8,
+  },
+  {
+    area: "Victoria Island",
+    properties: 198,
+    occupancy: 96.1,
+    avgRent: 4_100_000,
+    vacancy: 3.9,
+  },
+  {
+    area: "Ikoyi",
+    properties: 142,
+    occupancy: 92.8,
+    avgRent: 5_800_000,
+    vacancy: 7.2,
+  },
+  {
+    area: "Yaba",
+    properties: 167,
+    occupancy: 89.4,
+    avgRent: 1_200_000,
+    vacancy: 10.6,
+  },
+  {
+    area: "Ajah",
+    properties: 224,
+    occupancy: 86.2,
+    avgRent: 950_000,
+    vacancy: 13.8,
+  },
+  {
+    area: "Magodo",
+    properties: 89,
+    occupancy: 78.4,
+    avgRent: 1_650_000,
+    vacancy: 21.6,
+  },
+  {
+    area: "Surulere",
+    properties: 52,
+    occupancy: 81.7,
+    avgRent: 800_000,
+    vacancy: 18.3,
+  },
+];
+
+export const TOP_PERFORMING_PROPERTIES = [
+  {
+    name: "Sapphire Heights",
+    location: "Victoria Island",
+    occupancy: 100,
+    revenue: 24_600_000,
+    score: 98,
+  },
+  {
+    name: "Royal Gardens",
+    location: "Ikoyi",
+    occupancy: 100,
+    revenue: 30_000_000,
+    score: 96,
+  },
+  {
+    name: "Maple Court",
+    location: "Lekki",
+    occupancy: 100,
+    revenue: 18_000_000,
+    score: 94,
+  },
+  {
+    name: "Palm Grove Estate",
+    location: "Ajah",
+    occupancy: 88,
+    revenue: 14_400_000,
+    score: 87,
+  },
+];
+
+export const PROBLEMATIC_PROPERTIES = [
+  {
+    name: "Cedar Park",
+    location: "Magodo",
+    openIssues: 14,
+    avgResolutionDays: 6.2,
+    risk: "High",
+  },
+  {
+    name: "Ocean View",
+    location: "Ikate",
+    openIssues: 9,
+    avgResolutionDays: 4.8,
+    risk: "Medium",
+  },
+  {
+    name: "Sunset Villas",
+    location: "Surulere",
+    openIssues: 7,
+    avgResolutionDays: 5.1,
+    risk: "Medium",
+  },
+];
+
+export const FINANCIAL_HEALTH = {
+  totalOverdue: 38_400_000,
+  tenantsOwing: 142,
+  avgArrearsDays: 17.2,
+  collectionRate: 94.6,
+  netRevenueMonth: 268_900_000,
+  forecastNextMonth: 291_000_000,
+};
+
+export const AGING_BUCKETS = [
+  { label: "1–7 days", amount: 8_200_000, count: 64 },
+  { label: "8–30 days", amount: 14_500_000, count: 51 },
+  { label: "31–60 days", amount: 9_700_000, count: 19 },
+  { label: "60+ days", amount: 6_000_000, count: 8 },
+];
+
+export const LEASE_RENEWALS = {
+  upForRenewal30d: 84,
+  upForRenewal90d: 247,
+  renewalRate: 78.4,
+  declineRate: 9.2,
+};
+
+export const TOP_FACILITY_MANAGERS = [
+  { name: "Sade Williams", resolved: 24, avgHours: 4.2, rating: 4.9 },
+  { name: "Jide Akinola", resolved: 18, avgHours: 5.1, rating: 4.8 },
+  { name: "Emeka Obi", resolved: 9, avgHours: 6.3, rating: 4.6 },
+];
+
+export const RISK_SIGNALS = [
+  {
+    label: "Failed payment spike",
+    detail: "8 failures in last hour — 3.2× normal",
+    severity: "critical" as const,
+  },
+  {
+    label: "KYC backlog growing",
+    detail: "12 applications pending > 48h",
+    severity: "warning" as const,
+  },
+  {
+    label: "Cedar Park service load",
+    detail: "14 open issues — flag for FM review",
+    severity: "warning" as const,
+  },
+  {
+    label: "Magodo vacancy climbing",
+    detail: "Vacancy at 21.6% — up 4pp this month",
+    severity: "warning" as const,
+  },
+];
+
 export const REPORTS = [
   {
     id: "RPT-2026-04",
