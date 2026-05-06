@@ -12,6 +12,12 @@ const DESIGNS = [
     description:
       "Tenant-facing offer letter with accept/decline, OTP confirmation, payment, and receipt screens.",
   },
+  {
+    slug: "receipt",
+    title: "Receipt",
+    description:
+      "Standalone payment receipt for a tenancy renewal — itemized breakdown, amount paid, and remaining balance.",
+  },
 ];
 
 export default function DesignsIndexPage() {
