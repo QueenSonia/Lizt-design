@@ -39,6 +39,7 @@ import {
   OutstandingBalanceBreakdownCard,
   DUMMY_OUTSTANDING_BREAKDOWN,
 } from "@/components/OutstandingBalanceBreakdownCard";
+import { ReceiptReviewModal } from "@/components/ReceiptReviewModal";
 import {
   Dialog,
   DialogContent,
@@ -456,6 +457,7 @@ export default function LandlordTenantDetail({
     otherFees: { name: string; amount: string }[];
     paymentAmount: string;
     paymentDate: Date | null;
+    paymentDescription: string;
     feeAmount: string;
     feeDescription: string;
     feeDate: Date | null;
@@ -470,6 +472,7 @@ export default function LandlordTenantDetail({
     otherFees: [],
     paymentAmount: "",
     paymentDate: null,
+    paymentDescription: "",
     feeAmount: "",
     feeDescription: "",
     feeDate: null,
@@ -491,6 +494,7 @@ export default function LandlordTenantDetail({
       otherFees: [],
       paymentAmount: "",
       paymentDate: null,
+      paymentDescription: "",
       feeAmount: "",
       feeDescription: "",
       feeDate: null,
@@ -498,6 +502,15 @@ export default function LandlordTenantDetail({
     setPropertySearch("");
     setEditingHistoryEntryId(null);
   };
+
+  // ─── Receipt Review (for manual payment entries) ─────────────────
+  const [showReceiptReview, setShowReceiptReview] = useState(false);
+  const [pendingReceipt, setPendingReceipt] = useState<{
+    amount: number;
+    date: Date | null;
+    description: string;
+    reference: string;
+  } | null>(null);
 
   // Fetch all properties for the Add History property dropdown
   const { data: allProperties } = useFetchAllProperties();
@@ -529,8 +542,47 @@ export default function LandlordTenantDetail({
     return formatLocalDate(date);
   };
 
+  const commitPaymentReceipt = (sendViaWhatsApp: boolean) => {
+    if (!pendingReceipt) return;
+    toast.success(
+      sendViaWhatsApp
+        ? "Receipt sent to tenant on WhatsApp and saved to History & Documents"
+        : "Receipt saved to History & Documents",
+    );
+    setShowReceiptReview(false);
+    setPendingReceipt(null);
+    setShowAddHistoryModal(false);
+    resetHistoryForm();
+    refetchTenantData();
+  };
+
   const handleSaveHistoryEntry = async () => {
     if (!historyForm.type) return;
+
+    // Manual payment entries open the Receipt Review modal first.
+    if (historyForm.type === "Payment" && !editingHistoryEntryId) {
+      if (!historyForm.paymentDescription.trim()) {
+        toast.error("Description is required");
+        return;
+      }
+      const amount = parseCurrencyToNumber(historyForm.paymentAmount);
+      if (amount <= 0) {
+        toast.error("Enter a valid payment amount");
+        return;
+      }
+      if (!historyForm.paymentDate) {
+        toast.error("Payment date is required");
+        return;
+      }
+      setPendingReceipt({
+        amount,
+        date: historyForm.paymentDate,
+        description: historyForm.paymentDescription.trim(),
+        reference: `RCT-${new Date().getFullYear()}-${Math.floor(Math.random() * 900000 + 100000)}`,
+      });
+      setShowReceiptReview(true);
+      return;
+    }
 
     if (submittingHistoryRef.current) return;
     submittingHistoryRef.current = true;
@@ -3945,6 +3997,22 @@ export default function LandlordTenantDetail({
               <>
                 <div>
                   <label className="text-xs sm:text-sm text-gray-500 mb-1 block">
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="e.g., January Rent Payment"
+                    value={historyForm.paymentDescription}
+                    onChange={(e) =>
+                      setHistoryForm((prev) => ({
+                        ...prev,
+                        paymentDescription: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-xs sm:text-sm text-gray-500 mb-1 block">
                     Payment Amount
                   </label>
                   <div className="relative">
@@ -4058,7 +4126,9 @@ export default function LandlordTenantDetail({
                     !historyForm.tenancyEndDate ||
                     !historyForm.rentAmount)) ||
                 (historyForm.type === "Payment" &&
-                  (!historyForm.paymentAmount || !historyForm.paymentDate)) ||
+                  (!historyForm.paymentAmount ||
+                    !historyForm.paymentDate ||
+                    !historyForm.paymentDescription)) ||
                 (historyForm.type === "Fee" &&
                   (!historyForm.feeAmount || !historyForm.feeDescription)) ||
                 isSubmittingHistory
@@ -4073,6 +4143,27 @@ export default function LandlordTenantDetail({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Receipt Review Modal */}
+      {pendingReceipt && (
+        <ReceiptReviewModal
+          open={showReceiptReview}
+          onOpenChange={(open) => {
+            setShowReceiptReview(open);
+            if (!open) setPendingReceipt(null);
+          }}
+          data={{
+            tenantName: name,
+            amount: pendingReceipt.amount,
+            date: pendingReceipt.date,
+            description: pendingReceipt.description,
+            reference: pendingReceipt.reference,
+            property: tenant?.property,
+          }}
+          onSave={() => commitPaymentReceipt(false)}
+          onSend={() => commitPaymentReceipt(true)}
+        />
+      )}
 
       {/* Generate Invoice Modal */}
       <Dialog

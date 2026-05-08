@@ -66,6 +66,8 @@ import { InvoiceViewModal, InvoiceData } from "./InvoiceViewModal";
 import { ReceiptViewModal, ReceiptData } from "./ReceiptViewModal";
 import { TenantChatHistory } from "@/components/TenantChatHistory";
 import { addRecurringCharge } from "@/lib/recurringChargesStore";
+import { ReceiptReviewModal } from "@/components/ReceiptReviewModal";
+import { toast } from "sonner";
 
 type KYCApplication = IKycApplication;
 
@@ -249,6 +251,7 @@ export function LandlordKYCApplicationDetail({
     otherFees: { name: string; amount: string }[];
     paymentAmount: string;
     paymentDate: Date | null;
+    paymentDescription: string;
     feeAmount: string;
     feeDescription: string;
     feeDate: Date | null;
@@ -262,6 +265,7 @@ export function LandlordKYCApplicationDetail({
     otherFees: [],
     paymentAmount: "",
     paymentDate: null,
+    paymentDescription: "",
     feeAmount: "",
     feeDescription: "",
     feeDate: null,
@@ -281,13 +285,69 @@ export function LandlordKYCApplicationDetail({
       otherFees: [],
       paymentAmount: "",
       paymentDate: null,
+      paymentDescription: "",
       feeAmount: "",
       feeDescription: "",
       feeDate: null,
     });
 
+  // ─── Receipt Review (for manual payment entries) ─────────────────
+  const [showReceiptReview, setShowReceiptReview] = useState(false);
+  const [pendingReceipt, setPendingReceipt] = useState<{
+    amount: number;
+    date: Date | null;
+    description: string;
+    reference: string;
+  } | null>(null);
+
+  const commitPaymentReceipt = (sendViaWhatsApp: boolean) => {
+    if (!pendingReceipt) return;
+    const event: HistoryEvent = {
+      id: `manual-${Date.now()}`,
+      title: sendViaWhatsApp ? "Receipt sent" : "Payment receipt saved",
+      context: `₦${pendingReceipt.amount.toLocaleString()} · ${pendingReceipt.reference}`,
+      date: pendingReceipt.date ?? new Date(),
+      description: `${pendingReceipt.description} — ₦${pendingReceipt.amount.toLocaleString()}${
+        sendViaWhatsApp ? " (sent to tenant via WhatsApp)" : ""
+      }`,
+      actionType: "inline",
+      nodeColor: "green",
+    };
+    setManualHistoryEvents((prev) => [event, ...prev]);
+    toast.success(
+      sendViaWhatsApp
+        ? "Receipt sent to tenant on WhatsApp and saved to History & Documents"
+        : "Receipt saved to History & Documents",
+    );
+    setShowReceiptReview(false);
+    setPendingReceipt(null);
+    setShowAddHistoryModal(false);
+    resetHistoryForm();
+  };
+
   const handleSaveHistoryEntry = () => {
     const now = new Date();
+
+    if (historyForm.type === "Payment") {
+      const amount = parseCurrency(historyForm.paymentAmount);
+      if (!historyForm.paymentDescription.trim()) {
+        toast.error("Description is required");
+        return;
+      }
+      if (amount <= 0) {
+        toast.error("Enter a valid payment amount");
+        return;
+      }
+      setPendingReceipt({
+        amount,
+        date: historyForm.paymentDate ?? now,
+        description: historyForm.paymentDescription.trim(),
+        reference: `RCT-${new Date().getFullYear()}-${Math.floor(Math.random() * 900000 + 100000)}`,
+      });
+      setShowReceiptReview(true);
+      return;
+    }
+
     let event: HistoryEvent | null = null;
 
     if (historyForm.type === "Tenancy") {
@@ -309,17 +369,6 @@ export function LandlordKYCApplicationDetail({
         description: `Tenancy at ${prop} from ${start} to ${end}${total > 0 ? ` — ₦${total.toLocaleString()}` : ""}`,
         actionType: "inline",
         nodeColor: "orange",
-      };
-    } else if (historyForm.type === "Payment") {
-      const amount = parseCurrency(historyForm.paymentAmount);
-      event = {
-        id: `manual-${Date.now()}`,
-        title: "Payment recorded",
-        context: `₦${amount.toLocaleString()}`,
-        date: historyForm.paymentDate ?? now,
-        description: `Payment of ₦${amount.toLocaleString()} recorded for ${application?.name ?? "tenant"}`,
-        actionType: "inline",
-        nodeColor: "green",
       };
     } else if (historyForm.type === "Fee") {
       const amount = parseCurrency(historyForm.feeAmount);
@@ -1420,6 +1469,21 @@ export function LandlordKYCApplicationDetail({
             {historyForm.type === "Payment" && (
               <>
                 <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={historyForm.paymentDescription}
+                    onChange={(e) =>
+                      setHistoryForm((prev) => ({
+                        ...prev,
+                        paymentDescription: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g., January Rent Payment"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Amount (₦)</label>
                   <Input
                     value={historyForm.paymentAmount}
@@ -1500,6 +1564,27 @@ export function LandlordKYCApplicationDetail({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Receipt Review Modal */}
+      {pendingReceipt && (
+        <ReceiptReviewModal
+          open={showReceiptReview}
+          onOpenChange={(open) => {
+            setShowReceiptReview(open);
+            if (!open) setPendingReceipt(null);
+          }}
+          data={{
+            tenantName: application?.name ?? "Tenant",
+            amount: pendingReceipt.amount,
+            date: pendingReceipt.date,
+            description: pendingReceipt.description,
+            reference: pendingReceipt.reference,
+            property: propertyName,
+          }}
+          onSave={() => commitPaymentReceipt(false)}
+          onSend={() => commitPaymentReceipt(true)}
+        />
+      )}
 
       {/* Add Fee Modal */}
       <Dialog
