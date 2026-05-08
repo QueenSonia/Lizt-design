@@ -95,6 +95,15 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
   },
 ];
 
+interface ResolutionDetails {
+  summary: string;
+  category: string;
+  hadCost: boolean;
+  costAmount?: string;
+  resolvedAt: string;
+  resolvedBy: string;
+}
+
 interface ServiceRequest {
   id: string;
   request_id: string;
@@ -117,6 +126,7 @@ interface ServiceRequest {
   statusHistory?: StatusHistoryEvent[];
   source?: "tenant" | "facility_manager";
   reporter_name?: string;
+  resolution?: ResolutionDetails;
 }
 
 type RequestSource = "tenant" | "facility_manager";
@@ -164,6 +174,15 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     description: "Quarterly inspection found a cracked tile in the bathroom.",
     status: "resolved", date_reported: "2026-04-18T10:00:00.000Z", updated_at: "2026-04-24T16:30:00.000Z",
     tenant_id: "", property_id: "p-002",
+    resolution: {
+      summary:
+        "Replaced the cracked floor tile near the shower drain. Re-grouted surrounding tiles and tested for water tightness. No further damage observed.",
+      category: "Tiling & Flooring",
+      hadCost: true,
+      costAmount: "₦18,500",
+      resolvedAt: "2026-04-24T16:30:00.000Z",
+      resolvedBy: "Tunde Adeyemi",
+    },
   },
   {
     id: "sr-005", request_id: "SR-005", tenant_name: "Emmanuel Etim", reporter_name: "Emmanuel Etim", source: "tenant",
@@ -1134,6 +1153,50 @@ export function LandlordFacility({
                             <img src={src} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover" />
                           </a>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resolution submitted by facility manager */}
+                  {selectedRequest.resolution && (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
+                        <Check className="w-4 h-4 text-emerald-700" />
+                        <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
+                          Resolution Submitted
+                        </p>
+                      </div>
+                      <div className="px-4 py-3.5 space-y-3 text-sm">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">Resolution description</p>
+                          <p className="text-gray-900 whitespace-pre-line leading-relaxed">
+                            {selectedRequest.resolution.summary}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Job category</p>
+                            <p className="text-gray-900">{selectedRequest.resolution.category}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Cost</p>
+                            <p className="text-gray-900 tabular-nums">
+                              {selectedRequest.resolution.hadCost
+                                ? selectedRequest.resolution.costAmount || "—"
+                                : "No cost"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
+                            <p className="text-gray-900">
+                              {formatDateTime(selectedRequest.resolution.resolvedAt)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
+                            <p className="text-gray-900">{selectedRequest.resolution.resolvedBy}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
