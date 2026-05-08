@@ -1,5 +1,12 @@
 "use client";
+import { useState } from "react";
 import { Wallet } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export interface BalanceLineItem {
   id: string;
@@ -8,7 +15,7 @@ export interface BalanceLineItem {
   date?: string;
 }
 
-interface OutstandingBalanceBreakdownCardProps {
+interface OutstandingBalancePillProps {
   items: BalanceLineItem[];
   className?: string;
 }
@@ -17,12 +24,12 @@ const formatNaira = (n: number) =>
   `₦${(n ?? 0).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
 
 const formatDate = (iso?: string) => {
-  if (!iso) return "";
+  if (!iso) return "—";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-GB", {
-    day: "2-digit",
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", {
     month: "short",
+    day: "2-digit",
     year: "numeric",
   });
 };
@@ -30,68 +37,70 @@ const formatDate = (iso?: string) => {
 export function OutstandingBalanceBreakdownCard({
   items,
   className = "",
-}: OutstandingBalanceBreakdownCardProps) {
+}: OutstandingBalancePillProps) {
+  const [open, setOpen] = useState(false);
   const total = items.reduce((sum, i) => sum + (i.amount ?? 0), 0);
 
-  return (
-    <section
-      className={`rounded-xl border border-gray-200 bg-white ${className}`}
-      aria-label="Outstanding Balance Breakdown"
-    >
-      <header className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-100">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#FFF3EB] text-[#FF5000] shrink-0">
-            <Wallet className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-gray-900 truncate">
-              Outstanding Balance Breakdown
-            </h2>
-            <p className="text-[11px] text-gray-500">
-              {items.length === 0
-                ? "No outstanding fees recorded"
-                : `${items.length} item${items.length === 1 ? "" : "s"}`}
-            </p>
-          </div>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400">
-            Total
-          </p>
-          <p className="text-base font-semibold text-[#FF5000] tabular-nums">
-            {formatNaira(total)}
-          </p>
-        </div>
-      </header>
+  if (total <= 0) return null;
 
-      {items.length === 0 ? (
-        <div className="px-4 sm:px-5 py-5 text-xs text-gray-500">
-          No outstanding balances on record.
-        </div>
-      ) : (
-        <ul className="divide-y divide-gray-100">
-          {items.map((item) => (
-            <li
-              key={item.id}
-              className="flex items-start justify-between gap-4 px-4 sm:px-5 py-3"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {item.label}
-                </p>
-                {item.date && (
-                  <p className="text-[11px] text-gray-500 mt-0.5">
-                    {formatDate(item.date)}
-                  </p>
-                )}
-              </div>
-              <p className="text-sm font-semibold text-gray-900 tabular-nums whitespace-nowrap">
-                {formatNaira(item.amount)}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="View outstanding balance breakdown"
+        className={`inline-flex items-center gap-1.5 rounded-full border border-[#FF5000]/30 bg-[#FFF3EB] px-2.5 py-1 text-xs font-medium text-[#FF5000] hover:bg-[#FFE5D4] hover:border-[#FF5000]/50 transition-colors ${className}`}
+      >
+        <Wallet className="h-3 w-3" />
+        <span className="text-gray-600">Outstanding</span>
+        <span className="font-semibold tabular-nums">{formatNaira(total)}</span>
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="bg-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Outstanding Balance Breakdown</DialogTitle>
+          </DialogHeader>
+
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left text-[11px] uppercase tracking-wide text-gray-500">
+                  <th className="px-4 py-2 font-semibold">Date</th>
+                  <th className="px-4 py-2 font-semibold">Description</th>
+                  <th className="px-4 py-2 font-semibold text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                      {formatDate(item.date)}
+                    </td>
+                    <td className="px-4 py-3 text-gray-900">{item.label}</td>
+                    <td className="px-4 py-3 text-right font-medium text-gray-900 tabular-nums whitespace-nowrap">
+                      {formatNaira(item.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50 border-t border-gray-200">
+                  <td
+                    colSpan={2}
+                    className="px-4 py-3 text-sm font-semibold text-gray-900"
+                  >
+                    Total Outstanding
+                  </td>
+                  <td className="px-4 py-3 text-right text-base font-semibold text-[#FF5000] tabular-nums whitespace-nowrap">
+                    {formatNaira(total)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

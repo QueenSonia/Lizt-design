@@ -1885,56 +1885,28 @@ export default function LandlordTenantDetail({
                       ) : (
                         <div />
                       )}
-                      <div className="border-t border-gray-100 pt-2">
-                        <label className="text-xs text-gray-400 block mb-0.5">
-                          Outstanding Balance
-                        </label>
-                        {(tenant?.totalOutstandingBalance ?? 0) > 0 ? (
-                          <button
-                            onClick={() =>
-                              setShowOutstandingBreakdownModal(true)
-                            }
-                            className="cursor-pointer group"
-                          >
-                            <span className="text-sm font-medium text-[#FF5000] group-hover:underline">
-                              {formatNaira(tenant!.totalOutstandingBalance)}
-                            </span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              setShowOutstandingBreakdownModal(true)
-                            }
-                            className="cursor-pointer group"
-                          >
-                            <span className="text-sm text-gray-900 group-hover:underline">
-                              {formatNaira(0)}
-                            </span>
-                          </button>
-                        )}
+                      <div className="border-t border-gray-100 pt-2 flex justify-end">
+                        <OutstandingBalanceBreakdownCard
+                          items={(tenant?.outstandingBalanceBreakdown || [])
+                            .filter((b) => (b.outstandingAmount ?? 0) > 0)
+                            .map((b) => ({
+                              id: b.rentId,
+                              label: b.propertyName,
+                              amount: b.outstandingAmount,
+                              date:
+                                typeof b.tenancyEndDate === "string"
+                                  ? b.tenancyEndDate
+                                  : b.tenancyEndDate
+                                    ? new Date(b.tenancyEndDate).toISOString()
+                                    : undefined,
+                            }))}
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Outstanding Balance Breakdown */}
-            <OutstandingBalanceBreakdownCard
-              items={(tenant?.outstandingBalanceBreakdown || [])
-                .filter((b) => (b.outstandingAmount ?? 0) > 0)
-                .map((b) => ({
-                  id: b.rentId,
-                  label: b.propertyName,
-                  amount: b.outstandingAmount,
-                  date:
-                    typeof b.tenancyEndDate === "string"
-                      ? b.tenancyEndDate
-                      : b.tenancyEndDate
-                        ? new Date(b.tenancyEndDate).toISOString()
-                        : undefined,
-                }))}
-            />
 
             {/* Tabs Section */}
             <Tabs
