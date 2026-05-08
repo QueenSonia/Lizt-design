@@ -35,7 +35,10 @@ import {
   type WalletFee,
 } from "@/lib/applicantWalletStore";
 import { Input } from "@/components/ui/input";
-import { OutstandingBalanceBreakdownCard } from "@/components/OutstandingBalanceBreakdownCard";
+import {
+  OutstandingBalanceBreakdownCard,
+  DUMMY_OUTSTANDING_BREAKDOWN,
+} from "@/components/OutstandingBalanceBreakdownCard";
 import {
   Select,
   SelectContent,
@@ -719,14 +722,6 @@ export function LandlordKYCApplicationDetail({
                 Submitted {formatDateShort(application.submittedDate)}
               </p>
             </div>
-            <OutstandingBalanceBreakdownCard
-              items={walletFees.map((f) => ({
-                id: f.id,
-                label: f.feeName,
-                amount: f.amount,
-                date: f.paymentDate,
-              }))}
-            />
           </div>
         </div>
 
@@ -755,6 +750,18 @@ export function LandlordKYCApplicationDetail({
             )}
           </div>
           <div className="flex items-center gap-2">
+            <OutstandingBalanceBreakdownCard
+              items={
+                walletFees.length > 0
+                  ? walletFees.map((f) => ({
+                      id: f.id,
+                      label: f.feeName,
+                      amount: f.amount,
+                      date: f.paymentDate,
+                    }))
+                  : DUMMY_OUTSTANDING_BREAKDOWN
+              }
+            />
             <Button
               onClick={onDownloadPDF}
               variant="outline"

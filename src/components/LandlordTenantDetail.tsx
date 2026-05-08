@@ -35,7 +35,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { OutstandingBalanceBreakdownCard } from "@/components/OutstandingBalanceBreakdownCard";
+import {
+  OutstandingBalanceBreakdownCard,
+  DUMMY_OUTSTANDING_BREAKDOWN,
+} from "@/components/OutstandingBalanceBreakdownCard";
 import {
   Dialog,
   DialogContent,
@@ -1886,8 +1889,10 @@ export default function LandlordTenantDetail({
                         <div />
                       )}
                       <div className="border-t border-gray-100 pt-2 flex justify-end">
-                        <OutstandingBalanceBreakdownCard
-                          items={(tenant?.outstandingBalanceBreakdown || [])
+                        {(() => {
+                          const realItems = (
+                            tenant?.outstandingBalanceBreakdown || []
+                          )
                             .filter((b) => (b.outstandingAmount ?? 0) > 0)
                             .map((b) => ({
                               id: b.rentId,
@@ -1899,8 +1904,17 @@ export default function LandlordTenantDetail({
                                   : b.tenancyEndDate
                                     ? new Date(b.tenancyEndDate).toISOString()
                                     : undefined,
-                            }))}
-                        />
+                            }));
+                          return (
+                            <OutstandingBalanceBreakdownCard
+                              items={
+                                realItems.length > 0
+                                  ? realItems
+                                  : DUMMY_OUTSTANDING_BREAKDOWN
+                              }
+                            />
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

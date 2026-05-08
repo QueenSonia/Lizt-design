@@ -15,6 +15,21 @@ export interface BalanceLineItem {
   date?: string;
 }
 
+export const DUMMY_OUTSTANDING_BREAKDOWN: BalanceLineItem[] = [
+  {
+    id: "dummy-rent-1",
+    label: "Outstanding Rent",
+    amount: 450_000,
+    date: "2026-01-12",
+  },
+  {
+    id: "dummy-service-1",
+    label: "Service Charge",
+    amount: 50_000,
+    date: "2026-01-20",
+  },
+];
+
 interface OutstandingBalancePillProps {
   items: BalanceLineItem[];
   className?: string;
