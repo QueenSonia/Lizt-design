@@ -84,25 +84,34 @@ export function OutstandingBalanceBreakdownCard({
                   <th className="px-4 py-2 font-semibold">Date</th>
                   <th className="px-4 py-2 font-semibold">Description</th>
                   <th className="px-4 py-2 font-semibold text-right">Amount</th>
+                  <th className="px-4 py-2 font-semibold text-right">Balance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                      {formatDate(item.date)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-900">{item.label}</td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-900 tabular-nums whitespace-nowrap">
-                      {formatNaira(item.amount)}
-                    </td>
-                  </tr>
-                ))}
+                {items.map((item, idx) => {
+                  const runningBalance = items
+                    .slice(0, idx + 1)
+                    .reduce((sum, i) => sum + (i.amount ?? 0), 0);
+                  return (
+                    <tr key={item.id}>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {formatDate(item.date)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-900">{item.label}</td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-900 tabular-nums whitespace-nowrap">
+                        {formatNaira(item.amount)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-900 tabular-nums whitespace-nowrap">
+                        {formatNaira(runningBalance)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50 border-t border-gray-200">
                   <td
-                    colSpan={2}
+                    colSpan={3}
                     className="px-4 py-3 text-sm font-semibold text-gray-900"
                   >
                     Total Outstanding

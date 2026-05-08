@@ -725,9 +725,21 @@ export function LandlordKYCApplicationDetail({
           </div>
         </div>
 
-        {/* Row 2: Offer Status Badge, Download PDF, Attach Tenant */}
+        {/* Row 2: Outstanding pill, Offer Status Badge, Download PDF, Attach Tenant */}
         <div className="px-4 sm:px-6 py-2 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
+            <OutstandingBalanceBreakdownCard
+              items={
+                walletFees.length > 0
+                  ? walletFees.map((f) => ({
+                      id: f.id,
+                      label: f.feeName,
+                      amount: f.amount,
+                      date: f.paymentDate,
+                    }))
+                  : DUMMY_OUTSTANDING_BREAKDOWN
+              }
+            />
             {application.offerStatus === "pending" && (
               <button onClick={onViewOfferLetter} className="cursor-pointer">
                 <Badge
@@ -750,18 +762,6 @@ export function LandlordKYCApplicationDetail({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <OutstandingBalanceBreakdownCard
-              items={
-                walletFees.length > 0
-                  ? walletFees.map((f) => ({
-                      id: f.id,
-                      label: f.feeName,
-                      amount: f.amount,
-                      date: f.paymentDate,
-                    }))
-                  : DUMMY_OUTSTANDING_BREAKDOWN
-              }
-            />
             <Button
               onClick={onDownloadPDF}
               variant="outline"

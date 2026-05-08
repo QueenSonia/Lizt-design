@@ -1803,6 +1803,38 @@ export default function LandlordTenantDetail({
       <div className="pt-[73px] lg:pt-[81px]">
         <div className="max-w-[1400px] mx-auto px-6 py-8">
           <div className="space-y-6">
+            {/* Actions row */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const realItems = (
+                    tenant?.outstandingBalanceBreakdown || []
+                  )
+                    .filter((b) => (b.outstandingAmount ?? 0) > 0)
+                    .map((b) => ({
+                      id: b.rentId,
+                      label: b.propertyName,
+                      amount: b.outstandingAmount,
+                      date:
+                        typeof b.tenancyEndDate === "string"
+                          ? b.tenancyEndDate
+                          : b.tenancyEndDate
+                            ? new Date(b.tenancyEndDate).toISOString()
+                            : undefined,
+                    }));
+                  return (
+                    <OutstandingBalanceBreakdownCard
+                      items={
+                        realItems.length > 0
+                          ? realItems
+                          : DUMMY_OUTSTANDING_BREAKDOWN
+                      }
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+
             {/* 1. Tenant Overview Section */}
             <Card className="border-gray-200">
               <CardContent className="p-6">
@@ -1888,34 +1920,6 @@ export default function LandlordTenantDetail({
                       ) : (
                         <div />
                       )}
-                      <div className="border-t border-gray-100 pt-2 flex justify-end">
-                        {(() => {
-                          const realItems = (
-                            tenant?.outstandingBalanceBreakdown || []
-                          )
-                            .filter((b) => (b.outstandingAmount ?? 0) > 0)
-                            .map((b) => ({
-                              id: b.rentId,
-                              label: b.propertyName,
-                              amount: b.outstandingAmount,
-                              date:
-                                typeof b.tenancyEndDate === "string"
-                                  ? b.tenancyEndDate
-                                  : b.tenancyEndDate
-                                    ? new Date(b.tenancyEndDate).toISOString()
-                                    : undefined,
-                            }));
-                          return (
-                            <OutstandingBalanceBreakdownCard
-                              items={
-                                realItems.length > 0
-                                  ? realItems
-                                  : DUMMY_OUTSTANDING_BREAKDOWN
-                              }
-                            />
-                          );
-                        })()}
-                      </div>
                     </div>
                   </div>
                 </div>
