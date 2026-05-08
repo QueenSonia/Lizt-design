@@ -315,8 +315,9 @@ export function LandlordFacility({
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
 
-  const apiRequests: ServiceRequest[] = data?.service_requests || [];
-  const requests: ServiceRequest[] = apiRequests.length > 0 ? apiRequests : MOCK_SERVICE_REQUESTS;
+  // Design sandbox — always show the mock dataset so resolution previews are
+  // visible regardless of what the API returns.
+  const requests: ServiceRequest[] = MOCK_SERVICE_REQUESTS;
 
   // ── Common Areas ───────────────────────────────────────────────────────────
   const [caSearchQuery, setCaSearchQuery] = useState("");
