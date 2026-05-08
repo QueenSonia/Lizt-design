@@ -1075,42 +1075,34 @@ export function LandlordFacility({
                     {(() => {
                       const assignee = getRequestAssignee(selectedRequest.id);
                       return (
-                        <div className="flex items-center gap-2">
-                          <Select
-                            value={assignee?.id ?? "unassigned"}
-                            onValueChange={(value) => {
-                              const nextId = value === "unassigned" ? null : value;
-                              assignRequestToManager(selectedRequest.id, nextId);
-                              fmStoreTick((n) => n + 1);
-                              if (nextId) {
-                                const fm = managers.find((m) => m.id === nextId);
-                                toast.success(
-                                  `Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`,
-                                );
-                              } else {
-                                toast.success("Request unassigned");
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Choose a facility manager" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="unassigned">Unassigned</SelectItem>
-                              {managers.map((m) => (
-                                <SelectItem key={m.id} value={m.id}>
-                                  {m.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {assignee && (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200 shrink-0">
-                              <Users className="w-3 h-3" />
-                              {assignee.name}
-                            </span>
-                          )}
-                        </div>
+                        <Select
+                          value={assignee?.id ?? "unassigned"}
+                          onValueChange={(value) => {
+                            const nextId = value === "unassigned" ? null : value;
+                            assignRequestToManager(selectedRequest.id, nextId);
+                            fmStoreTick((n) => n + 1);
+                            if (nextId) {
+                              const fm = managers.find((m) => m.id === nextId);
+                              toast.success(
+                                `Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`,
+                              );
+                            } else {
+                              toast.success("Request unassigned");
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Choose a facility manager" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                            {managers.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                {m.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       );
                     })()}
                     <p className="text-[11px] text-gray-400 mt-2">
