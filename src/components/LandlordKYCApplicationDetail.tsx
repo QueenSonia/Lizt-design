@@ -35,6 +35,7 @@ import {
   type WalletFee,
 } from "@/lib/applicantWalletStore";
 import { Input } from "@/components/ui/input";
+import { OutstandingBalanceBreakdownCard } from "@/components/OutstandingBalanceBreakdownCard";
 import {
   Select,
   SelectContent,
@@ -764,6 +765,18 @@ export function LandlordKYCApplicationDetail({
               Attach tenant
             </Button>
           </div>
+        </div>
+
+        {/* Outstanding Balance Breakdown */}
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
+          <OutstandingBalanceBreakdownCard
+            items={walletFees.map((f) => ({
+              id: f.id,
+              label: f.feeName,
+              amount: f.amount,
+              date: f.paymentDate,
+            }))}
+          />
         </div>
 
         {/* Row 3: Tab Navigation */}

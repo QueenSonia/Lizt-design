@@ -35,6 +35,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { OutstandingBalanceBreakdownCard } from "@/components/OutstandingBalanceBreakdownCard";
 import {
   Dialog,
   DialogContent,
@@ -1917,6 +1918,23 @@ export default function LandlordTenantDetail({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Outstanding Balance Breakdown */}
+            <OutstandingBalanceBreakdownCard
+              items={(tenant?.outstandingBalanceBreakdown || [])
+                .filter((b) => (b.outstandingAmount ?? 0) > 0)
+                .map((b) => ({
+                  id: b.rentId,
+                  label: b.propertyName,
+                  amount: b.outstandingAmount,
+                  date:
+                    typeof b.tenancyEndDate === "string"
+                      ? b.tenancyEndDate
+                      : b.tenancyEndDate
+                        ? new Date(b.tenancyEndDate).toISOString()
+                        : undefined,
+                }))}
+            />
 
             {/* Tabs Section */}
             <Tabs
