@@ -1148,23 +1148,33 @@ export function LandlordFacility({
                 </div>
 
                 {/* Context-aware footer */}
-                {source === "facility_manager" ? (
-                  <DialogFooter className="sm:justify-end">
-                    <Button
-                      disabled={isApproved}
-                      onClick={() => setStatus("in_progress", "Request approved")}
-                      className="bg-[#FF5000] hover:bg-[#e04600] text-white"
-                    >
-                      {isApproved ? "Approved" : "Approve Request"}
-                    </Button>
-                  </DialogFooter>
-                ) : (
-                  <div className="flex justify-end pt-2">
-                    <p className="text-xs text-gray-500 italic">
-                      Sent to facility team for resolution
-                    </p>
-                  </div>
-                )}
+                {(() => {
+                  const assignee = getRequestAssignee(selectedRequest.id);
+                  const canApprove = !!assignee && !isApproved;
+                  return (
+                    <div className="space-y-2 pt-2">
+                      {!isApproved && !assignee && (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                          Assign a facility manager before approving this request.
+                        </p>
+                      )}
+                      <DialogFooter className="sm:justify-end">
+                        <Button
+                          disabled={!canApprove}
+                          onClick={() => {
+                            setStatus(
+                              "in_progress",
+                              `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp; tenant updated.`,
+                            );
+                          }}
+                          className="bg-[#FF5000] hover:bg-[#e04600] text-white"
+                        >
+                          {isApproved ? "Approved" : "Approve Request"}
+                        </Button>
+                      </DialogFooter>
+                    </div>
+                  );
+                })()}
               </>
             );
           })()}
