@@ -721,20 +721,9 @@ export function LandlordKYCApplicationDetail({
           </div>
         </div>
 
-        {/* Row 2: Wallet, Offer Status Badge, Download PDF, Add Fee, Attach Tenant */}
+        {/* Row 2: Offer Status Badge, Download PDF, Attach Tenant */}
         <div className="px-4 sm:px-6 py-2 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowWalletModal(true)}
-              className="flex items-center gap-2 rounded-lg px-2.5 py-1 border border-gray-200 bg-gray-50 hover:bg-[#FFF3EB] hover:border-[#FF5000]/30 transition-colors"
-              title="View wallet breakdown"
-            >
-              <Wallet className="w-3.5 h-3.5 text-[#FF5000]" />
-              <span className="text-xs text-gray-500">Wallet</span>
-              <span className="text-sm font-semibold text-gray-900">
-                {formatNaira(walletBalance)}
-              </span>
-            </button>
             {application.offerStatus === "pending" && (
               <button onClick={onViewOfferLetter} className="cursor-pointer">
                 <Badge
@@ -765,15 +754,6 @@ export function LandlordKYCApplicationDetail({
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Download PDF</span>
-            </Button>
-            <Button
-              onClick={() => { resetFeeForm(); setShowAddFeeModal(true); }}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1.5 h-8 text-xs hover:bg-[#FFF3EB] hover:border-[#FF5000] hover:text-[#FF5000]"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Add Fee</span>
             </Button>
             <Button
               onClick={onAttachTenant}
