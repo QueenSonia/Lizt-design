@@ -30,7 +30,7 @@ const mockFacilityManagers = [
     name: "James Okafor",
     phone: "+234 801 234 5678",
     email: "james.okafor@email.com",
-    propertyAssigned: "Sunset Apartment 4B",
+    activeTasks: 3,
     dateAdded: "2024-11-15",
     status: "Active",
   },
@@ -39,7 +39,7 @@ const mockFacilityManagers = [
     name: "Sarah Adebayo",
     phone: "+234 802 345 6789",
     email: "sarah.adebayo@email.com",
-    propertyAssigned: "Ocean View Tower 8A",
+    activeTasks: 1,
     dateAdded: "2024-11-10",
     status: "Active",
   },
@@ -48,7 +48,7 @@ const mockFacilityManagers = [
     name: "David Uche",
     phone: "+234 803 456 7890",
     email: "david.uche@email.com",
-    propertyAssigned: "Marina Heights 12C",
+    activeTasks: 0,
     dateAdded: "2024-11-05",
     status: "Inactive",
   },
@@ -57,7 +57,7 @@ const mockFacilityManagers = [
     name: "Grace Nwosu",
     phone: "+234 804 567 8901",
     email: "grace.nwosu@email.com",
-    propertyAssigned: "City Centre Plaza 5F",
+    activeTasks: 2,
     dateAdded: "2024-10-28",
     status: "Active",
   },
@@ -188,10 +188,11 @@ export default function LandlordFacilityManagerDetail({
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="font-medium text-slate-900 mb-1">
-                Property Assigned
+              <p className="font-medium text-slate-900 mb-1">Active Tasks</p>
+              <p className="text-slate-600">
+                {manager.activeTasks} service request
+                {manager.activeTasks === 1 ? "" : "s"} currently assigned
               </p>
-              <p className="text-slate-600">{manager.propertyAssigned}</p>
             </div>
 
             <div className="flex items-center space-x-3">
@@ -225,7 +226,7 @@ export default function LandlordFacilityManagerDetail({
             <DialogTitle>Delete Facility Manager?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-600 py-2">
-            This will remove <span className="font-medium text-gray-900">{manager.name}</span> from all assigned properties. Existing service requests will remain unchanged.
+            This will remove <span className="font-medium text-gray-900">{manager.name}</span>. Any service requests currently assigned to them will become unassigned.
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmDelete(false)}>

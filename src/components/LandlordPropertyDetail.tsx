@@ -59,7 +59,7 @@ import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
 import { LandlordTopNav } from "./LandlordTopNav";
 import { SetRentPriceRangeModal } from "./SetRentPriceRangeModal";
 import { useFetchPropertyDetailsWithHistory } from "@/services/property/query";
-import { getAssignedManager, setAssignedManager, subscribeToFMStore, MOCK_FM_LIST } from "@/lib/facilityManagerStore";
+import { subscribeToFMStore } from "@/lib/facilityManagerStore";
 import { getRecurringCharges, subscribeToRecurringCharges, type RecurringCharge } from "@/lib/recurringChargesStore";
 import { CreatePaymentPlanModal, type ChargeOption } from "./CreatePaymentPlanModal";
 import { PlanScopePickerModal, type PlanScope } from "./PlanScopePickerModal";
@@ -179,7 +179,6 @@ export default function LandlordPropertyDetail({
   const [isEditingTenancy, setIsEditingTenancy] = useState(false);
   const [showBillingBreakdown, setShowBillingBreakdown] = useState(false);
   const [landlordId, setLandlordId] = useState<string | undefined>(undefined);
-  const [showFMModal, setShowFMModal] = useState(false);
   const [, fmTick] = useState(0); // forces re-render when store updates
   const [, rcTick] = useState(0); // forces re-render when recurring charges change
   const [showScopePicker, setShowScopePicker] = useState(false);
@@ -1504,21 +1503,6 @@ export default function LandlordPropertyDetail({
                 {propertyData.description}
               </p>
 
-              {/* Facility Manager line */}
-              {(() => {
-                const fm = getAssignedManager(propertyData.name || "");
-                return (
-                  <p className="text-sm text-gray-500 px-[28px] pt-2 pb-0">
-                    Facility Manager:{" "}
-                    <button
-                      onClick={() => setShowFMModal(true)}
-                      className="text-[#FF5000] hover:text-[#E64800] hover:underline font-medium transition-colors"
-                    >
-                      {fm ? fm.name : "None"}
-                    </button>
-                  </p>
-                );
-              })()}
             </div>
 
             {/* Tenancy Details Section - Only for Occupied Properties */}
@@ -2398,56 +2382,6 @@ export default function LandlordPropertyDetail({
         onCancel={handleCancelRentPrice}
         propertyName={propertyData?.name || ""}
       />
-
-      {/* Facility Manager selection modal */}
-      {showFMModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900">Assign Facility Manager</h2>
-              <button onClick={() => setShowFMModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <ul className="py-2 max-h-72 overflow-y-auto">
-              {/* None option */}
-              <li>
-                <button
-                  onClick={() => { setAssignedManager(propertyData?.name || "", null); setShowFMModal(false); }}
-                  className={`w-full flex items-center gap-3 px-5 py-3 text-sm text-left hover:bg-gray-50 transition-colors ${
-                    !getAssignedManager(propertyData?.name || "") ? "font-medium text-[#FF5000]" : "text-gray-500"
-                  }`}
-                >
-                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    !getAssignedManager(propertyData?.name || "") ? "border-[#FF5000]" : "border-gray-300"
-                  }`}>
-                    {!getAssignedManager(propertyData?.name || "") && <span className="w-2 h-2 rounded-full bg-[#FF5000]" />}
-                  </span>
-                  None
-                </button>
-              </li>
-              {MOCK_FM_LIST.map((fm) => {
-                const isSelected = getAssignedManager(propertyData?.name || "")?.id === fm.id;
-                return (
-                  <li key={fm.id}>
-                    <button
-                      onClick={() => { setAssignedManager(propertyData?.name || "", fm.id); setShowFMModal(false); }}
-                      className="w-full flex items-center gap-3 px-5 py-3 text-sm text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        isSelected ? "border-[#FF5000]" : "border-gray-300"
-                      }`}>
-                        {isSelected && <span className="w-2 h-2 rounded-full bg-[#FF5000]" />}
-                      </span>
-                      <span className={isSelected ? "font-medium text-gray-900" : "text-gray-700"}>{fm.name}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-      )}
 
       {/* End Tenancy Modal */}
       {showEndTenancyModal && propertyData?.currentTenant && (

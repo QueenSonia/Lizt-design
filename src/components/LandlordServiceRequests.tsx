@@ -10,9 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Wrench, Loader2 } from "lucide-react";
+import { Search, Wrench, Loader2, Users } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { useGetAllServiceRequests } from "@/services/service-requests/query";
+import {
+  getRequestAssignee,
+  subscribeToFMStore,
+} from "@/lib/facilityManagerStore";
+import { useEffect, useState } from "react";
 
 interface LandlordServiceRequestsProps {
   onBack?: () => void;
@@ -175,6 +180,10 @@ export default function LandlordServiceRequests({
 
   const apiRequests: ServiceRequest[] = data?.service_requests || [];
   const requests: ServiceRequest[] = apiRequests.length > 0 ? apiRequests : MOCK_SERVICE_REQUESTS;
+
+  // Re-render when FM-store assignments change
+  const [, setFmTick] = useState(0);
+  useEffect(() => subscribeToFMStore(() => setFmTick((n) => n + 1)), []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -395,7 +404,9 @@ export default function LandlordServiceRequests({
         )}
 
         {!isLoading && !error && filteredRequests.length > 0 && (() => {
-          const renderCard = (request: ServiceRequest) => (
+          const renderCard = (request: ServiceRequest) => {
+            const assignee = getRequestAssignee(request.id);
+            return (
             <div
               key={request.id}
               className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
@@ -425,6 +436,19 @@ export default function LandlordServiceRequests({
                     {SOURCE_LABEL[resolveSource(request)]} – {reporterName(request)}
                   </span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Assigned to:</span>
+                  {assignee ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                      <Users className="w-3 h-3" />
+                      {assignee.name}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                      Unassigned
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Dates */}
@@ -438,7 +462,8 @@ export default function LandlordServiceRequests({
                 </div>
               </div>
             </div>
-          );
+            );
+          };
 
           if (sourceFilter === "all") {
             return (

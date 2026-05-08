@@ -22,7 +22,12 @@ import {
 import { StatusBadgeDropdown, StatusEvent } from "./StatusBadgeDropdown";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPropertiesForManager, setAssignedManager as setStoreFMAssignment, subscribeToFMStore } from "@/lib/facilityManagerStore";
+import {
+  assignRequestToManager,
+  getRequestAssignee,
+  getRequestsForManager,
+  subscribeToFMStore,
+} from "@/lib/facilityManagerStore";
 
 interface LandlordFacilityProps {
   onBack?: () => void;
@@ -37,7 +42,6 @@ interface FacilityManager {
   email: string;
   role: string;
   date: string;
-  assigned_properties: string[];
 }
 
 const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
@@ -48,7 +52,6 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "c.obi@facilitypro.ng",
     role: "facility_manager",
     date: "2025-09-10T00:00:00Z",
-    assigned_properties: ["Lekki Phase 1 Duplex", "Ikoyi Terrace"],
   },
   {
     id: "fm-002",
@@ -57,7 +60,6 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "a.nwosu@facilitypro.ng",
     role: "facility_manager",
     date: "2025-10-03T00:00:00Z",
-    assigned_properties: ["Victoria Island Apartment"],
   },
   {
     id: "fm-003",
@@ -66,7 +68,6 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "t.adeyemi@facilitypro.ng",
     role: "facility_manager",
     date: "2025-11-18T00:00:00Z",
-    assigned_properties: ["Ajah Bungalow", "Lekki Phase 1 Duplex"],
   },
   {
     id: "fm-004",
@@ -75,7 +76,6 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "n.eze@facilitypro.ng",
     role: "facility_manager",
     date: "2026-01-07T00:00:00Z",
-    assigned_properties: ["Ajah Bungalow"],
   },
   {
     id: "fm-005",
@@ -84,7 +84,6 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "f.olawale@facilitypro.ng",
     role: "facility_manager",
     date: "2026-02-14T00:00:00Z",
-    assigned_properties: ["Lekki Phase 1 Duplex", "Victoria Island Apartment", "Ikoyi Terrace"],
   },
   {
     id: "fm-006",
@@ -93,7 +92,6 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "b.okafor@facilitypro.ng",
     role: "facility_manager",
     date: "2026-03-22T00:00:00Z",
-    assigned_properties: ["Victoria Island Apartment"],
   },
 ];
 
@@ -251,33 +249,20 @@ export function LandlordFacility({
   const [isEditingManager, setIsEditingManager] = useState(false);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
-  const [propPopoverOpen, setPropPopoverOpen] = useState(false);
   const [confirmDeleteManager, setConfirmDeleteManager] = useState(false);
 
   const deleteManager = () => {
     if (!detailManager) return;
-    detailManager.assigned_properties.forEach((prop) => setStoreFMAssignment(prop, null));
     setManagers((prev) => prev.filter((m) => m.id !== detailManager.id));
     setConfirmDeleteManager(false);
     setDetailManager(null);
     setIsEditingManager(false);
-    setPropPopoverOpen(false);
     toast.success("Facility Manager deleted successfully");
   };
-
-  const ALL_PROPERTIES = [
-    "Lekki Phase 1 Duplex",
-    "Victoria Island Apartment",
-    "Ikoyi Terrace",
-    "Ajah Bungalow",
-    "Oniru Estate",
-    "Banana Island Villa",
-  ];
 
   const openDetailModal = (manager: FacilityManager) => {
     setDetailManager(manager);
     setIsEditingManager(false);
-    setPropPopoverOpen(false);
   };
 
   const startEdit = () => {
@@ -293,21 +278,6 @@ export function LandlordFacility({
     setManagers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
     setDetailManager(updated);
     setIsEditingManager(false);
-  };
-
-  const toggleDetailProperty = (prop: string) => {
-    if (!detailManager) return;
-    const has = detailManager.assigned_properties.includes(prop);
-    const updated = {
-      ...detailManager,
-      assigned_properties: has
-        ? detailManager.assigned_properties.filter((p) => p !== prop)
-        : [...detailManager.assigned_properties, prop],
-    };
-    setManagers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    setDetailManager(updated);
-    // sync with shared store
-    setStoreFMAssignment(prop, has ? null : detailManager.id);
   };
 
   // ── Service Requests ───────────────────────────────────────────────────────
@@ -427,7 +397,7 @@ export function LandlordFacility({
 
   useEffect(() => { fetchManagers(); }, []);
 
-  const handleAddManager = async (name: string, phone: string, properties: string[]) => {
+  const handleAddManager = async (name: string, phone: string) => {
     const newManager: FacilityManager = {
       id: `fm-${Date.now()}`,
       name,
@@ -435,7 +405,6 @@ export function LandlordFacility({
       email: `${name.toLowerCase().replace(/\s+/g, ".")}@facilitypro.ng`,
       role: "facility_manager",
       date: new Date().toISOString(),
-      assigned_properties: properties,
     };
     setManagers((prev) => [newManager, ...prev]);
     toast.success("Facility manager added successfully");
@@ -605,7 +574,9 @@ export function LandlordFacility({
               )}
 
               {!loadingRequests && !error && filteredRequests.length > 0 && (() => {
-                const renderCard = (request: ServiceRequest) => (
+                const renderCard = (request: ServiceRequest) => {
+                  const assignee = getRequestAssignee(request.id);
+                  return (
                   <div
                     key={request.id}
                     role="button"
@@ -639,6 +610,19 @@ export function LandlordFacility({
                           {SOURCE_LABEL[resolveSource(request)]} – {reporterName(request)}
                         </span>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Assigned to:</span>
+                        {assignee ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                            <Users className="w-3 h-3" />
+                            {assignee.name}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                            Unassigned
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
                       <div>
@@ -650,7 +634,8 @@ export function LandlordFacility({
                       </div>
                     </div>
                   </div>
-                );
+                  );
+                };
 
                 if (sourceFilter === "all") {
                   return (
@@ -767,19 +752,39 @@ export function LandlordFacility({
                     <tr className="border-b border-gray-200 bg-gray-50">
                       <th className="text-left py-4 px-6 text-sm text-gray-600">Name</th>
                       <th className="text-left py-4 px-6 text-sm text-gray-600">Phone Number</th>
+                      <th className="text-left py-4 px-6 text-sm text-gray-600">Active Tasks</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {managers.map((manager) => (
-                      <tr
-                        key={manager.id}
-                        onClick={() => openDetailModal(manager)}
-                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors last:border-0"
-                      >
-                        <td className="py-4 px-6 text-gray-900">{manager.name}</td>
-                        <td className="py-4 px-6 text-gray-600">{manager.phone_number}</td>
-                      </tr>
-                    ))}
+                    {managers.map((manager) => {
+                      const activeCount = getRequestsForManager(manager.id).filter(
+                        (rid) => {
+                          const req = requests.find((r) => r.id === rid);
+                          if (!req) return false;
+                          const status = (statusOverrides[req.id] ?? req.status).toLowerCase();
+                          return status !== "resolved" && status !== "closed";
+                        },
+                      ).length;
+                      return (
+                        <tr
+                          key={manager.id}
+                          onClick={() => openDetailModal(manager)}
+                          className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors last:border-0"
+                        >
+                          <td className="py-4 px-6 text-gray-900">{manager.name}</td>
+                          <td className="py-4 px-6 text-gray-600">{manager.phone_number}</td>
+                          <td className="py-4 px-6">
+                            {activeCount > 0 ? (
+                              <span className="inline-flex items-center text-xs bg-orange-100 text-orange-700 font-medium px-2 py-0.5 rounded-full">
+                                {activeCount} active
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400">None</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -803,7 +808,7 @@ export function LandlordFacility({
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between shrink-0">
               <h2 className="text-base font-semibold text-gray-900">Facility Manager</h2>
               <button
-                onClick={() => { setDetailManager(null); setIsEditingManager(false); setPropPopoverOpen(false); }}
+                onClick={() => { setDetailManager(null); setIsEditingManager(false); }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
@@ -848,68 +853,44 @@ export function LandlordFacility({
                 <span className="text-sm text-gray-900">{formatDate(detailManager.date)}</span>
               </div>
 
-              {/* Assigned properties */}
+              {/* Assigned service requests */}
               <div className="border-t border-gray-100 pt-4">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Assigned Properties</p>
-
-                {/* Multi-select popover */}
-                <Popover open={propPopoverOpen} onOpenChange={setPropPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-left hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5000]/20 focus:border-[#FF5000]"
-                    >
-                      <span className={detailManager.assigned_properties.length === 0 ? "text-gray-400" : "text-gray-900"}>
-                        {detailManager.assigned_properties.length === 0
-                          ? "Select properties to assign…"
-                          : `${detailManager.assigned_properties.length} propert${detailManager.assigned_properties.length === 1 ? "y" : "ies"} selected`}
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0" align="start" style={{ width: "var(--radix-popover-trigger-width)" }}>
-                    <ul className="py-1 max-h-48 overflow-y-auto">
-                      {ALL_PROPERTIES.map((prop) => {
-                        const selected = detailManager.assigned_properties.includes(prop);
-                        return (
-                          <li key={prop}>
-                            <button
-                              type="button"
-                              onClick={() => toggleDetailProperty(prop)}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors"
-                            >
-                              <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selected ? "bg-[#FF5000] border-[#FF5000]" : "border-gray-300"}`}>
-                                {selected && <Check className="w-2.5 h-2.5 text-white" />}
-                              </span>
-                              {prop}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </PopoverContent>
-                </Popover>
-
-                {/* Selected chips */}
-                {detailManager.assigned_properties.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {detailManager.assigned_properties.map((prop) => (
-                      <span
-                        key={prop}
-                        className="inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-medium px-2.5 py-1 rounded-full"
-                      >
-                        {prop}
-                        <button
-                          type="button"
-                          onClick={() => toggleDetailProperty(prop)}
-                          className="text-orange-400 hover:text-orange-600 ml-0.5"
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+                  Assigned Service Requests
+                </p>
+                {(() => {
+                  const assignedReqIds = getRequestsForManager(detailManager.id);
+                  const assignedReqs = requests.filter((r) =>
+                    assignedReqIds.includes(r.id),
+                  );
+                  if (assignedReqs.length === 0) {
+                    return (
+                      <p className="text-sm text-gray-500">
+                        No service requests currently assigned to this manager.
+                      </p>
+                    );
+                  }
+                  return (
+                    <ul className="space-y-2">
+                      {assignedReqs.map((r) => (
+                        <li
+                          key={r.id}
+                          className="flex items-start gap-2 px-3 py-2 rounded-md border border-gray-200 bg-gray-50"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                          <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-gray-900 truncate">
+                              {r.description}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {r.property_name} · {formatStatusLabel(r.status)}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
               </div>
             </div>
 
@@ -962,8 +943,8 @@ export function LandlordFacility({
           </DialogHeader>
           <p className="text-sm text-gray-600 py-2">
             This will remove{" "}
-            <span className="font-medium text-gray-900">{detailManager?.name}</span>{" "}
-            from all assigned properties. Existing service requests will remain unchanged.
+            <span className="font-medium text-gray-900">{detailManager?.name}</span>
+            . Any service requests currently assigned to them will become unassigned.
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmDeleteManager(false)}>
@@ -1084,6 +1065,57 @@ export function LandlordFacility({
                         {getRelativeTime(selectedRequest.updated_at || selectedRequest.updatedAt)}
                       </p>
                     </div>
+                  </div>
+
+                  {/* Assigned facility manager */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                      Assigned Facility Manager
+                    </p>
+                    {(() => {
+                      const assignee = getRequestAssignee(selectedRequest.id);
+                      return (
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={assignee?.id ?? "unassigned"}
+                            onValueChange={(value) => {
+                              const nextId = value === "unassigned" ? null : value;
+                              assignRequestToManager(selectedRequest.id, nextId);
+                              fmStoreTick((n) => n + 1);
+                              if (nextId) {
+                                const fm = managers.find((m) => m.id === nextId);
+                                toast.success(
+                                  `Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`,
+                                );
+                              } else {
+                                toast.success("Request unassigned");
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Choose a facility manager" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              {managers.map((m) => (
+                                <SelectItem key={m.id} value={m.id}>
+                                  {m.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {assignee && (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200 shrink-0">
+                              <Users className="w-3 h-3" />
+                              {assignee.name}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    <p className="text-[11px] text-gray-400 mt-2">
+                      Assigning sends a WhatsApp notification to the facility manager and updates the tenant.
+                    </p>
                   </div>
 
                   {/* Description */}
