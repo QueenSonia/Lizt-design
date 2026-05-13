@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, Check } from "lucide-react";
+import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, Check, AlertCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
@@ -255,6 +255,7 @@ export function LandlordFacility({
 
   const [activeTab, setActiveTab] = useState<"service_requests" | "common_areas" | "facility_managers">("service_requests");
   const [, fmStoreTick] = useState(0);
+  const [priorityRequests, setPriorityRequests] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     return subscribeToFMStore(() => fmStoreTick((n) => n + 1));
@@ -432,18 +433,24 @@ export function LandlordFacility({
 
   const properties = ["all", ...new Set(requests.map((r) => r.property_name))];
 
-  const filteredRequests = requests.filter((request) => {
-    const matchesStatus = statusFilter === "all" || (request.status ?? "").toLowerCase() === statusFilter.toLowerCase();
-    const matchesSearch =
-      searchQuery === "" ||
-      (request.issue_category ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (request.property_name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reporterName(request).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (request.description ?? "").toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesProperty = propertyFilter === "all" || request.property_name === propertyFilter;
-    const matchesSource = sourceFilter === "all" || resolveSource(request) === sourceFilter;
-    return matchesStatus && matchesSearch && matchesProperty && matchesSource;
-  });
+  const filteredRequests = requests
+    .filter((request) => {
+      const matchesStatus = statusFilter === "all" || (request.status ?? "").toLowerCase() === statusFilter.toLowerCase();
+      const matchesSearch =
+        searchQuery === "" ||
+        (request.issue_category ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (request.property_name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        reporterName(request).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (request.description ?? "").toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesProperty = propertyFilter === "all" || request.property_name === propertyFilter;
+      const matchesSource = sourceFilter === "all" || resolveSource(request) === sourceFilter;
+      return matchesStatus && matchesSearch && matchesProperty && matchesSource;
+    })
+    .sort((a, b) => {
+      const aPriority = priorityRequests.has(a.id) ? 0 : 1;
+      const bPriority = priorityRequests.has(b.id) ? 0 : 1;
+      return aPriority - bPriority;
+    });
 
   const tenantRequests = filteredRequests.filter((r) => resolveSource(r) === "tenant");
   const facilityManagerRequests = filteredRequests.filter((r) => resolveSource(r) === "facility_manager");
@@ -596,6 +603,7 @@ export function LandlordFacility({
               {!loadingRequests && !error && filteredRequests.length > 0 && (() => {
                 const renderCard = (request: ServiceRequest) => {
                   const assignee = getRequestAssignee(request.id);
+                  const isPriority = priorityRequests.has(request.id);
                   return (
                   <div
                     key={request.id}
@@ -608,11 +616,19 @@ export function LandlordFacility({
                         setSelectedRequest(request);
                       }
                     }}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+                    className={`bg-white rounded-xl p-6 shadow-sm border hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1 ${isPriority ? "border-orange-300 ring-1 ring-orange-200" : "border-gray-100"}`}
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
-                      <h3 className="text-lg text-gray-900 flex-1">{request.description}</h3>
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <div className="flex-1 flex items-start gap-2">
+                        {isPriority && (
+                          <span className="shrink-0 mt-1 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">
+                            <AlertCircle className="w-3 h-3" />
+                            Priority
+                          </span>
+                        )}
+                        <h3 className="text-lg text-gray-900">{request.description}</h3>
+                      </div>
+                      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                         <StatusBadgeDropdown
                           status={formatStatusLabel(statusOverrides[request.id] ?? request.status) as "Open" | "Resolved" | "Reopened" | "Closed" | "Pending" | "In Progress" | "Urgent"}
                           statusHistory={formatStatusHistory(request.statusHistory)}
@@ -1207,6 +1223,21 @@ export function LandlordFacility({
                 {(() => {
                   const assignee = getRequestAssignee(selectedRequest.id);
                   const canApprove = !!assignee && !isApproved;
+                  const isPriority = priorityRequests.has(selectedRequest.id);
+                  const togglePriority = () => {
+                    const reqId = selectedRequest.id;
+                    setPriorityRequests((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(reqId)) {
+                        next.delete(reqId);
+                        toast.success("Priority removed from this request.");
+                      } else {
+                        next.add(reqId);
+                        toast.success("Request marked as priority — it will appear at the top of the list.");
+                      }
+                      return next;
+                    });
+                  };
                   return (
                     <div className="space-y-2 pt-2">
                       {!isApproved && !assignee && (
@@ -1214,7 +1245,17 @@ export function LandlordFacility({
                           Assign a facility manager before approving this request.
                         </p>
                       )}
-                      <DialogFooter className="sm:justify-end">
+                      <DialogFooter className="sm:justify-between gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={togglePriority}
+                          className={isPriority
+                            ? "border-orange-300 text-orange-700 hover:bg-orange-50"
+                            : "border-gray-200 text-gray-600 hover:bg-gray-50"}
+                        >
+                          <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                          {isPriority ? "Remove Priority" : "Add Priority"}
+                        </Button>
                         <Button
                           disabled={!canApprove}
                           onClick={() => {
