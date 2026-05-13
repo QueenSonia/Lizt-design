@@ -6,7 +6,7 @@ import { useFmContext } from "./FacilityManagerProvider";
 
 const PAGE_TITLES: Record<string, string> = {
   dashboard: "Dashboard",
-  issues: "Issues",
+  issues: "Tasks",
   properties: "Properties",
   "common-areas": "Common Areas",
 };

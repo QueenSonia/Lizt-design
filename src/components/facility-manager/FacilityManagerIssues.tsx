@@ -52,7 +52,7 @@ export default function FacilityManagerIssues() {
               fontSize: 13,
             }}
           >
-            No pending issues
+            No pending tasks
           </div>
         ) : (
           <div

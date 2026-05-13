@@ -41,7 +41,7 @@ const LOGO_FULL = (
 
 const NAV_ITEMS: { id: string; ico: FmIconName; lbl: string }[] = [
   { id: "dashboard", ico: "grid", lbl: "Dashboard" },
-  { id: "issues", ico: "alert", lbl: "Issues" },
+  { id: "issues", ico: "alert", lbl: "Tasks" },
   { id: "properties", ico: "home", lbl: "Properties" },
   { id: "common-areas", ico: "pin", lbl: "Common Areas" },
 ];
