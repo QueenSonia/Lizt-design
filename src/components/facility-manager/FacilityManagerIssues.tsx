@@ -38,7 +38,7 @@ export default function FacilityManagerIssues() {
             maxWidth: 520,
           }}
         >
-          View all service requests across your properties and tenants.
+          View all maintenance requests across your properties and tenants.
           <br />
           Tap any request to see details and take action.
         </p>

@@ -166,7 +166,7 @@ export function RequestDetail({ requestId, onBack, onPropertyNameChange }: Reque
         <div className="page-container">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-slate-900">Request Not Found</h1>
-            <p className="text-slate-600">The requested service request could not be found.</p>
+            <p className="text-slate-600">The requested maintenance request could not be found.</p>
           </div>
         </div>
       </div>

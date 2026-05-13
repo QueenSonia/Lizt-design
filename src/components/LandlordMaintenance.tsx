@@ -12,7 +12,7 @@ interface LandlordMaintenanceProps {
   searchTerm?: string
 }
 
-// Mock service requests data
+// Mock maintenance requests data
 const mockServiceRequests = [
   {
     id: 1,
@@ -169,11 +169,11 @@ export default function LandlordMaintenance({ searchTerm = '' }: LandlordMainten
     <div className="space-y-6">
       {/* Header Section */}
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold text-slate-900">Service Requests</h2>
+        <h2 className="text-xl font-semibold text-slate-900">Maintenance Requests</h2>
         <p className="text-sm text-slate-600">Requests reported by tenants through Lizt.</p>
       </div>
 
-      {/* Service Requests Feed */}
+      {/* Maintenance Requests Feed */}
       <Card className="border-slate-200">
         <CardContent className="p-0">
           {filteredRequests.length > 0 ? (
@@ -219,20 +219,20 @@ export default function LandlordMaintenance({ searchTerm = '' }: LandlordMainten
           ) : (
             <div className="text-center py-12">
               <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No service requests yet</h3>
-              <p className="text-slate-600">No service requests have been submitted yet for this property.</p>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No maintenance requests yet</h3>
+              <p className="text-slate-600">No maintenance requests have been submitted yet for this property.</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Service Request Detail Dialog */}
+      {/* Maintenance Request Detail Dialog */}
       <Dialog open={selectedServiceRequest !== null} onOpenChange={() => setSelectedServiceRequest(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedRequest && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-xl font-semibold">Service Request Details</DialogTitle>
+                <DialogTitle className="text-xl font-semibold">Maintenance Request Details</DialogTitle>
                 <DialogDescription>
                   Service request information and details
                 </DialogDescription>

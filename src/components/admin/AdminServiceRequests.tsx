@@ -19,7 +19,7 @@ export default function AdminServiceRequests() {
   return (
     <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
       <AdminPageHeader
-        title="Service Requests"
+        title="Maintenance Requests"
         subtitle="Maintenance tickets across all properties."
       />
 

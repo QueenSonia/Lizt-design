@@ -1097,10 +1097,10 @@ export default function WhatsappSimulator() {
                           "landlord_service_request_notification" && (
                           <div>
                             <p className="font-medium">
-                              Service Request Notification
+                              Maintenance Request Notification
                             </p>
                             <p className="mt-2">
-                              A new service request has been created.
+                              A new maintenance request has been created.
                             </p>
                             <p className="mt-1">
                               Issue: {comp.parameters[2]?.text || "N/A"}
@@ -1115,7 +1115,7 @@ export default function WhatsappSimulator() {
                         )}
                         {templateName === "fm_service_request_notification" && (
                           <div>
-                            <p>A new service request has been created.</p>
+                            <p>A new maintenance request has been created.</p>
                             <p className="mt-1">
                               Issue: {comp.parameters[2]?.text || "N/A"}
                             </p>
@@ -1306,7 +1306,7 @@ export default function WhatsappSimulator() {
                           <div>
                             <p>Hi {comp.parameters[0]?.text || "Tenant"} 👋🏽</p>
                             <p className="mt-2">
-                              Your service request about &quot;
+                              Your maintenance request about &quot;
                               {comp.parameters[1]?.text || "N/A"}&quot; has been
                               marked as resolved.
                             </p>

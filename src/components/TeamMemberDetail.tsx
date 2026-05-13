@@ -113,7 +113,7 @@ const mockTeamData: TeamMember[] = [
 const mockActivityData = [
   {
     id: 1,
-    action: "Submitted service request for Property A",
+    action: "Submitted maintenance request for Property A",
     timestamp: "2 hours ago",
     type: "service_request"
   },
@@ -318,8 +318,8 @@ export function TeamMemberDetail({ memberId, onBack }: TeamMemberDetailProps) {
                       className="mt-1"
                     />
                     <div>
-                      <Label className="text-sm font-medium text-slate-700">Can submit service requests manually</Label>
-                      <p className="text-xs text-slate-500">Create and submit new service requests</p>
+                      <Label className="text-sm font-medium text-slate-700">Can submit maintenance requests manually</Label>
+                      <p className="text-xs text-slate-500">Create and submit new maintenance requests</p>
                     </div>
                   </div>
 

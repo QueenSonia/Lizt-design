@@ -264,7 +264,7 @@ export default function LandlordCommonAreaDetail({ }: Props) {
           {/* Service requests section header */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              Service Requests
+              Maintenance Requests
             </h2>
             <span className="text-xs text-gray-400">
               {area.serviceRequests.length} total
@@ -305,7 +305,7 @@ export default function LandlordCommonAreaDetail({ }: Props) {
               <h3 className="text-base font-medium text-gray-900 mb-1">
                 {searchQuery || statusFilter !== "all"
                   ? "No matching requests"
-                  : "No service requests yet"}
+                  : "No maintenance requests yet"}
               </h3>
               <p className="text-sm text-gray-500">
                 {searchQuery || statusFilter !== "all"
@@ -371,7 +371,7 @@ export default function LandlordCommonAreaDetail({ }: Props) {
         </div>
       </div>
 
-      {/* ── Service Request Detail Modal ─────────────────────────────────── */}
+      {/* ── Maintenance Request Detail Modal ─────────────────────────────────── */}
       <Dialog open={!!selectedRequest} onOpenChange={(v) => !v && setSelectedRequest(null)}>
         <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
           {selectedRequest && (

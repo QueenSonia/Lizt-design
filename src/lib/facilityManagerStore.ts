@@ -1,9 +1,9 @@
 /**
- * Lightweight in-memory store for Service Request ↔ Facility Manager assignments.
+ * Lightweight in-memory store for Maintenance Request ↔ Facility Manager assignments.
  * Shared across LandlordFacility within the same session.
  *
  * Note: Facility managers are no longer assigned to *properties* — they are
- * assigned to specific service requests / tasks. The legacy property-assignment
+ * assigned to specific maintenance requests / tasks. The legacy property-assignment
  * APIs are kept as thin no-op shims so older components don't crash, but they
  * no longer do anything meaningful.
  */

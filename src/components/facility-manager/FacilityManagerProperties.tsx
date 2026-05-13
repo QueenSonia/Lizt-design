@@ -171,7 +171,7 @@ function PropertyDetail({
         }}
       >
         <div>
-          <div style={sectionLabel}>Service Requests</div>
+          <div style={sectionLabel}>Maintenance Requests</div>
           {issues.length === 0 ? (
             <div
               style={{
@@ -181,7 +181,7 @@ function PropertyDetail({
                 fontSize: 13,
               }}
             >
-              No service requests
+              No maintenance requests
             </div>
           ) : (
             <div
@@ -368,7 +368,7 @@ export default function FacilityManagerProperties() {
           }}
         >
           These are the properties assigned to you. Tap any property to view
-          details and manage service requests.
+          details and manage maintenance requests.
         </p>
         <div
           style={{

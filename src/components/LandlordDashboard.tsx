@@ -205,7 +205,7 @@ const recentActivities = [
   {
     id: 2,
     type: "maintenance_request",
-    message: "New service request: Kitchen faucet repair at City Centre Plaza",
+    message: "New maintenance request: Kitchen faucet repair at City Centre Plaza",
     time: "4 hours ago",
     icon: AlertTriangle,
     color: "text-orange-600",

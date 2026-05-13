@@ -52,7 +52,7 @@ export function ServiceRequestInfoModal({
         <DialogHeader>
           <DialogTitle>{data.issue}</DialogTitle>
           <p className="text-sm text-gray-500 mt-1">
-            Service Request · {data.property}
+            Maintenance Request · {data.property}
           </p>
           <DialogDescription className="sr-only">
             Service request details for {data.issue}

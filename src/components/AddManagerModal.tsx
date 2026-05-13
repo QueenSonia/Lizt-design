@@ -81,7 +81,7 @@ export default function AddManagerModal({ isOpen, onClose, onAdd }: AddManagerMo
           </div>
 
           <p className="text-xs text-gray-500">
-            Facility managers are assigned to individual service requests, not properties.
+            Facility managers are assigned to individual maintenance requests, not properties.
             New tasks will be visible to this manager once assigned.
           </p>
         </div>

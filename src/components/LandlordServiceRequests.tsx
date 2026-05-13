@@ -169,7 +169,7 @@ export default function LandlordServiceRequests({
   const page = 1;
   const size = 50; // Load more items to avoid pagination UI
 
-  // Fetch service requests from API
+  // Fetch maintenance requests from API
   const { data, isLoading, error } = useGetAllServiceRequests({
     page,
     size,
@@ -278,7 +278,7 @@ export default function LandlordServiceRequests({
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation */}
       <LandlordTopNav
-        title="Service Requests"
+        title="Maintenance Requests"
         onBack={onBack}
         onMenuClick={onMenuClick}
         isMobile={isMobile}
@@ -367,7 +367,7 @@ export default function LandlordServiceRequests({
         {isLoading && (
           <div className="bg-white rounded-xl p-12 shadow-sm text-center">
             <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
-            <p className="text-gray-500">Loading service requests...</p>
+            <p className="text-gray-500">Loading maintenance requests...</p>
           </div>
         )}
 
@@ -388,14 +388,14 @@ export default function LandlordServiceRequests({
           </div>
         )}
 
-        {/* Service Requests List */}
+        {/* Maintenance Requests List */}
         {!isLoading && !error && filteredRequests.length === 0 && (
           <div className="bg-white rounded-xl p-12 shadow-sm text-center">
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
               <Wrench className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg text-gray-900 mb-2">
-              No service requests yet.
+              No maintenance requests yet.
             </h3>
             <p className="text-gray-500">
               Requests from your tenants will appear here.

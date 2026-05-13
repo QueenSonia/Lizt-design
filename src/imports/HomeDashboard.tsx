@@ -366,7 +366,7 @@ function Frame1261152791() {
     <div className="box-border content-stretch flex flex-row gap-[11px] items-center justify-start p-0 relative shrink-0 w-full">
       <FluentMdl2CRMServices />
       <div className="font-['Plus_Jakarta_Sans:Regular',_sans-serif] font-normal leading-[0] relative shrink-0 text-[#787774] text-[16px] text-left w-[137px]">
-        <p className="block leading-[20px]">Service Requests</p>
+        <p className="block leading-[20px]">Maintenance Requests</p>
       </div>
     </div>
   );
@@ -565,7 +565,7 @@ function Group220() {
       <div className="absolute bg-[#6688ff] h-[85px] left-[38px] rounded-bl-[15px] rounded-tl-[15px] top-[93px] w-3.5" />
       <div className="absolute font-['Plus_Jakarta_Sans:Bold',_sans-serif] font-bold leading-[0] left-16 text-[#787774] text-[16px] text-left text-nowrap top-[109px]">
         <p className="block leading-[24px] whitespace-pre">
-          Mary James submitted a new service request: “Leaking bathroom tap.
+          Mary James submitted a new maintenance request: “Leaking bathroom tap.
         </p>
       </div>
     </div>

@@ -13,7 +13,7 @@ export const getTenantServiceRequest = async (status = "") => {
     );
 
     if (response.status !== 200) {
-      throw new Error("Error Fetching Service Requests");
+      throw new Error("Error Fetching Maintenance Requests");
     }
 
     return response.data;

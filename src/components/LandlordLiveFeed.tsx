@@ -307,9 +307,9 @@ export default function LandlordLiveFeed({
       queryClient.invalidateQueries({ queryKey: ["fetch-property-overview"] });
     },
     onServiceRequestCreated: (data) => {
-      console.log("New service request received via WebSocket:", data);
+      console.log("New maintenance request received via WebSocket:", data);
       toast.info(
-        `New service request from ${data.serviceRequestData?.tenantName || "tenant"
+        `New maintenance request from ${data.serviceRequestData?.tenantName || "tenant"
         }`,
       );
       queryClient.invalidateQueries({ queryKey: ["fetch-property-overview"] });

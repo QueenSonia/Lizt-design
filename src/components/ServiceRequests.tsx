@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { UniversalFilterModal } from './UniversalFilterModal'
 import { useFetchServiceRequest } from '@/services/service-request/query'
 
-// Mock service request data
+// Mock maintenance request data
 const mockServiceRequests = [
   {
     id: 1,
@@ -124,7 +124,7 @@ export function ServiceRequests({searchTerm = '',
 
 
   const handleExport = () => {
-    console.log('Exporting service requests data...')
+    console.log('Exporting maintenance requests data...')
   }
 
   const handleApplyFilters = (filters: Record<string, any>) => {
@@ -138,8 +138,8 @@ export function ServiceRequests({searchTerm = '',
   }
 
   const filterConfig = {
-    title: 'Filter Service Requests',
-    description: 'Filter service requests by status, priority, and date',
+    title: 'Filter Maintenance Requests',
+    description: 'Filter maintenance requests by status, priority, and date',
     filters: [
       { type: 'search' as const, label: 'Request Title', key: 'title', placeholder: 'Search by request title...' },
       { type: 'select' as const, label: 'Status', key: 'status', options: [
@@ -282,7 +282,7 @@ export function ServiceRequests({searchTerm = '',
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">All Service Requests</h2>
+              <h2 className="text-lg font-semibold text-slate-900">All Maintenance Requests</h2>
             </div>
             <div className="flex items-center space-x-3">
               <Button
@@ -311,7 +311,7 @@ export function ServiceRequests({searchTerm = '',
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
             <Input
-              placeholder="Search service requests by title, tenant, property, category, or status..."
+              placeholder="Search maintenance requests by title, tenant, property, category, or status..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
               className="pl-10 bg-white border-slate-200 focus:border-indigo-300 focus:ring-indigo-200 focus:ring-opacity-50"
@@ -405,7 +405,7 @@ export function ServiceRequests({searchTerm = '',
                 <TableRow>
                   <TableCell colSpan={4} className="px-6 py-12 text-center">
                     <div className="text-slate-500">
-                      {(searchTerm || localSearchTerm) ? 'No service requests found matching your search.' : 'No service requests found.'}
+                      {(searchTerm || localSearchTerm) ? 'No maintenance requests found matching your search.' : 'No maintenance requests found.'}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -425,7 +425,7 @@ export function ServiceRequests({searchTerm = '',
         onClearFilters={handleClearFilters}
       />
 
-      {/* Service Request Details Modal */}
+      {/* Maintenance Request Details Modal */}
       {selectedRequest && (
         <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -434,7 +434,7 @@ export function ServiceRequests({searchTerm = '',
                 {selectedRequest.title}
               </DialogTitle>
               <DialogDescription>
-                View detailed information about this service request including description, assignment details, and current status.
+                View detailed information about this maintenance request including description, assignment details, and current status.
               </DialogDescription>
             </DialogHeader>
             

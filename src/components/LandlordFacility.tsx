@@ -299,7 +299,7 @@ export function LandlordFacility({
     setIsEditingManager(false);
   };
 
-  // ── Service Requests ───────────────────────────────────────────────────────
+  // ── Maintenance Requests ───────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
@@ -474,7 +474,7 @@ export function LandlordFacility({
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {tab === "service_requests" ? "Service Requests" : tab === "common_areas" ? "Common Areas" : "Facility Managers"}
+              {tab === "service_requests" ? "Maintenance Requests" : tab === "common_areas" ? "Common Areas" : "Facility Managers"}
             </button>
           ))}
         </div>
@@ -483,10 +483,10 @@ export function LandlordFacility({
       {/* Content — offset for nav + tab bar (~121px / ~129px) */}
       <div className="pt-[121px] lg:pt-[129px] px-6 py-6 space-y-8">
 
-        {/* ── Service Requests tab ── */}
+        {/* ── Maintenance Requests tab ── */}
         {activeTab === "service_requests" && (
           <>
-            {/* Service Requests */}
+            {/* Maintenance Requests */}
             <div>
               <div className="bg-white rounded-xl p-4 shadow-sm mb-6 max-w-xl">
                 <div className="flex gap-2">
@@ -569,7 +569,7 @@ export function LandlordFacility({
               {loadingRequests && (
                 <div className="bg-white rounded-xl p-12 shadow-sm text-center">
                   <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
-                  <p className="text-gray-500">Loading service requests...</p>
+                  <p className="text-gray-500">Loading maintenance requests...</p>
                 </div>
               )}
 
@@ -588,7 +588,7 @@ export function LandlordFacility({
                   <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                     <Wrench className="w-8 h-8 text-gray-400" />
                   </div>
-                  <h3 className="text-lg text-gray-900 mb-2">No service requests yet.</h3>
+                  <h3 className="text-lg text-gray-900 mb-2">No maintenance requests yet.</h3>
                   <p className="text-gray-500">Requests from your tenants will appear here.</p>
                 </div>
               )}
@@ -873,10 +873,10 @@ export function LandlordFacility({
                 <span className="text-sm text-gray-900">{formatDate(detailManager.date)}</span>
               </div>
 
-              {/* Assigned service requests */}
+              {/* Assigned maintenance requests */}
               <div className="border-t border-gray-100 pt-4">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-                  Assigned Service Requests
+                  Assigned Maintenance Requests
                 </p>
                 {(() => {
                   const assignedReqIds = getRequestsForManager(detailManager.id);
@@ -886,7 +886,7 @@ export function LandlordFacility({
                   if (assignedReqs.length === 0) {
                     return (
                       <p className="text-sm text-gray-500">
-                        No service requests currently assigned to this manager.
+                        No maintenance requests currently assigned to this manager.
                       </p>
                     );
                   }
@@ -964,7 +964,7 @@ export function LandlordFacility({
           <p className="text-sm text-gray-600 py-2">
             This will remove{" "}
             <span className="font-medium text-gray-900">{detailManager?.name}</span>
-            . Any service requests currently assigned to them will become unassigned.
+            . Any maintenance requests currently assigned to them will become unassigned.
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmDeleteManager(false)}>
@@ -1024,7 +1024,7 @@ export function LandlordFacility({
         </div>
       )}
 
-      {/* ── Service Request Detail Modal ─────────────────────────────────── */}
+      {/* ── Maintenance Request Detail Modal ─────────────────────────────────── */}
       <Dialog open={!!selectedRequest} onOpenChange={(v) => !v && setSelectedRequest(null)}>
         <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
           {selectedRequest && (() => {

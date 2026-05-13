@@ -1,7 +1,7 @@
 export type NotificationStatus = "Pending" | "Completed";
 
 export enum NotificationType {
-  SERVICE_REQUEST = "Service Request",
+  SERVICE_REQUEST = "Maintenance Request",
   NOTICE_AGREEMENT = "Notice Agreement",
   RENT_CREATED = "Rent Created",
   USER_ADDED_TO_PROPERTY = "User Added to Property",

@@ -1,1 +1,1 @@
-// This file has been removed - Service Requests Log feature was undone
+// This file has been removed - Maintenance Requests Log feature was undone

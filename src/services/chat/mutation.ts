@@ -27,7 +27,7 @@ export function useMarkAsResolved(requestId: string) {
   return useMutation({
     mutationFn: () => markAsResolved(requestId),
     onMutate: () => {
-      console.log("🔐 resolving service request...");
+      console.log("🔐 resolving maintenance request...");
     },
     onError: (error: any) => {
       const message = error.message || "An error occurred while resolving service.";
@@ -35,7 +35,7 @@ export function useMarkAsResolved(requestId: string) {
     },
     onSuccess: (data) => {
       console.log("✅ Ticket resolved:", data);
-      toast.success('service request is resolved')
+      toast.success('maintenance request is resolved')
       window.location.reload(); // reload page
     },
   });

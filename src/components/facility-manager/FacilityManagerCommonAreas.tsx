@@ -155,7 +155,7 @@ function CommonAreaDetail({
           width: "100%",
         }}
       >
-        <div style={sectionLabel}>Service Requests</div>
+        <div style={sectionLabel}>Maintenance Requests</div>
         {requests.length === 0 ? (
           <div
             style={{
@@ -165,7 +165,7 @@ function CommonAreaDetail({
               fontSize: 13,
             }}
           >
-            No service requests
+            No maintenance requests
           </div>
         ) : (
           <div
@@ -353,7 +353,7 @@ export default function FacilityManagerCommonAreas() {
           }}
         >
           These are the common areas you manage. Tap any area to view details
-          and handle service requests.
+          and handle maintenance requests.
         </p>
         <div
           style={{ height: 1, background: "#F0EEE9", marginBottom: 16 }}

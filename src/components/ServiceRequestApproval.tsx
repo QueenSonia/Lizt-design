@@ -45,7 +45,7 @@ export function ServiceRequestApproval({ searchTerm }: ServiceRequestApprovalPro
   const [adminComment, setAdminComment] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Mock data for service requests
+  // Mock data for maintenance requests
   useEffect(() => {
     const mockRequests: ServiceRequest[] = [
       {
@@ -295,7 +295,7 @@ export function ServiceRequestApproval({ searchTerm }: ServiceRequestApprovalPro
             Back to List
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Service Request Details</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Maintenance Request Details</h1>
             <p className="text-slate-600">Request #{selectedRequest.id}</p>
           </div>
         </div>
@@ -461,8 +461,8 @@ export function ServiceRequestApproval({ searchTerm }: ServiceRequestApprovalPro
       {/* Header */}
       <div className="flex flex-col space-y-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Service Request Approval</h1>
-          <p className="text-slate-600 mt-1">Review and approve service requests from facility managers</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Maintenance Request Approval</h1>
+          <p className="text-slate-600 mt-1">Review and approve maintenance requests from facility managers</p>
         </div>
 
         {/* Filters */}
@@ -563,7 +563,7 @@ export function ServiceRequestApproval({ searchTerm }: ServiceRequestApprovalPro
               {filteredRequests.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-slate-500">
-                    No service requests found matching your criteria
+                    No maintenance requests found matching your criteria
                   </td>
                 </tr>
               ) : (

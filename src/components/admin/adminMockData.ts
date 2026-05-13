@@ -82,7 +82,7 @@ export const ACTIVITY_FEED = [
     id: "ACT-2",
     actor: "Jide Akinola",
     role: "Facility Manager",
-    action: "resolved a service request",
+    action: "resolved a maintenance request",
     target: "Plumbing — Unit 4B",
     time: "12 minutes ago",
     type: "service",
@@ -424,7 +424,7 @@ export const ACTIVITY_LOGS = [
   {
     id: "LOG-9899",
     actor: "jide@lizt.co",
-    action: "Resolved service request",
+    action: "Resolved maintenance request",
     target: "SR-7839",
     ip: "105.112.7.44",
     time: "2026-05-05 08:21",

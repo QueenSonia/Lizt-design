@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "../axios-instance";
 
-// Types for Service Requests
+// Types for Maintenance Requests
 export interface StatusHistoryEvent {
   id: string;
   previous_status: string | null;
@@ -90,7 +90,7 @@ export interface ServiceRequestFilters {
   end_date?: string;
 }
 
-// Fetch all service requests for landlord
+// Fetch all maintenance requests for landlord
 export const useFetchServiceRequests = (filters?: ServiceRequestFilters) => {
   return useQuery({
     queryKey: ["service-requests", filters],
@@ -98,7 +98,7 @@ export const useFetchServiceRequests = (filters?: ServiceRequestFilters) => {
     refetchOnWindowFocus: false,
     queryFn: async (): Promise<ServiceRequestsResponse> => {
       try {
-        console.log("Fetching service requests with filters:", filters);
+        console.log("Fetching maintenance requests with filters:", filters);
 
         const response = await axiosInstance.get("/service-requests", {
           params: filters,
@@ -115,7 +115,7 @@ export const useFetchServiceRequests = (filters?: ServiceRequestFilters) => {
         throw new Error(
           err.response?.data?.message ||
             err.message ||
-            "Failed to fetch service requests"
+            "Failed to fetch maintenance requests"
         );
       }
     },
@@ -125,7 +125,7 @@ export const useFetchServiceRequests = (filters?: ServiceRequestFilters) => {
 // Alias for consistency
 export const useGetAllServiceRequests = useFetchServiceRequests;
 
-// Fetch single service request by ID
+// Fetch single maintenance request by ID
 export const useFetchServiceRequest = (id: string) => {
   return useQuery({
     queryKey: ["service-request", id],
@@ -141,7 +141,7 @@ export const useFetchServiceRequest = (id: string) => {
         throw new Error(
           err.response?.data?.message ||
             err.message ||
-            "Failed to fetch service request"
+            "Failed to fetch maintenance request"
         );
       }
     },

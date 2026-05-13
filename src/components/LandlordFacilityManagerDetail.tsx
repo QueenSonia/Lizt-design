@@ -190,7 +190,7 @@ export default function LandlordFacilityManagerDetail({
             <div>
               <p className="font-medium text-slate-900 mb-1">Active Tasks</p>
               <p className="text-slate-600">
-                {manager.activeTasks} service request
+                {manager.activeTasks} maintenance request
                 {manager.activeTasks === 1 ? "" : "s"} currently assigned
               </p>
             </div>
@@ -226,7 +226,7 @@ export default function LandlordFacilityManagerDetail({
             <DialogTitle>Delete Facility Manager?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-600 py-2">
-            This will remove <span className="font-medium text-gray-900">{manager.name}</span>. Any service requests currently assigned to them will become unassigned.
+            This will remove <span className="font-medium text-gray-900">{manager.name}</span>. Any maintenance requests currently assigned to them will become unassigned.
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmDelete(false)}>

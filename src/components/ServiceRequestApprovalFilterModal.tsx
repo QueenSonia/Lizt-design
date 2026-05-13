@@ -100,7 +100,7 @@ export function ServiceRequestApprovalFilterModal({
       
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Filter Service Requests</DialogTitle>
+          <DialogTitle>Filter Maintenance Requests</DialogTitle>
           <DialogDescription>Select filters to narrow down your search</DialogDescription>
         </DialogHeader>
         

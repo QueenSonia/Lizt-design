@@ -184,7 +184,7 @@ export function LegacyFilterModal({
       case 'activity': return 'Filter Activities'
       case 'tenants': return 'Filter Tenants'
       case 'properties': return 'Filter Properties'
-      case 'service': return 'Filter Service Requests'
+      case 'service': return 'Filter Maintenance Requests'
       case 'kyc': return 'Filter KYC Applications'
       case 'facility': return 'Filter Facility Managers'
       case 'documents': return 'Filter Documents'
@@ -212,7 +212,7 @@ export function LegacyFilterModal({
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="tenant_added">Tenant Added</SelectItem>
-                  <SelectItem value="service_request">Service Request</SelectItem>
+                  <SelectItem value="service_request">Maintenance Request</SelectItem>
                   <SelectItem value="kyc_approved">KYC Approved</SelectItem>
                   <SelectItem value="rent_due">Rent Due</SelectItem>
                   <SelectItem value="document_uploaded">Document Uploaded</SelectItem>

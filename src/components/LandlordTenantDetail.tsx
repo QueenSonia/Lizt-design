@@ -1491,7 +1491,7 @@ export default function LandlordTenantDetail({
             const sr = response.data;
             setServiceRequestData({
               id: sr.id,
-              issue: sr.description || event.title || "Service Request",
+              issue: sr.description || event.title || "Maintenance Request",
               description: sr.description || "",
               status: sr.status || "pending",
               property:
@@ -1511,8 +1511,8 @@ export default function LandlordTenantDetail({
             });
             setShowServiceRequestModal(true);
           } catch (error) {
-            console.error("Failed to fetch service request:", error);
-            toast.error("Failed to load service request details");
+            console.error("Failed to fetch maintenance request:", error);
+            toast.error("Failed to load maintenance request details");
           }
         })();
         break;

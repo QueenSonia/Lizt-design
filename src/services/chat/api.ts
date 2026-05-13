@@ -41,7 +41,7 @@ export const sendMail = async (data:any) => {
       });
 
       if (response.status !== 200) {
-        throw new Error("Error fetcthing service requests chat");
+        throw new Error("Error fetcthing maintenance requests chat");
       }
   
       return response.data
@@ -64,7 +64,7 @@ export const sendMail = async (data:any) => {
       });
 
       if (response.status !== 200) {
-        throw new Error("Error fetcthing service requests chat");
+        throw new Error("Error fetcthing maintenance requests chat");
       }
   
       return response.data
@@ -87,7 +87,7 @@ export const sendMail = async (data:any) => {
       });
 
       if (response.status !== 200) {
-        throw new Error("Error fetcthing service requests chat");
+        throw new Error("Error fetcthing maintenance requests chat");
       }
   
       return response.data

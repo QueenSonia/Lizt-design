@@ -39,7 +39,7 @@ export const ADMIN_NAV: NavItem[] = [
   { id: "facility-managers", label: "Facility Managers", icon: Wrench },
   { id: "kyc-applications", label: "KYC Applications", icon: ShieldCheck, badge: 47 },
   { id: "payments", label: "Payments", icon: CreditCard },
-  { id: "service-requests", label: "Service Requests", icon: Headphones, badge: 132 },
+  { id: "service-requests", label: "Maintenance Requests", icon: Headphones, badge: 132 },
   { id: "reports", label: "Reports", icon: FileBarChart2 },
   { id: "notifications", label: "Notifications", icon: Bell, badge: 4 },
   { id: "activity-logs", label: "Activity Logs", icon: History },

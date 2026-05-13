@@ -96,7 +96,7 @@ export function GlobalSearchResults({
     )
     .slice(0, 3);
 
-  // Search service requests
+  // Search maintenance requests
   const serviceRequests: ServiceRequest[] =
     serviceRequestsData?.service_requests || [];
   const matchedServiceRequests = serviceRequests
@@ -219,14 +219,14 @@ export function GlobalSearchResults({
         </div>
       )}
 
-      {/* Service Requests Section */}
+      {/* Maintenance Requests Section */}
       {matchedServiceRequests.length > 0 && (
         <div>
           <div className="px-4 py-2 bg-slate-50">
             <div className="flex items-center gap-2">
               <Wrench className="w-4 h-4 text-slate-500" />
               <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-                Service Requests ({matchedServiceRequests.length})
+                Maintenance Requests ({matchedServiceRequests.length})
               </span>
             </div>
           </div>
@@ -245,7 +245,7 @@ export function GlobalSearchResults({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-slate-900 group-hover:text-orange-600 transition-colors duration-200 mb-1">
-                      {request.issue_category || "Service Request"}
+                      {request.issue_category || "Maintenance Request"}
                     </div>
                     <div className="text-xs text-slate-600 line-clamp-1 mb-1">
                       {request.description}

@@ -420,7 +420,7 @@ export const mockDashboardAnalytics = {
   })),
 };
 
-// ---- Service Requests ----
+// ---- Maintenance Requests ----
 
 export const mockServiceRequests = [
   {

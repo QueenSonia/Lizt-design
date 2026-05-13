@@ -239,7 +239,7 @@ describe("LandlordFacility Component", () => {
       // ===== ASSERT =====
       // Use getByText to find elements by their text content
       expect(screen.getByText("Facility")).toBeInTheDocument();
-      expect(screen.getByText("Service Requests")).toBeInTheDocument();
+      expect(screen.getByText("Maintenance Requests")).toBeInTheDocument();
     });
 
     /**
@@ -452,17 +452,17 @@ describe("LandlordFacility Component", () => {
   });
 
   /**
-   * TEST SUITE 3: Service Requests
+   * TEST SUITE 3: Maintenance Requests
    *
-   * Tests the service requests section
+   * Tests the maintenance requests section
    */
-  describe("Service Requests", () => {
+  describe("Maintenance Requests", () => {
     /**
-     * TEST 9: Displaying Service Requests
+     * TEST 9: Displaying Maintenance Requests
      *
-     * Tests that service requests are rendered
+     * Tests that maintenance requests are rendered
      */
-    it("should display service requests", async () => {
+    it("should display maintenance requests", async () => {
       // ===== ACT =====
       render(<LandlordFacility />);
 
@@ -478,12 +478,12 @@ describe("LandlordFacility Component", () => {
     });
 
     /**
-     * TEST 10: Filtering Service Requests
+     * TEST 10: Filtering Maintenance Requests
      *
      * Tests the search functionality
      * Demonstrates testing controlled inputs
      */
-    it("should filter service requests by search query", async () => {
+    it("should filter maintenance requests by search query", async () => {
       // ===== ARRANGE =====
       const user = userEvent.setup();
       render(<LandlordFacility />);
@@ -513,11 +513,11 @@ describe("LandlordFacility Component", () => {
     });
 
     /**
-     * TEST 11: Empty Service Requests
+     * TEST 11: Empty Maintenance Requests
      *
-     * Tests empty state for service requests
+     * Tests empty state for maintenance requests
      */
-    it("should show empty state when no service requests", () => {
+    it("should show empty state when no maintenance requests", () => {
       // ===== ARRANGE =====
       (useGetAllServiceRequests as jest.Mock).mockReturnValue({
         data: { service_requests: [] },
@@ -529,15 +529,15 @@ describe("LandlordFacility Component", () => {
       render(<LandlordFacility />);
 
       // ===== ASSERT =====
-      expect(screen.getByText("No service requests yet.")).toBeInTheDocument();
+      expect(screen.getByText("No maintenance requests yet.")).toBeInTheDocument();
     });
 
     /**
-     * TEST 12: Loading Service Requests
+     * TEST 12: Loading Maintenance Requests
      *
-     * Tests loading state for service requests
+     * Tests loading state for maintenance requests
      */
-    it("should show loading state for service requests", () => {
+    it("should show loading state for maintenance requests", () => {
       // ===== ARRANGE =====
       (useGetAllServiceRequests as jest.Mock).mockReturnValue({
         data: null,
@@ -550,7 +550,7 @@ describe("LandlordFacility Component", () => {
 
       // ===== ASSERT =====
       expect(
-        screen.getByText("Loading service requests...")
+        screen.getByText("Loading maintenance requests...")
       ).toBeInTheDocument();
     });
   });
@@ -596,11 +596,11 @@ describe("LandlordFacility Component", () => {
     });
 
     /**
-     * TEST 14: Service Request Error
+     * TEST 14: Maintenance Request Error
      *
-     * Tests error state for service requests
+     * Tests error state for maintenance requests
      */
-    it("should show error state when service requests fail to load", () => {
+    it("should show error state when maintenance requests fail to load", () => {
       // ===== ARRANGE =====
       (useGetAllServiceRequests as jest.Mock).mockReturnValue({
         data: null,
