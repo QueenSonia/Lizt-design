@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, Check, AlertCircle } from "lucide-react";
+import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, Check, AlertCircle, Send, MessageSquare } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
@@ -193,6 +193,120 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
 ];
 
+// ── Task Thread ───────────────────────────────────────────────────────────────
+
+type ThreadAuthor = "landlord" | "facility_manager";
+
+interface ThreadMessage {
+  id: string;
+  type: "message";
+  author: ThreadAuthor;
+  authorName: string;
+  body: string;
+  timestamp: string; // ISO
+}
+
+interface ThreadEvent {
+  id: string;
+  type: "event";
+  body: string;
+  timestamp: string;
+}
+
+type ThreadEntry = ThreadMessage | ThreadEvent;
+
+function makeMsgId() {
+  return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function fmtThreadTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtThreadDate(iso: string) {
+  const d = new Date(iso);
+  const today = new Date();
+  const isToday =
+    d.getDate() === today.getDate() &&
+    d.getMonth() === today.getMonth() &&
+    d.getFullYear() === today.getFullYear();
+  if (isToday) return "Today";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+const MOCK_THREADS: Record<string, ThreadEntry[]> = {
+  "sr-002": [
+    {
+      id: "e-001", type: "event",
+      body: "Maintenance request submitted",
+      timestamp: "2026-04-22T14:10:00.000Z",
+    },
+    {
+      id: "e-002", type: "event",
+      body: "Assigned to Chukwuemeka Obi",
+      timestamp: "2026-04-22T15:00:00.000Z",
+    },
+    {
+      id: "m-001", type: "message", author: "landlord", authorName: "You",
+      body: "Please prioritize this — tenant has complained twice already.",
+      timestamp: "2026-04-22T15:30:00.000Z",
+    },
+    {
+      id: "m-002", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi",
+      body: "Understood. I'll visit the property by 2 PM today to assess the sockets.",
+      timestamp: "2026-04-23T09:12:00.000Z",
+    },
+    {
+      id: "e-003", type: "event",
+      body: "Request approved",
+      timestamp: "2026-04-23T09:30:00.000Z",
+    },
+    {
+      id: "m-003", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi",
+      body: "Visited the property. The issue is a tripped breaker and one damaged socket. Parts ordered — will complete by tomorrow.",
+      timestamp: "2026-04-23T15:45:00.000Z",
+    },
+  ],
+  "sr-004": [
+    {
+      id: "e-101", type: "event",
+      body: "Maintenance request submitted",
+      timestamp: "2026-04-18T10:00:00.000Z",
+    },
+    {
+      id: "e-102", type: "event",
+      body: "Assigned to Tunde Adeyemi",
+      timestamp: "2026-04-18T11:00:00.000Z",
+    },
+    {
+      id: "m-101", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi",
+      body: "I'll carry out the inspection this week. Will report back by Friday.",
+      timestamp: "2026-04-19T08:20:00.000Z",
+    },
+    {
+      id: "m-102", type: "message", author: "landlord", authorName: "You",
+      body: "Thanks. Let me know if you need anything from me.",
+      timestamp: "2026-04-19T09:05:00.000Z",
+    },
+    {
+      id: "m-103", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi",
+      body: "Inspection done. Found a cracked tile near the shower drain — sourcing a replacement now.",
+      timestamp: "2026-04-21T14:10:00.000Z",
+    },
+    {
+      id: "e-103", type: "event",
+      body: "Marked as resolved",
+      timestamp: "2026-04-24T16:30:00.000Z",
+    },
+    {
+      id: "m-104", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi",
+      body: "Tile replaced and re-grouted. No further damage observed. Resolution form submitted.",
+      timestamp: "2026-04-24T16:35:00.000Z",
+    },
+  ],
+};
+
 // ── Common Areas types & mock data ────────────────────────────────────────────
 
 interface CommonArea {
@@ -256,6 +370,8 @@ export function LandlordFacility({
   const [activeTab, setActiveTab] = useState<"service_requests" | "common_areas" | "facility_managers">("service_requests");
   const [, fmStoreTick] = useState(0);
   const [priorityRequests, setPriorityRequests] = useState<Set<string>>(new Set());
+  const [requestThreads, setRequestThreads] = useState<Record<string, ThreadEntry[]>>(MOCK_THREADS);
+  const [threadInput, setThreadInput] = useState("");
 
   useEffect(() => {
     return subscribeToFMStore(() => fmStoreTick((n) => n + 1));
@@ -319,6 +435,13 @@ export function LandlordFacility({
   // Design sandbox — always show the mock dataset so resolution previews are
   // visible regardless of what the API returns.
   const requests: ServiceRequest[] = MOCK_SERVICE_REQUESTS;
+
+  const appendThreadEntry = (requestId: string, entry: ThreadEntry) => {
+    setRequestThreads((prev) => ({
+      ...prev,
+      [requestId]: [...(prev[requestId] ?? []), entry],
+    }));
+  };
 
   // ── Common Areas ───────────────────────────────────────────────────────────
   const [caSearchQuery, setCaSearchQuery] = useState("");
@@ -1122,8 +1245,18 @@ export function LandlordFacility({
                               toast.success(
                                 `Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`,
                               );
+                              appendThreadEntry(selectedRequest.id, {
+                                id: makeMsgId(), type: "event",
+                                body: `Assigned to ${fm?.name ?? "facility manager"}`,
+                                timestamp: new Date().toISOString(),
+                              });
                             } else {
                               toast.success("Request unassigned");
+                              appendThreadEntry(selectedRequest.id, {
+                                id: makeMsgId(), type: "event",
+                                body: "Facility manager unassigned",
+                                timestamp: new Date().toISOString(),
+                              });
                             }
                           }}
                         >
@@ -1173,6 +1306,115 @@ export function LandlordFacility({
                       </div>
                     </div>
                   )}
+
+                  {/* ── Task Thread ────────────────────────────────────────── */}
+                  {(() => {
+                    const thread = requestThreads[selectedRequest.id] ?? [];
+
+                    // Group entries by date label
+                    const groups: { label: string; entries: ThreadEntry[] }[] = [];
+                    for (const entry of thread) {
+                      const label = fmtThreadDate(entry.timestamp);
+                      const last = groups[groups.length - 1];
+                      if (last && last.label === label) {
+                        last.entries.push(entry);
+                      } else {
+                        groups.push({ label, entries: [entry] });
+                      }
+                    }
+
+                    const sendMessage = () => {
+                      const body = threadInput.trim();
+                      if (!body) return;
+                      appendThreadEntry(selectedRequest.id, {
+                        id: makeMsgId(), type: "message",
+                        author: "landlord", authorName: "You",
+                        body,
+                        timestamp: new Date().toISOString(),
+                      });
+                      setThreadInput("");
+                    };
+
+                    return (
+                      <div className="border-t border-gray-100 pt-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            Updates & Thread
+                          </p>
+                        </div>
+
+                        {/* Thread entries */}
+                        <div className="space-y-1 mb-3">
+                          {groups.length === 0 && (
+                            <p className="text-xs text-gray-400 italic py-2">No updates yet. Add the first update below.</p>
+                          )}
+                          {groups.map((group) => (
+                            <div key={group.label}>
+                              {/* Date divider */}
+                              <div className="flex items-center gap-2 my-3">
+                                <div className="flex-1 h-px bg-gray-100" />
+                                <span className="text-[10px] text-gray-400 font-medium">{group.label}</span>
+                                <div className="flex-1 h-px bg-gray-100" />
+                              </div>
+                              <div className="space-y-2">
+                                {group.entries.map((entry) => {
+                                  if (entry.type === "event") {
+                                    return (
+                                      <div key={entry.id} className="flex items-center gap-2 py-1">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0 ml-1" />
+                                        <p className="text-xs text-gray-400 flex-1">{entry.body}</p>
+                                        <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
+                                      </div>
+                                    );
+                                  }
+                                  const isLandlord = entry.author === "landlord";
+                                  return (
+                                    <div key={entry.id} className={`flex flex-col gap-0.5 ${isLandlord ? "items-end" : "items-start"}`}>
+                                      <div className={`max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed ${
+                                        isLandlord
+                                          ? "bg-[#FF5000] text-white rounded-br-sm"
+                                          : "bg-gray-100 text-gray-900 rounded-bl-sm"
+                                      }`}>
+                                        {entry.body}
+                                      </div>
+                                      <div className={`flex items-center gap-1.5 ${isLandlord ? "flex-row-reverse" : ""}`}>
+                                        <span className="text-[10px] text-gray-400 font-medium">
+                                          {isLandlord ? "You" : entry.authorName}
+                                        </span>
+                                        <span className="text-[10px] text-gray-300">·</span>
+                                        <span className="text-[10px] text-gray-400">{fmtThreadTime(entry.timestamp)}</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Input */}
+                        <div className="flex items-center gap-2 mt-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
+                          <input
+                            type="text"
+                            value={threadInput}
+                            onChange={(e) => setThreadInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                            placeholder="Add an update…"
+                            className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={sendMessage}
+                            disabled={!threadInput.trim()}
+                            className="shrink-0 w-7 h-7 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
+                          >
+                            <Send className="w-3.5 h-3.5 text-white" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Resolution submitted by facility manager */}
                   {selectedRequest.resolution && (
@@ -1231,9 +1473,19 @@ export function LandlordFacility({
                       if (next.has(reqId)) {
                         next.delete(reqId);
                         toast.success("Priority removed from this request.");
+                        appendThreadEntry(reqId, {
+                          id: makeMsgId(), type: "event",
+                          body: "Priority removed",
+                          timestamp: new Date().toISOString(),
+                        });
                       } else {
                         next.add(reqId);
                         toast.success("Request marked as priority — it will appear at the top of the list.");
+                        appendThreadEntry(reqId, {
+                          id: makeMsgId(), type: "event",
+                          body: "Marked as priority",
+                          timestamp: new Date().toISOString(),
+                        });
                       }
                       return next;
                     });
@@ -1263,6 +1515,11 @@ export function LandlordFacility({
                               "in_progress",
                               `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp; tenant updated.`,
                             );
+                            appendThreadEntry(selectedRequest.id, {
+                              id: makeMsgId(), type: "event",
+                              body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`,
+                              timestamp: new Date().toISOString(),
+                            });
                           }}
                           className="bg-[#FF5000] hover:bg-[#e04600] text-white"
                         >
