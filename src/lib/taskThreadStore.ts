@@ -112,3 +112,22 @@ export function appendThreadEntry(taskId: string, entry: ThreadEntry) {
   _threads.set(taskId, [...existing, entry]);
   _notify();
 }
+
+// ── Priority store ────────────────────────────────────────────────────────────
+// Keyed by task ID (works for both "sr-xxx" and "isXX" IDs).
+// is01 and is05 are seeded as priority so FM dashboard shows the tag immediately.
+
+const _priorityIds = new Set<string>(["is01", "is05"]);
+
+export function isTaskPriority(taskId: string): boolean {
+  return _priorityIds.has(taskId);
+}
+
+export function setTaskPriority(taskId: string, priority: boolean) {
+  if (priority) {
+    _priorityIds.add(taskId);
+  } else {
+    _priorityIds.delete(taskId);
+  }
+  _notify();
+}

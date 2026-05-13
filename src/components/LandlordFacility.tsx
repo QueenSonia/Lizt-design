@@ -36,6 +36,8 @@ import {
   fmtThreadTime,
   fmtThreadDate,
   subscribeToThreadStore,
+  isTaskPriority,
+  setTaskPriority,
 } from "@/lib/taskThreadStore";
 
 interface LandlordFacilityProps {
@@ -267,7 +269,6 @@ export function LandlordFacility({
   const [activeTab, setActiveTab] = useState<"service_requests" | "common_areas" | "facility_managers">("service_requests");
   const [, fmStoreTick] = useState(0);
   const [, threadTick] = useState(0);
-  const [priorityRequests, setPriorityRequests] = useState<Set<string>>(new Set());
   const [threadInput, setThreadInput] = useState("");
 
   useEffect(() => {
@@ -464,8 +465,8 @@ export function LandlordFacility({
       return matchesStatus && matchesSearch && matchesProperty && matchesSource;
     })
     .sort((a, b) => {
-      const aPriority = priorityRequests.has(a.id) ? 0 : 1;
-      const bPriority = priorityRequests.has(b.id) ? 0 : 1;
+      const aPriority = isTaskPriority(a.id) ? 0 : 1;
+      const bPriority = isTaskPriority(b.id) ? 0 : 1;
       return aPriority - bPriority;
     });
 
@@ -620,7 +621,7 @@ export function LandlordFacility({
               {!loadingRequests && !error && filteredRequests.length > 0 && (() => {
                 const renderCard = (request: ServiceRequest) => {
                   const assignee = getRequestAssignee(request.id);
-                  const isPriority = priorityRequests.has(request.id);
+                  const isPriority = isTaskPriority(request.id);
                   return (
                   <div
                     key={request.id}
@@ -1065,7 +1066,7 @@ export function LandlordFacility({
         const isApproved = ["in_progress", "resolved", "closed"].includes(currentStatus.toLowerCase());
         const assignee = getRequestAssignee(req.id);
         const canApprove = !!assignee && !isApproved;
-        const isPriority = priorityRequests.has(req.id);
+        const isPriority = isTaskPriority(req.id);
 
         const setStatus = (next: string, message: string) => {
           setStatusOverrides((prev) => ({ ...prev, [req.id]: next }));
@@ -1074,19 +1075,15 @@ export function LandlordFacility({
         };
 
         const togglePriority = () => {
-          setPriorityRequests((prev) => {
-            const next = new Set(prev);
-            if (next.has(req.id)) {
-              next.delete(req.id);
-              toast.success("Priority removed.");
-              appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Priority removed", timestamp: new Date().toISOString() });
-            } else {
-              next.add(req.id);
-              toast.success("Marked as priority.");
-              appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Marked as priority", timestamp: new Date().toISOString() });
-            }
-            return next;
-          });
+          const wasPriority = isTaskPriority(req.id);
+          setTaskPriority(req.id, !wasPriority);
+          if (wasPriority) {
+            toast.success("Priority removed.");
+            appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Priority removed", timestamp: new Date().toISOString() });
+          } else {
+            toast.success("Marked as priority.");
+            appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Marked as priority", timestamp: new Date().toISOString() });
+          }
         };
 
         const thread = getThread(req.id);
@@ -1663,30 +1660,18 @@ export function LandlordFacility({
                 {(() => {
                   const assignee = getRequestAssignee(selectedRequest.id);
                   const canApprove = !!assignee && !isApproved;
-                  const isPriority = priorityRequests.has(selectedRequest.id);
+                  const isPriority = isTaskPriority(selectedRequest.id);
                   const togglePriority = () => {
                     const reqId = selectedRequest.id;
-                    setPriorityRequests((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(reqId)) {
-                        next.delete(reqId);
-                        toast.success("Priority removed from this request.");
-                        appendThreadEntry(reqId, {
-                          id: makeMsgId(), type: "event",
-                          body: "Priority removed",
-                          timestamp: new Date().toISOString(),
-                        });
-                      } else {
-                        next.add(reqId);
-                        toast.success("Request marked as priority — it will appear at the top of the list.");
-                        appendThreadEntry(reqId, {
-                          id: makeMsgId(), type: "event",
-                          body: "Marked as priority",
-                          timestamp: new Date().toISOString(),
-                        });
-                      }
-                      return next;
-                    });
+                    const wasPriority = isTaskPriority(reqId);
+                    setTaskPriority(reqId, !wasPriority);
+                    if (wasPriority) {
+                      toast.success("Priority removed from this request.");
+                      appendThreadEntry(reqId, { id: makeMsgId(), type: "event", body: "Priority removed", timestamp: new Date().toISOString() });
+                    } else {
+                      toast.success("Request marked as priority — it will appear at the top of the list.");
+                      appendThreadEntry(reqId, { id: makeMsgId(), type: "event", body: "Marked as priority", timestamp: new Date().toISOString() });
+                    }
                   };
                   return (
                     <div className="space-y-2 pt-2">

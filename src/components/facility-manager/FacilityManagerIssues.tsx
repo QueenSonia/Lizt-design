@@ -1,14 +1,27 @@
 "use client";
+import { useState, useEffect } from "react";
 import { FacilityManagerHeader } from "./FacilityManagerHeader";
 import { useIsMobile, fmtDate } from "./helpers";
 import { useFmContext } from "./FacilityManagerProvider";
+import { isTaskPriority, subscribeToThreadStore } from "@/lib/taskThreadStore";
 
 export default function FacilityManagerIssues() {
   const isMobile = useIsMobile();
   const { issues, openIssueDetail } = useFmContext();
+  const [, tick] = useState(0);
+
+  useEffect(() => {
+    return subscribeToThreadStore(() => tick((n) => n + 1));
+  }, []);
+
   const pending = issues
     .filter((i) => i.status === "open")
-    .sort((a, b) => b.time - a.time);
+    .sort((a, b) => {
+      const pa = isTaskPriority(a.id) ? 0 : 1;
+      const pb = isTaskPriority(b.id) ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      return b.time - a.time;
+    });
 
   return (
     <div
@@ -97,21 +110,42 @@ export default function FacilityManagerIssues() {
                   >
                     {issue.title}
                   </div>
-                  <span
-                    style={{
-                      flexShrink: 0,
-                      fontSize: 11,
-                      fontWeight: 500,
-                      color: "#7A6A00",
-                      background: "#FEFBE8",
-                      border: "1px solid #F0E68A",
-                      borderRadius: 99,
-                      padding: "2px 8px",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    Pending
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {isTaskPriority(issue.id) && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "#C94A00",
+                          background: "#FFF1EC",
+                          border: "1px solid #FFD4C2",
+                          borderRadius: 99,
+                          padding: "2px 8px",
+                          lineHeight: 1.6,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                        }}
+                      >
+                        <span style={{ fontSize: 9 }}>▲</span>
+                        Priority
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: "#7A6A00",
+                        background: "#FEFBE8",
+                        border: "1px solid #F0E68A",
+                        borderRadius: 99,
+                        padding: "2px 8px",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Pending
+                    </span>
+                  </div>
                 </div>
                 <div
                   style={{
