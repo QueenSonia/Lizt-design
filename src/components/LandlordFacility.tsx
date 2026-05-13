@@ -28,6 +28,15 @@ import {
   getRequestsForManager,
   subscribeToFMStore,
 } from "@/lib/facilityManagerStore";
+import {
+  ThreadEntry,
+  appendThreadEntry,
+  getThread,
+  makeMsgId,
+  fmtThreadTime,
+  fmtThreadDate,
+  subscribeToThreadStore,
+} from "@/lib/taskThreadStore";
 
 interface LandlordFacilityProps {
   onBack?: () => void;
@@ -193,119 +202,7 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
 ];
 
-// ── Task Thread ───────────────────────────────────────────────────────────────
-
-type ThreadAuthor = "landlord" | "facility_manager";
-
-interface ThreadMessage {
-  id: string;
-  type: "message";
-  author: ThreadAuthor;
-  authorName: string;
-  body: string;
-  timestamp: string; // ISO
-}
-
-interface ThreadEvent {
-  id: string;
-  type: "event";
-  body: string;
-  timestamp: string;
-}
-
-type ThreadEntry = ThreadMessage | ThreadEvent;
-
-function makeMsgId() {
-  return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function fmtThreadTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-}
-
-function fmtThreadDate(iso: string) {
-  const d = new Date(iso);
-  const today = new Date();
-  const isToday =
-    d.getDate() === today.getDate() &&
-    d.getMonth() === today.getMonth() &&
-    d.getFullYear() === today.getFullYear();
-  if (isToday) return "Today";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-
-const MOCK_THREADS: Record<string, ThreadEntry[]> = {
-  "sr-002": [
-    {
-      id: "e-001", type: "event",
-      body: "Maintenance request submitted",
-      timestamp: "2026-04-22T14:10:00.000Z",
-    },
-    {
-      id: "e-002", type: "event",
-      body: "Assigned to Chukwuemeka Obi",
-      timestamp: "2026-04-22T15:00:00.000Z",
-    },
-    {
-      id: "m-001", type: "message", author: "landlord", authorName: "You",
-      body: "Please prioritize this — tenant has complained twice already.",
-      timestamp: "2026-04-22T15:30:00.000Z",
-    },
-    {
-      id: "m-002", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi",
-      body: "Understood. I'll visit the property by 2 PM today to assess the sockets.",
-      timestamp: "2026-04-23T09:12:00.000Z",
-    },
-    {
-      id: "e-003", type: "event",
-      body: "Request approved",
-      timestamp: "2026-04-23T09:30:00.000Z",
-    },
-    {
-      id: "m-003", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi",
-      body: "Visited the property. The issue is a tripped breaker and one damaged socket. Parts ordered — will complete by tomorrow.",
-      timestamp: "2026-04-23T15:45:00.000Z",
-    },
-  ],
-  "sr-004": [
-    {
-      id: "e-101", type: "event",
-      body: "Maintenance request submitted",
-      timestamp: "2026-04-18T10:00:00.000Z",
-    },
-    {
-      id: "e-102", type: "event",
-      body: "Assigned to Tunde Adeyemi",
-      timestamp: "2026-04-18T11:00:00.000Z",
-    },
-    {
-      id: "m-101", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi",
-      body: "I'll carry out the inspection this week. Will report back by Friday.",
-      timestamp: "2026-04-19T08:20:00.000Z",
-    },
-    {
-      id: "m-102", type: "message", author: "landlord", authorName: "You",
-      body: "Thanks. Let me know if you need anything from me.",
-      timestamp: "2026-04-19T09:05:00.000Z",
-    },
-    {
-      id: "m-103", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi",
-      body: "Inspection done. Found a cracked tile near the shower drain — sourcing a replacement now.",
-      timestamp: "2026-04-21T14:10:00.000Z",
-    },
-    {
-      id: "e-103", type: "event",
-      body: "Marked as resolved",
-      timestamp: "2026-04-24T16:30:00.000Z",
-    },
-    {
-      id: "m-104", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi",
-      body: "Tile replaced and re-grouted. No further damage observed. Resolution form submitted.",
-      timestamp: "2026-04-24T16:35:00.000Z",
-    },
-  ],
-};
+// Thread types, helpers, and seed data live in @/lib/taskThreadStore (shared with FM dashboard)
 
 // ── Common Areas types & mock data ────────────────────────────────────────────
 
@@ -369,12 +266,14 @@ export function LandlordFacility({
 
   const [activeTab, setActiveTab] = useState<"service_requests" | "common_areas" | "facility_managers">("service_requests");
   const [, fmStoreTick] = useState(0);
+  const [, threadTick] = useState(0);
   const [priorityRequests, setPriorityRequests] = useState<Set<string>>(new Set());
-  const [requestThreads, setRequestThreads] = useState<Record<string, ThreadEntry[]>>(MOCK_THREADS);
   const [threadInput, setThreadInput] = useState("");
 
   useEffect(() => {
-    return subscribeToFMStore(() => fmStoreTick((n) => n + 1));
+    const unsubFM = subscribeToFMStore(() => fmStoreTick((n) => n + 1));
+    const unsubThread = subscribeToThreadStore(() => threadTick((n) => n + 1));
+    return () => { unsubFM(); unsubThread(); };
   }, []);
 
   // ── Facility Managers ──────────────────────────────────────────────────────
@@ -436,12 +335,7 @@ export function LandlordFacility({
   // visible regardless of what the API returns.
   const requests: ServiceRequest[] = MOCK_SERVICE_REQUESTS;
 
-  const appendThreadEntry = (requestId: string, entry: ThreadEntry) => {
-    setRequestThreads((prev) => ({
-      ...prev,
-      [requestId]: [...(prev[requestId] ?? []), entry],
-    }));
-  };
+  // appendThreadEntry imported from @/lib/taskThreadStore
 
   // ── Common Areas ───────────────────────────────────────────────────────────
   const [caSearchQuery, setCaSearchQuery] = useState("");
@@ -1195,7 +1089,7 @@ export function LandlordFacility({
           });
         };
 
-        const thread = requestThreads[req.id] ?? [];
+        const thread = getThread(req.id);
         const groups: { label: string; entries: ThreadEntry[] }[] = [];
         for (const entry of thread) {
           const label = fmtThreadDate(entry.timestamp);
@@ -1613,7 +1507,7 @@ export function LandlordFacility({
 
                   {/* ── Task Thread ────────────────────────────────────────── */}
                   {(() => {
-                    const thread = requestThreads[selectedRequest.id] ?? [];
+                    const thread = getThread(selectedRequest.id);
 
                     // Group entries by date label
                     const groups: { label: string; entries: ThreadEntry[] }[] = [];

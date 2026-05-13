@@ -1,9 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Ico } from "./Icon";
 import { useIsMobile, fmtDate } from "./helpers";
 import { ResolutionModal } from "./ResolutionModal";
 import { FmIssue, FmResolution, STATUS_LABEL } from "./mockData";
+import {
+  appendThreadEntry,
+  getThread,
+  makeMsgId,
+  fmtThreadTime,
+  fmtThreadDate,
+  subscribeToThreadStore,
+  ThreadEntry,
+} from "@/lib/taskThreadStore";
 
 export interface IssueDetailIssue {
   id: string;
@@ -34,6 +43,13 @@ export function IssueDetailModal({
 }: IssueDetailModalProps) {
   const isMobile = useIsMobile();
   const [resolveOpen, setResolveOpen] = useState(false);
+  const [threadTick, setThreadTick] = useState(0);
+  const [threadInput, setThreadInput] = useState("");
+
+  useEffect(() => {
+    return subscribeToThreadStore(() => setThreadTick((n) => n + 1));
+  }, []);
+
   if (!issue) return null;
 
   const isPending = issue.status === "open";
@@ -345,6 +361,145 @@ export function IssueDetailModal({
                 ))}
               </div>
             </div>
+
+            {/* ── Task Thread ───────────────────────────────────────────── */}
+            {(() => {
+              const thread = getThread(issue.id);
+              const groups: { label: string; entries: ThreadEntry[] }[] = [];
+              for (const entry of thread) {
+                const label = fmtThreadDate(entry.timestamp);
+                const last = groups[groups.length - 1];
+                if (last && last.label === label) { last.entries.push(entry); }
+                else { groups.push({ label, entries: [entry] }); }
+              }
+
+              const sendMessage = () => {
+                const body = threadInput.trim();
+                if (!body) return;
+                appendThreadEntry(issue.id, {
+                  id: makeMsgId(),
+                  type: "message",
+                  author: "facility_manager",
+                  authorName: "You",
+                  body,
+                  timestamp: new Date().toISOString(),
+                });
+                setThreadInput("");
+              };
+
+              return (
+                <div style={{ marginTop: 24, borderTop: "1px solid #EDECEA", paddingTop: 20 }}>
+                  {/* Section label */}
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#B0ADA8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+                    Updates & Thread
+                  </div>
+
+                  {/* Messages */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {groups.length === 0 && (
+                      <p style={{ fontSize: 12, color: "#B0ADA8", fontStyle: "italic", margin: "4px 0 8px" }}>No updates yet.</p>
+                    )}
+                    {groups.map((group) => (
+                      <div key={group.label}>
+                        {/* Date divider */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0 8px" }}>
+                          <div style={{ flex: 1, height: 1, background: "#F0EEEA" }} />
+                          <span style={{ fontSize: 10, color: "#B0ADA8", fontWeight: 500 }}>{group.label}</span>
+                          <div style={{ flex: 1, height: 1, background: "#F0EEEA" }} />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {group.entries.map((entry) => {
+                            if (entry.type === "event") {
+                              return (
+                                <div key={entry.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#D5D2CD", flexShrink: 0 }} />
+                                  <span style={{ flex: 1, fontSize: 11, color: "#B0ADA8" }}>{entry.body}</span>
+                                  <span style={{ fontSize: 10, color: "#D5D2CD", flexShrink: 0 }}>{fmtThreadTime(entry.timestamp)}</span>
+                                </div>
+                              );
+                            }
+                            const isFM = entry.author === "facility_manager";
+                            return (
+                              <div key={entry.id} style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: isFM ? "flex-end" : "flex-start" }}>
+                                <div style={{
+                                  maxWidth: "82%",
+                                  padding: "9px 13px",
+                                  borderRadius: isFM ? "14px 14px 3px 14px" : "14px 14px 14px 3px",
+                                  fontSize: 13,
+                                  lineHeight: 1.55,
+                                  background: isFM ? "#FF5000" : "#F5F4F1",
+                                  color: isFM ? "#FFFFFF" : "#1A1A1A",
+                                }}>
+                                  {entry.body}
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 5, flexDirection: isFM ? "row-reverse" : "row" }}>
+                                  <span style={{ fontSize: 10, color: "#9A9790", fontWeight: 500 }}>
+                                    {isFM ? "You" : "Landlord"}
+                                  </span>
+                                  <span style={{ fontSize: 10, color: "#D5D2CD" }}>·</span>
+                                  <span style={{ fontSize: 10, color: "#B0ADA8" }}>{fmtThreadTime(entry.timestamp)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Input */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginTop: 12,
+                    border: "1px solid #E2E0DC",
+                    borderRadius: 12,
+                    padding: "8px 10px 8px 14px",
+                    background: "#FAFAF8",
+                  }}>
+                    <input
+                      type="text"
+                      value={threadInput}
+                      onChange={(e) => setThreadInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                      placeholder="Add an update…"
+                      style={{
+                        flex: 1,
+                        background: "transparent",
+                        border: "none",
+                        outline: "none",
+                        fontSize: 13,
+                        color: "#1A1A1A",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={sendMessage}
+                      disabled={!threadInput.trim()}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 8,
+                        border: "none",
+                        background: threadInput.trim() ? "#FF5000" : "#E2E0DC",
+                        cursor: threadInput.trim() ? "pointer" : "default",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {(isPending || isResolved) && (
@@ -376,7 +531,10 @@ export function IssueDetailModal({
               )}
               {isResolved && (
                 <button
-                  onClick={() => onStatusChange(issue.id, "open")}
+                  onClick={() => {
+                    onStatusChange(issue.id, "open");
+                    appendThreadEntry(issue.id, { id: makeMsgId(), type: "event", body: "Task reopened", timestamp: new Date().toISOString() });
+                  }}
                   style={{
                     width: "100%",
                     padding: 12,
@@ -400,9 +558,10 @@ export function IssueDetailModal({
         <ResolutionModal
           issue={issue}
           onClose={() => setResolveOpen(false)}
-          onConfirm={(resolution) =>
-            onStatusChange(issue.id, "resolved", resolution)
-          }
+          onConfirm={(resolution) => {
+            onStatusChange(issue.id, "resolved", resolution);
+            appendThreadEntry(issue.id, { id: makeMsgId(), type: "event", body: "Marked as resolved", timestamp: new Date().toISOString() });
+          }}
         />
       )}
     </>
