@@ -1163,7 +1163,311 @@ export function LandlordFacility({
         </div>
       )}
 
-      {/* ── Maintenance Request Detail Modal ─────────────────────────────────── */}
+      {/* ── Maintenance Request Detail — Mobile full-screen view ──────────────── */}
+      {isMobile && selectedRequest && (() => {
+        const req = selectedRequest;
+        const currentStatus = statusOverrides[req.id] ?? req.status;
+        const source = resolveSource(req);
+        const isApproved = ["in_progress", "resolved", "closed"].includes(currentStatus.toLowerCase());
+        const assignee = getRequestAssignee(req.id);
+        const canApprove = !!assignee && !isApproved;
+        const isPriority = priorityRequests.has(req.id);
+
+        const setStatus = (next: string, message: string) => {
+          setStatusOverrides((prev) => ({ ...prev, [req.id]: next }));
+          setSelectedRequest((r) => (r ? { ...r, status: next } : r));
+          toast.success(message);
+        };
+
+        const togglePriority = () => {
+          setPriorityRequests((prev) => {
+            const next = new Set(prev);
+            if (next.has(req.id)) {
+              next.delete(req.id);
+              toast.success("Priority removed.");
+              appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Priority removed", timestamp: new Date().toISOString() });
+            } else {
+              next.add(req.id);
+              toast.success("Marked as priority.");
+              appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Marked as priority", timestamp: new Date().toISOString() });
+            }
+            return next;
+          });
+        };
+
+        const thread = requestThreads[req.id] ?? [];
+        const groups: { label: string; entries: ThreadEntry[] }[] = [];
+        for (const entry of thread) {
+          const label = fmtThreadDate(entry.timestamp);
+          const last = groups[groups.length - 1];
+          if (last && last.label === label) { last.entries.push(entry); }
+          else { groups.push({ label, entries: [entry] }); }
+        }
+
+        const sendMessage = () => {
+          const body = threadInput.trim();
+          if (!body) return;
+          appendThreadEntry(req.id, { id: makeMsgId(), type: "message", author: "landlord", authorName: "You", body, timestamp: new Date().toISOString() });
+          setThreadInput("");
+        };
+
+        const statusColors: Record<string, string> = {
+          open: "bg-yellow-100 text-yellow-700 border-yellow-200",
+          pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
+          in_progress: "bg-blue-100 text-blue-700 border-blue-200",
+          resolved: "bg-green-100 text-green-700 border-green-200",
+          urgent: "bg-red-100 text-red-700 border-red-200",
+          reopened: "bg-red-100 text-red-700 border-red-200",
+          closed: "bg-gray-100 text-gray-700 border-gray-200",
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
+            {/* Fixed top nav */}
+            <div className="shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedRequest(null)}
+                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Back"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-600 rotate-180" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{req.description}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{req.property_name}</p>
+              </div>
+              <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full border ${statusColors[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
+                {formatStatusLabel(currentStatus)}
+              </span>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto pb-[72px]">
+              <div className="px-4 py-5 space-y-6">
+
+                {/* Details grid */}
+                <div className="bg-white rounded-xl p-4 space-y-4 shadow-sm">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Property</p>
+                      <p className="text-gray-900 leading-snug">{req.property_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Category</p>
+                      <p className="text-gray-900">{req.issue_category}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Reported by</p>
+                      <p className="text-gray-900 leading-snug">{SOURCE_LABEL[source]} – {reporterName(req)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
+                      <p className="text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
+                    </div>
+                  </div>
+                  <div className="border-t border-gray-100 pt-3">
+                    <p className="text-xs text-gray-400 mb-1">Date Reported</p>
+                    <p className="text-sm text-gray-900">{formatDateTime(req.date_reported)}</p>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Description</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{req.description}</p>
+                </div>
+
+                {/* Assigned FM */}
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Assigned Facility Manager</p>
+                  <Select
+                    value={assignee?.id ?? "unassigned"}
+                    onValueChange={(value) => {
+                      const nextId = value === "unassigned" ? null : value;
+                      assignRequestToManager(req.id, nextId);
+                      fmStoreTick((n) => n + 1);
+                      if (nextId) {
+                        const fm = managers.find((m) => m.id === nextId);
+                        toast.success(`Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`);
+                        appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${fm?.name ?? "facility manager"}`, timestamp: new Date().toISOString() });
+                      } else {
+                        toast.success("Request unassigned");
+                        appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a facility manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {managers.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-gray-400 mt-2">Assigning sends a WhatsApp notification to the facility manager.</p>
+                </div>
+
+                {/* Attachments */}
+                {req.issue_images && req.issue_images.length > 0 && (
+                  <div className="bg-white rounded-xl p-4 shadow-sm">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Attachments</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {req.issue_images.map((src, i) => (
+                        <a key={i} href={src} target="_blank" rel="noopener noreferrer" className="block rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50">
+                          <img src={src} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Thread */}
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Updates & Thread</p>
+                  </div>
+
+                  <div className="space-y-1 mb-4">
+                    {groups.length === 0 && (
+                      <p className="text-xs text-gray-400 italic py-2">No updates yet. Add the first update below.</p>
+                    )}
+                    {groups.map((group) => (
+                      <div key={group.label}>
+                        <div className="flex items-center gap-2 my-4">
+                          <div className="flex-1 h-px bg-gray-100" />
+                          <span className="text-[10px] text-gray-400 font-medium">{group.label}</span>
+                          <div className="flex-1 h-px bg-gray-100" />
+                        </div>
+                        <div className="space-y-3">
+                          {group.entries.map((entry) => {
+                            if (entry.type === "event") {
+                              return (
+                                <div key={entry.id} className="flex items-center gap-2 py-0.5">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+                                  <p className="text-xs text-gray-400 flex-1">{entry.body}</p>
+                                  <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
+                                </div>
+                              );
+                            }
+                            const isLandlord = entry.author === "landlord";
+                            return (
+                              <div key={entry.id} className={`flex flex-col gap-1 ${isLandlord ? "items-end" : "items-start"}`}>
+                                <div className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                                  isLandlord ? "bg-[#FF5000] text-white rounded-br-sm" : "bg-gray-100 text-gray-900 rounded-bl-sm"
+                                }`}>
+                                  {entry.body}
+                                </div>
+                                <div className={`flex items-center gap-1.5 ${isLandlord ? "flex-row-reverse" : ""}`}>
+                                  <span className="text-[10px] text-gray-400 font-medium">{isLandlord ? "You" : entry.authorName}</span>
+                                  <span className="text-[10px] text-gray-300">·</span>
+                                  <span className="text-[10px] text-gray-400">{fmtThreadTime(entry.timestamp)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Resolution */}
+                {req.resolution && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden shadow-sm">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-emerald-200/70 bg-emerald-50">
+                      <Check className="w-4 h-4 text-emerald-700" />
+                      <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Resolution Submitted</p>
+                    </div>
+                    <div className="px-4 py-4 space-y-4 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Resolution description</p>
+                        <p className="text-gray-900 whitespace-pre-line leading-relaxed">{req.resolution.summary}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">Job category</p>
+                          <p className="text-gray-900">{req.resolution.category}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">Cost</p>
+                          <p className="text-gray-900 tabular-nums">{req.resolution.hadCost ? req.resolution.costAmount || "—" : "No cost"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
+                          <p className="text-gray-900">{formatDateTime(req.resolution.resolvedAt)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
+                          <p className="text-gray-900">{req.resolution.resolvedBy}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions (priority + approve) */}
+                <div className="space-y-3">
+                  {!isApproved && !assignee && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                      Assign a facility manager before approving this request.
+                    </p>
+                  )}
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className={`flex-1 ${isPriority ? "border-orange-300 text-orange-700 hover:bg-orange-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                      onClick={togglePriority}
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                      {isPriority ? "Remove Priority" : "Add Priority"}
+                    </Button>
+                    <Button
+                      disabled={!canApprove}
+                      className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white"
+                      onClick={() => {
+                        setStatus("in_progress", `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp; tenant updated.`);
+                        appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() });
+                      }}
+                    >
+                      {isApproved ? "Approved" : "Approve Request"}
+                    </Button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Fixed thread input at bottom */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-10">
+              <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
+                <input
+                  type="text"
+                  value={threadInput}
+                  onChange={(e) => setThreadInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  placeholder="Add an update…"
+                  className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={sendMessage}
+                  disabled={!threadInput.trim()}
+                  className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
+                >
+                  <Send className="w-3.5 h-3.5 text-white" />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Maintenance Request Detail Modal — Desktop ────────────────────────── */}
+      {!isMobile && (
       <Dialog open={!!selectedRequest} onOpenChange={(v) => !v && setSelectedRequest(null)}>
         <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
           {selectedRequest && (() => {
@@ -1534,6 +1838,7 @@ export function LandlordFacility({
           })()}
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }
