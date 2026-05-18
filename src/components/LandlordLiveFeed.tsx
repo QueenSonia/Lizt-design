@@ -6,10 +6,20 @@ import {
   CalendarIcon,
   AlertCircle,
   Bell,
-  BellOff,
+  Wrench,
+  Users,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
+import {
+  getRequestAssignee,
+  subscribeToFMStore,
+} from "@/lib/facilityManagerStore";
+import {
+  isTaskPriority,
+  subscribeToThreadStore,
+} from "@/lib/taskThreadStore";
 import { useFetchPropertyOverview } from "@/services/notification/query";
 import {
   Notification,
@@ -172,6 +182,292 @@ const LiveFeedSkeletonLoader = () => {
     </div>
   );
 };
+
+// ── Pending Maintenance Tasks ─────────────────────────────────────────────────
+
+interface PendingRequest {
+  id: string;
+  description: string;
+  property_name: string;
+  tenant_name: string;
+  reporter_name?: string;
+  source: "tenant" | "facility_manager";
+  status: string;
+  date_reported: string;
+}
+
+const PENDING_REQUESTS: PendingRequest[] = [
+  {
+    id: "sr-001",
+    description: "Kitchen sink is leaking and water pools under the cabinet.",
+    property_name: "Lekki Phase 1 Duplex",
+    tenant_name: "James Okafor",
+    reporter_name: "James Okafor",
+    source: "tenant",
+    status: "open",
+    date_reported: "2026-04-25T09:30:00.000Z",
+  },
+  {
+    id: "sr-003",
+    description: "Driveway gate motor is jammed; needs replacement bracket.",
+    property_name: "Lekki Phase 1 Duplex",
+    tenant_name: "—",
+    reporter_name: "Tobi Adekunle",
+    source: "facility_manager",
+    status: "open",
+    date_reported: "2026-04-26T07:45:00.000Z",
+  },
+  {
+    id: "sr-005",
+    description: "Air conditioner not cooling, just blowing warm air.",
+    property_name: "Victoria Island Studio",
+    tenant_name: "Emmanuel Etim",
+    reporter_name: "Emmanuel Etim",
+    source: "tenant",
+    status: "urgent",
+    date_reported: "2026-04-27T19:05:00.000Z",
+  },
+];
+
+// Returns action tag label and style for a request
+function getActionTag(req: PendingRequest, assigneeName: string | null, isPriority: boolean): { label: string; color: string; bg: string; border: string } {
+  if (isPriority) return { label: "Priority", color: "#C94A00", bg: "#FFF1EC", border: "#FFD4C2" };
+  if (req.status === "urgent") return { label: "Urgent", color: "#B91C1C", bg: "#FEF2F2", border: "#FECACA" };
+  if (!assigneeName) return { label: "Unassigned", color: "#6B5800", bg: "#FEFBE8", border: "#F0E68A" };
+  return { label: "Needs Approval", color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" };
+}
+
+function PendingMaintenanceTasks({ onNavigateToFacility }: { onNavigateToFacility: () => void }) {
+  const [, tick] = useState(0);
+
+  useEffect(() => {
+    const unsubFM = subscribeToFMStore(() => tick((n) => n + 1));
+    const unsubThread = subscribeToThreadStore(() => tick((n) => n + 1));
+    return () => { unsubFM(); unsubThread(); };
+  }, []);
+
+  // Filter: show open/urgent (not resolved/closed)
+  const pending = PENDING_REQUESTS.filter(
+    (r) => !["resolved", "closed"].includes(r.status.toLowerCase()),
+  );
+
+  // Sort: priority first, then urgent
+  const sorted = [...pending].sort((a, b) => {
+    const ap = isTaskPriority(a.id) ? 0 : a.status === "urgent" ? 1 : 2;
+    const bp = isTaskPriority(b.id) ? 0 : b.status === "urgent" ? 1 : 2;
+    return ap - bp;
+  });
+
+  if (sorted.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        background: "#FFFFFF",
+        borderRadius: 14,
+        border: "1px solid #EDECEA",
+        boxShadow: "0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.03)",
+        overflow: "hidden",
+        marginBottom: 24,
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "16px 20px 12px",
+          borderBottom: "1px solid #F0EEEA",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Wrench style={{ width: 15, height: 15, color: "#FF5000", flexShrink: 0 }} />
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1A1A" }}>
+            Pending Maintenance Tasks
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#FF5000",
+              background: "#FFF1EC",
+              border: "1px solid #FFD4C2",
+              borderRadius: 99,
+              padding: "1px 7px",
+              lineHeight: 1.7,
+            }}
+          >
+            {sorted.length}
+          </span>
+        </div>
+      </div>
+
+      {/* List */}
+      <div>
+        {sorted.map((req, i) => {
+          const assignee = getRequestAssignee(req.id);
+          const isPriority = isTaskPriority(req.id);
+          const tag = getActionTag(req, assignee?.name ?? null, isPriority);
+          const meta = req.source === "tenant" ? req.reporter_name || req.tenant_name : req.reporter_name || "FM";
+          const showAssignCta = !assignee && !isPriority && req.status !== "urgent";
+
+          return (
+            <div
+              key={req.id}
+              style={{
+                padding: "14px 20px",
+                borderBottom: i < sorted.length - 1 ? "1px solid #F5F4F1" : "none",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+              }}
+            >
+              {/* Icon */}
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: isPriority ? "#FFF1EC" : req.status === "urgent" ? "#FEF2F2" : "#F5F4F1",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  marginTop: 1,
+                }}
+              >
+                <Wrench style={{ width: 14, height: 14, color: isPriority || req.status === "urgent" ? "#FF5000" : "#9A9790" }} />
+              </div>
+
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "#1A1A1A",
+                    lineHeight: 1.4,
+                    marginBottom: 3,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {req.description}
+                </p>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#9A9790",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    marginBottom: 8,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>{req.property_name}</span>
+                  <span style={{ color: "#D5D2CD" }}>·</span>
+                  {assignee ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <Users style={{ width: 11, height: 11 }} />
+                      {assignee.name}
+                    </span>
+                  ) : (
+                    <span>{meta}</span>
+                  )}
+                </div>
+                {/* Tags + actions row */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: tag.color,
+                      background: tag.bg,
+                      border: `1px solid ${tag.border}`,
+                      borderRadius: 99,
+                      padding: "2px 8px",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {tag.label}
+                  </span>
+                  {showAssignCta && (
+                    <button
+                      type="button"
+                      onClick={onNavigateToFacility}
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "#6B5800",
+                        background: "#FEFBE8",
+                        border: "1px solid #F0E68A",
+                        borderRadius: 99,
+                        padding: "2px 8px",
+                        lineHeight: 1.6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Assign FM
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onNavigateToFacility}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 500,
+                      color: "#5A5650",
+                      background: "transparent",
+                      border: "1px solid #E5E2DC",
+                      borderRadius: 99,
+                      padding: "2px 10px",
+                      lineHeight: 1.6,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                    }}
+                  >
+                    View
+                    <ChevronRight style={{ width: 10, height: 10 }} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer link */}
+      <button
+        type="button"
+        onClick={onNavigateToFacility}
+        style={{
+          width: "100%",
+          padding: "12px 20px",
+          borderTop: "1px solid #F0EEEA",
+          background: "#FAFAF9",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 5,
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#FF5000",
+          cursor: "pointer",
+          border: "none",
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+        }}
+      >
+        View all maintenance tasks
+        <ChevronRight style={{ width: 13, height: 13 }} />
+      </button>
+    </div>
+  );
+}
 
 export default function LandlordLiveFeed({
   searchTerm = "",
@@ -433,7 +729,10 @@ export default function LandlordLiveFeed({
       />
 
       <div className="pt-4 lg:pt-28 px-4 lg:px-8 pb-8 space-y-6">
-        <Card className="border-slate-200 mt-4 lg:mt-10">
+        <div className="mt-4 lg:mt-10">
+          <PendingMaintenanceTasks onNavigateToFacility={() => router.push(`/${userRole}/facility`)} />
+        </div>
+        <Card className="border-slate-200">
           <CardHeader>
             <div className="flex items-center justify-between gap-4">
               <CardTitle className="text-base lg:text-lg leading-tight">
