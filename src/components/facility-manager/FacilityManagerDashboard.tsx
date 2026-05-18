@@ -66,43 +66,45 @@ function FeedRow({
         {item.property}
         {tenantName ? ` · ${tenantName}` : ""}
       </div>
-      <div style={{ fontSize: 12, color: "#B0ADA8", marginBottom: pinned ? 8 : 0 }}>
-        {formatTime(item.time)}
-      </div>
-      {pinned && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, flexWrap: "wrap" }}>
-          {isPriority && (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: "#B0ADA8" }}>
+          {formatTime(item.time)}
+        </span>
+        {pinned && (
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            {isPriority && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 400,
+                  color: "#C94A00",
+                  background: "#FFF1EC",
+                  border: "1px solid #FFD4C2",
+                  borderRadius: 99,
+                  padding: "2px 8px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Priority
+              </span>
+            )}
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 400,
-                color: "#C94A00",
-                background: "#FFF1EC",
-                border: "1px solid #FFD4C2",
+                color: "#7A6A00",
+                background: "#FEFBE8",
+                border: "1px solid #F0E68A",
                 borderRadius: 99,
                 padding: "2px 8px",
                 lineHeight: 1.6,
               }}
             >
-              Priority
+              {duration ? `Pending · ${duration}` : "Pending"}
             </span>
-          )}
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 400,
-              color: "#7A6A00",
-              background: "#FEFBE8",
-              border: "1px solid #F0E68A",
-              borderRadius: 99,
-              padding: "2px 8px",
-              lineHeight: 1.6,
-            }}
-          >
-            {duration ? `Pending · ${duration}` : "Pending"}
-          </span>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
