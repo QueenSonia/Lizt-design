@@ -7,15 +7,11 @@ import {
   AlertCircle,
   Bell,
   Wrench,
-  Users,
   ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import {
-  getRequestAssignee,
-  subscribeToFMStore,
-} from "@/lib/facilityManagerStore";
+import { subscribeToFMStore } from "@/lib/facilityManagerStore";
 import {
   isTaskPriority,
   subscribeToThreadStore,
@@ -275,26 +271,11 @@ function PendingMaintenanceTasks({ onNavigateToFacility }: { onNavigateToFacilit
         <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1A1A" }}>
           Pending Maintenance Tasks
         </span>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: "#FF5000",
-            background: "#FFF1EC",
-            border: "1px solid #FFD4C2",
-            borderRadius: 99,
-            padding: "1px 7px",
-            lineHeight: 1.7,
-          }}
-        >
-          {sorted.length}
-        </span>
       </div>
 
       {/* List */}
       <div>
         {sorted.map((req, i) => {
-          const assignee = getRequestAssignee(req.id);
           const meta = req.source === "tenant" ? req.reporter_name || req.tenant_name : req.reporter_name || "FM";
 
           return (
@@ -353,39 +334,9 @@ function PendingMaintenanceTasks({ onNavigateToFacility }: { onNavigateToFacilit
                 >
                   <span>{req.property_name}</span>
                   <span style={{ color: "#D5D2CD" }}>·</span>
-                  {assignee ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                      <Users style={{ width: 11, height: 11 }} />
-                      {assignee.name}
-                    </span>
-                  ) : (
-                    <span>{meta}</span>
-                  )}
+                  <span>{meta}</span>
                 </div>
               </div>
-
-              {/* Assign FM — only for unassigned, stops row click propagation */}
-              {!assignee && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onNavigateToFacility(); }}
-                  style={{
-                    flexShrink: 0,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#5A5650",
-                    background: "#F5F4F1",
-                    border: "1px solid #E5E2DC",
-                    borderRadius: 99,
-                    padding: "4px 10px",
-                    lineHeight: 1.5,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Assign FM
-                </button>
-              )}
 
               <ChevronRight style={{ width: 14, height: 14, color: "#C8C5C0", flexShrink: 0 }} />
             </div>
