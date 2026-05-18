@@ -6,16 +6,9 @@ import {
   CalendarIcon,
   AlertCircle,
   Bell,
-  Wrench,
-  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { subscribeToFMStore } from "@/lib/facilityManagerStore";
-import {
-  isTaskPriority,
-  subscribeToThreadStore,
-} from "@/lib/taskThreadStore";
 import { useFetchPropertyOverview } from "@/services/notification/query";
 import {
   Notification,
@@ -179,156 +172,6 @@ const LiveFeedSkeletonLoader = () => {
   );
 };
 
-// ── Pending Maintenance Tasks ─────────────────────────────────────────────────
-
-interface PendingRequest {
-  id: string;
-  description: string;
-  property_name: string;
-  tenant_name: string;
-  reporter_name?: string;
-  source: "tenant" | "facility_manager";
-  status: string;
-  date_reported: string;
-}
-
-const PENDING_REQUESTS: PendingRequest[] = [
-  {
-    id: "sr-001",
-    description: "Kitchen sink is leaking and water pools under the cabinet.",
-    property_name: "Lekki Phase 1 Duplex",
-    tenant_name: "James Okafor",
-    reporter_name: "James Okafor",
-    source: "tenant",
-    status: "open",
-    date_reported: "2026-04-25T09:30:00.000Z",
-  },
-  {
-    id: "sr-003",
-    description: "Driveway gate motor is jammed; needs replacement bracket.",
-    property_name: "Lekki Phase 1 Duplex",
-    tenant_name: "—",
-    reporter_name: "Tobi Adekunle",
-    source: "facility_manager",
-    status: "open",
-    date_reported: "2026-04-26T07:45:00.000Z",
-  },
-  {
-    id: "sr-005",
-    description: "Air conditioner not cooling, just blowing warm air.",
-    property_name: "Victoria Island Studio",
-    tenant_name: "Emmanuel Etim",
-    reporter_name: "Emmanuel Etim",
-    source: "tenant",
-    status: "urgent",
-    date_reported: "2026-04-27T19:05:00.000Z",
-  },
-];
-
-function PendingMaintenanceTasks({ onNavigateToFacility }: { onNavigateToFacility: () => void }) {
-  const [, tick] = useState(0);
-
-  useEffect(() => {
-    const unsubFM = subscribeToFMStore(() => tick((n) => n + 1));
-    const unsubThread = subscribeToThreadStore(() => tick((n) => n + 1));
-    return () => { unsubFM(); unsubThread(); };
-  }, []);
-
-  const pending = PENDING_REQUESTS.filter(
-    (r) => !["resolved", "closed"].includes(r.status.toLowerCase()),
-  );
-
-  const sorted = [...pending].sort((a, b) => {
-    const ap = isTaskPriority(a.id) ? 0 : a.status === "urgent" ? 1 : 2;
-    const bp = isTaskPriority(b.id) ? 0 : b.status === "urgent" ? 1 : 2;
-    return ap - bp;
-  });
-
-  if (sorted.length === 0) return null;
-
-  return (
-    <div
-      style={{
-        background: "#FFFFFF",
-        borderRadius: 14,
-        border: "1px solid #EDECEA",
-        boxShadow: "0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.03)",
-        overflow: "hidden",
-        marginBottom: 24,
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          padding: "16px 20px 12px",
-          borderBottom: "1px solid #F0EEEA",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        <Wrench style={{ width: 15, height: 15, color: "#FF5000", flexShrink: 0 }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1A1A" }}>
-          Pending Maintenance Tasks
-        </span>
-      </div>
-
-      {/* List */}
-      <div>
-        {sorted.map((req, i) => {
-          const meta = req.source === "tenant" ? req.reporter_name || req.tenant_name : req.reporter_name || "FM";
-
-          return (
-            <div
-              key={req.id}
-              onClick={onNavigateToFacility}
-              style={{
-                padding: "16px 20px",
-                borderBottom: i < sorted.length - 1 ? "1px solid #F5F4F1" : "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                cursor: "pointer",
-              }}
-              className="hover:bg-gray-50 transition-colors duration-150 active:bg-gray-100"
-            >
-              {/* Content */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#1A1A1A",
-                    lineHeight: 1.45,
-                    marginBottom: 3,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {req.description}
-                </p>
-                <p
-                  style={{
-                    fontSize: 11.5,
-                    color: "#A8A5A0",
-                    lineHeight: 1.4,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {req.property_name}
-                  {meta && meta !== "—" ? ` · ${meta}` : ""}
-                </p>
-              </div>
-
-              <ChevronRight style={{ width: 13, height: 13, color: "#D0CCC6", flexShrink: 0 }} />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 export default function LandlordLiveFeed({
   searchTerm = "",
@@ -589,17 +432,8 @@ export default function LandlordLiveFeed({
         isMenuOpen={isMenuOpen}
       />
 
-      <div className="pt-4 lg:pt-28 px-4 lg:px-8 pb-8">
-        <div className="mt-4 lg:mt-10 flex flex-col lg:flex-row gap-6 items-start">
-
-          {/* Right column — mobile: first, desktop: second */}
-          <div className="w-full lg:hidden">
-            <PendingMaintenanceTasks onNavigateToFacility={() => router.push(`/${userRole}/facility`)} />
-          </div>
-
-          {/* Left column — Live Feed (wider) */}
-          <div className="flex-1 min-w-0">
-        <Card className="border-slate-200">
+      <div className="pt-4 lg:pt-28 px-4 lg:px-8 pb-8 space-y-6">
+        <Card className="border-slate-200 mt-4 lg:mt-10">
           <CardHeader>
             <div className="flex items-center justify-between gap-4">
               <CardTitle className="text-base lg:text-lg leading-tight">
@@ -797,14 +631,6 @@ export default function LandlordLiveFeed({
             )}
           </CardContent>
         </Card>
-          </div>
-
-          {/* Right column — desktop only (sticky task panel) */}
-          <div className="hidden lg:block w-[320px] xl:w-[340px] shrink-0 sticky top-28">
-            <PendingMaintenanceTasks onNavigateToFacility={() => router.push(`/${userRole}/facility`)} />
-          </div>
-
-        </div>
       </div>
 
       <LandlordAddPropertyModal
