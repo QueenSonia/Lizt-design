@@ -46,78 +46,63 @@ function FeedRow({
     >
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
+          fontSize: 14,
+          fontWeight: 600,
+          color: "#1A1A1A",
+          lineHeight: 1.4,
           marginBottom: 5,
-          flexWrap: "wrap",
         }}
       >
-        <span
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: "#1A1A1A",
-            lineHeight: 1.4,
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          {item.entity}
-        </span>
-        {pinned && isPriority && (
-          <span
-            style={{
-              flexShrink: 0,
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: 0.2,
-              color: "#C94A00",
-              background: "#FFF1EC",
-              border: "1px solid #FFD4C2",
-              borderRadius: 99,
-              padding: "2px 7px",
-              lineHeight: 1.6,
-              textTransform: "uppercase" as const,
-            }}
-          >
-            Priority
-          </span>
-        )}
-        {pinned && (
-          <span
-            style={{
-              flexShrink: 0,
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: 0.2,
-              color: "#7A6A00",
-              background: "#FEFBE8",
-              border: "1px solid #F0E68A",
-              borderRadius: 99,
-              padding: "2px 7px",
-              lineHeight: 1.6,
-              textTransform: "uppercase" as const,
-            }}
-          >
-            {duration ? `Pending · ${duration}` : "Pending"}
-          </span>
-        )}
+        {item.entity}
       </div>
       <div
         style={{
           fontSize: 13,
           color: "#9A9790",
           lineHeight: 1.5,
-          marginBottom: 4,
+          marginBottom: 3,
         }}
       >
         {item.property}
         {tenantName ? ` · ${tenantName}` : ""}
       </div>
-      <div style={{ fontSize: 12, color: "#B0ADA8" }}>
+      <div style={{ fontSize: 12, color: "#B0ADA8", marginBottom: pinned ? 8 : 0 }}>
         {formatTime(item.time)}
       </div>
+      {pinned && (
+        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+          {isPriority && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 400,
+                color: "#C94A00",
+                background: "#FFF1EC",
+                border: "1px solid #FFD4C2",
+                borderRadius: 99,
+                padding: "2px 8px",
+                lineHeight: 1.6,
+              }}
+            >
+              Priority
+            </span>
+          )}
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 400,
+              color: "#7A6A00",
+              background: "#FEFBE8",
+              border: "1px solid #F0E68A",
+              borderRadius: 99,
+              padding: "2px 8px",
+              lineHeight: 1.6,
+            }}
+          >
+            {duration ? `Pending · ${duration}` : "Pending"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
