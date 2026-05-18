@@ -70,7 +70,7 @@ function FeedRow({
         {formatTime(item.time)}
       </div>
       {pinned && (
-        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, flexWrap: "wrap" }}>
           {isPriority && (
             <span
               style={{
