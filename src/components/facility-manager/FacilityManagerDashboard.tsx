@@ -7,6 +7,16 @@ import { useFmContext } from "./FacilityManagerProvider";
 import { EVENT_DEF, FmFeedItem, ISSUES } from "./mockData";
 import { isTaskPriority, subscribeToThreadStore } from "@/lib/taskThreadStore";
 
+function pendingDuration(sinceMs: number): string {
+  const diffMs = Date.now() - sinceMs;
+  const mins = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMs / 3600000);
+  const days = Math.floor(diffMs / 86400000);
+  if (days >= 1) return `${days}d`;
+  if (hours >= 1) return `${hours}h`;
+  return `${mins}m`;
+}
+
 function FeedRow({
   item,
   isNew,
@@ -22,6 +32,7 @@ function FeedRow({
 }) {
   const issue = ISSUES.find((iss) => iss.id === item.issueId);
   const tenantName = issue?.tenant || null;
+  const duration = pinned && issue ? pendingDuration(issue.time) : null;
 
   return (
     <div
@@ -37,7 +48,7 @@ function FeedRow({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 7,
+          gap: 6,
           marginBottom: 5,
           flexWrap: "wrap",
         }}
@@ -54,23 +65,42 @@ function FeedRow({
         >
           {item.entity}
         </span>
-        {pinned && (
+        {pinned && isPriority && (
           <span
             style={{
               flexShrink: 0,
               fontSize: 10,
               fontWeight: 700,
-              letterSpacing: 0.3,
-              color: isPriority ? "#C94A00" : "#7A6A00",
-              background: isPriority ? "#FFF1EC" : "#FEFBE8",
-              border: `1px solid ${isPriority ? "#FFD4C2" : "#F0E68A"}`,
+              letterSpacing: 0.2,
+              color: "#C94A00",
+              background: "#FFF1EC",
+              border: "1px solid #FFD4C2",
               borderRadius: 99,
               padding: "2px 7px",
               lineHeight: 1.6,
               textTransform: "uppercase" as const,
             }}
           >
-            {isPriority ? "Priority · Pending" : "Pending"}
+            Priority
+          </span>
+        )}
+        {pinned && (
+          <span
+            style={{
+              flexShrink: 0,
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 0.2,
+              color: "#7A6A00",
+              background: "#FEFBE8",
+              border: "1px solid #F0E68A",
+              borderRadius: 99,
+              padding: "2px 7px",
+              lineHeight: 1.6,
+              textTransform: "uppercase" as const,
+            }}
+          >
+            {duration ? `Pending · ${duration}` : "Pending"}
           </span>
         )}
       </div>
