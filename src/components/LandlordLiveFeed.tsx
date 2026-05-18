@@ -283,62 +283,45 @@ function PendingMaintenanceTasks({ onNavigateToFacility }: { onNavigateToFacilit
               key={req.id}
               onClick={onNavigateToFacility}
               style={{
-                padding: "14px 20px",
+                padding: "16px 20px",
                 borderBottom: i < sorted.length - 1 ? "1px solid #F5F4F1" : "none",
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: 10,
                 cursor: "pointer",
               }}
               className="hover:bg-gray-50 transition-colors duration-150 active:bg-gray-100"
             >
-              {/* Icon */}
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  background: "#F5F4F1",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Wrench style={{ width: 14, height: 14, color: "#9A9790" }} />
-              </div>
-
               {/* Content */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
                   style={{
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: 600,
                     color: "#1A1A1A",
-                    lineHeight: 1.4,
-                    marginBottom: 2,
+                    lineHeight: 1.45,
+                    marginBottom: 3,
                     wordBreak: "break-word",
                   }}
                 >
                   {req.description}
                 </p>
-                <div
+                <p
                   style={{
-                    fontSize: 12,
-                    color: "#9A9790",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    flexWrap: "wrap",
+                    fontSize: 11.5,
+                    color: "#A8A5A0",
+                    lineHeight: 1.4,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
-                  <span>{req.property_name}</span>
-                  <span style={{ color: "#D5D2CD" }}>·</span>
-                  <span>{meta}</span>
-                </div>
+                  {req.property_name}
+                  {meta && meta !== "—" ? ` · ${meta}` : ""}
+                </p>
               </div>
 
-              <ChevronRight style={{ width: 14, height: 14, color: "#C8C5C0", flexShrink: 0 }} />
+              <ChevronRight style={{ width: 13, height: 13, color: "#D0CCC6", flexShrink: 0 }} />
             </div>
           );
         })}
@@ -606,10 +589,16 @@ export default function LandlordLiveFeed({
         isMenuOpen={isMenuOpen}
       />
 
-      <div className="pt-4 lg:pt-28 px-4 lg:px-8 pb-8 space-y-6">
-        <div className="mt-4 lg:mt-10">
-          <PendingMaintenanceTasks onNavigateToFacility={() => router.push(`/${userRole}/facility`)} />
-        </div>
+      <div className="pt-4 lg:pt-28 px-4 lg:px-8 pb-8">
+        <div className="mt-4 lg:mt-10 flex flex-col lg:flex-row gap-6 items-start">
+
+          {/* Right column — mobile: first, desktop: second */}
+          <div className="w-full lg:hidden">
+            <PendingMaintenanceTasks onNavigateToFacility={() => router.push(`/${userRole}/facility`)} />
+          </div>
+
+          {/* Left column — Live Feed (wider) */}
+          <div className="flex-1 min-w-0">
         <Card className="border-slate-200">
           <CardHeader>
             <div className="flex items-center justify-between gap-4">
@@ -808,6 +797,14 @@ export default function LandlordLiveFeed({
             )}
           </CardContent>
         </Card>
+          </div>
+
+          {/* Right column — desktop only (sticky task panel) */}
+          <div className="hidden lg:block w-[320px] xl:w-[340px] shrink-0 sticky top-28">
+            <PendingMaintenanceTasks onNavigateToFacility={() => router.push(`/${userRole}/facility`)} />
+          </div>
+
+        </div>
       </div>
 
       <LandlordAddPropertyModal
