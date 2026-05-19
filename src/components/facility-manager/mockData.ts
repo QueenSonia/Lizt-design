@@ -27,6 +27,8 @@ export type FmIssueStatus = "open" | "in_progress" | "resolved" | "not_approved"
 export interface FmResolution {
   hadCost: boolean | null;
   costAmount: string;
+  artisanName?: string;
+  artisanPhone?: string;
   summary: string;
   category: string;
 }

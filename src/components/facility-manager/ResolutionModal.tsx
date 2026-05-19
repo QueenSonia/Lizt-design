@@ -21,6 +21,8 @@ export function ResolutionModal({
     prev ? prev.hadCost : null
   );
   const [costAmount, setCostAmount] = useState(prev?.costAmount || "");
+  const [artisanName, setArtisanName] = useState(prev?.artisanName || "");
+  const [artisanPhone, setArtisanPhone] = useState(prev?.artisanPhone || "");
   const [summary, setSummary] = useState(prev?.summary || "");
   const [category, setCategory] = useState(prev?.category || "");
   const [busy, setBusy] = useState(false);
@@ -34,7 +36,7 @@ export function ResolutionModal({
     if (!canSubmit || busy) return;
     setBusy(true);
     setTimeout(() => {
-      onConfirm({ hadCost, costAmount, summary, category });
+      onConfirm({ hadCost, costAmount, artisanName, artisanPhone, summary, category });
       onClose();
     }, 600);
   };
@@ -172,22 +174,55 @@ export function ResolutionModal({
               {pillBtn("No", hadCost === false, () => {
                 setHadCost(false);
                 setCostAmount("");
+                setArtisanName("");
+                setArtisanPhone("");
               })}
             </div>
           </div>
 
           {hadCost === true && (
-            <div style={{ marginBottom: 18 }}>
-              <label style={labelStyle}>Cost amount</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={costAmount}
-                onChange={(e) => setCostAmount(e.target.value)}
-                placeholder="e.g. ₦45,000"
-                style={inputStyle}
-              />
-            </div>
+            <>
+              <div style={{ marginBottom: 18 }}>
+                <label style={labelStyle}>Cost amount</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={costAmount}
+                  onChange={(e) => setCostAmount(e.target.value)}
+                  placeholder="e.g. ₦45,000"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label style={labelStyle}>
+                  Artisan name{" "}
+                  <span style={{ fontWeight: 400, color: "#B0ADA8" }}>(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={artisanName}
+                  onChange={(e) => setArtisanName(e.target.value)}
+                  placeholder="e.g. Emeka Plumbing Services"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label style={labelStyle}>
+                  Artisan phone number{" "}
+                  <span style={{ fontWeight: 400, color: "#B0ADA8" }}>(optional)</span>
+                </label>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  value={artisanPhone}
+                  onChange={(e) => setArtisanPhone(e.target.value)}
+                  placeholder="e.g. 08012345678"
+                  style={inputStyle}
+                />
+              </div>
+            </>
           )}
 
           <div style={{ height: 1, background: "#F0EEE9", marginBottom: 18 }} />
