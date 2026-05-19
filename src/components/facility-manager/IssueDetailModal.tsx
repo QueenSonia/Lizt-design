@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Ico } from "./Icon";
 import { useIsMobile, fmtDate } from "./helpers";
 import { ResolutionModal } from "./ResolutionModal";
@@ -45,6 +45,14 @@ export function IssueDetailModal({
   const [resolveOpen, setResolveOpen] = useState(false);
   const [threadTick, setThreadTick] = useState(0);
   const [threadInput, setThreadInput] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, []);
 
   useEffect(() => {
     return subscribeToThreadStore(() => setThreadTick((n) => n + 1));
@@ -385,6 +393,9 @@ export function IssueDetailModal({
                   timestamp: new Date().toISOString(),
                 });
                 setThreadInput("");
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = "auto";
+                }
               };
 
               return (
@@ -450,7 +461,7 @@ export function IssueDetailModal({
                   {/* Input */}
                   <div style={{
                     display: "flex",
-                    alignItems: "center",
+                    alignItems: "flex-end",
                     gap: 8,
                     marginTop: 12,
                     border: "1px solid #E2E0DC",
@@ -458,10 +469,11 @@ export function IssueDetailModal({
                     padding: "8px 10px 8px 14px",
                     background: "#FAFAF8",
                   }}>
-                    <input
-                      type="text"
+                    <textarea
+                      ref={textareaRef}
                       value={threadInput}
-                      onChange={(e) => setThreadInput(e.target.value)}
+                      rows={1}
+                      onChange={(e) => { setThreadInput(e.target.value); autoResize(); }}
                       onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                       placeholder="Add an update…"
                       style={{
@@ -471,6 +483,12 @@ export function IssueDetailModal({
                         outline: "none",
                         fontSize: 13,
                         color: "#1A1A1A",
+                        resize: "none",
+                        lineHeight: 1.5,
+                        maxHeight: 120,
+                        overflowY: "auto",
+                        fontFamily: "inherit",
+                        padding: 0,
                       }}
                     />
                     <button
