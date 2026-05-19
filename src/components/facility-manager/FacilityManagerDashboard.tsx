@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Ico } from "./Icon";
 import { FacilityManagerHeader } from "./FacilityManagerHeader";
-import { formatTime, useIsMobile } from "./helpers";
+import { formatTime, groupByDate, useIsMobile } from "./helpers";
 import { useFmContext } from "./FacilityManagerProvider";
 import { FmFeedItem, FmIssue, ISSUES, EVENT_DEF } from "./mockData";
 import { isTaskPriority, subscribeToThreadStore } from "@/lib/taskThreadStore";
@@ -179,7 +179,7 @@ function NotificationsPanel({
           </button>
         </div>
 
-        {/* Feed list */}
+        {/* Feed list grouped by date */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {feed.length === 0 ? (
             <div
@@ -198,47 +198,61 @@ function NotificationsPanel({
               </span>
             </div>
           ) : (
-            feed.map((item, i) => {
-              const def = EVENT_DEF[item.type] || EVENT_DEF.issue_reported;
-              return (
-                <div key={item.id}>
-                  <div style={{ padding: "14px 20px" }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "#1A1A1A",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {def.title}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: "#9A9790",
-                        lineHeight: 1.5,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {item.entity} · {item.property}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#B0ADA8" }}>
-                      {formatTime(item.time)}
-                    </div>
+            <div style={{ padding: "8px 0 24px" }}>
+              {groupByDate(feed).map((group) => (
+                <div key={group.label} style={{ marginBottom: 8 }}>
+                  {/* Date label */}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#B0ADA8",
+                      letterSpacing: 0.4,
+                      textTransform: "uppercase",
+                      padding: "12px 20px 6px",
+                    }}
+                  >
+                    {group.label}
                   </div>
-                  {i < feed.length - 1 && (
-                    <div
-                      style={{
-                        height: 1,
-                        background: "#F0EEEA",
-                        marginLeft: 20,
-                      }}
-                    />
-                  )}
+                  {/* Items */}
+                  {group.items.map((item, i) => {
+                    const def = EVENT_DEF[item.type] || EVENT_DEF.issue_reported;
+                    return (
+                      <div key={item.id}>
+                        <div style={{ padding: "12px 20px" }}>
+                          <div
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: "#1A1A1A",
+                              marginBottom: 2,
+                            }}
+                          >
+                            {def.title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 13,
+                              color: "#9A9790",
+                              lineHeight: 1.5,
+                              marginBottom: 3,
+                            }}
+                          >
+                            {item.entity} · {item.property}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#C0BDB8" }}>
+                            {formatTime(item.time)}
+                          </div>
+                        </div>
+                        {i < group.items.length - 1 && (
+                          <div style={{ height: 1, background: "#F5F4F1", marginLeft: 20 }} />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })
+              ))}
+            </div>
           )}
         </div>
       </div>
