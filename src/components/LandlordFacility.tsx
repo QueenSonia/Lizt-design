@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { LandlordTopNav } from "./LandlordTopNav";
 import { Input } from "./ui/input";
 import {
@@ -270,6 +270,13 @@ export function LandlordFacility({
   const [, fmStoreTick] = useState(0);
   const [, threadTick] = useState(0);
   const [threadInput, setThreadInput] = useState("");
+  const threadTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoResizeThread = useCallback(() => {
+    const el = threadTextareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, []);
 
   useEffect(() => {
     const unsubFM = subscribeToFMStore(() => fmStoreTick((n) => n + 1));
@@ -1100,6 +1107,7 @@ export function LandlordFacility({
           if (!body) return;
           appendThreadEntry(req.id, { id: makeMsgId(), type: "message", author: "landlord", authorName: "You", body, timestamp: new Date().toISOString() });
           setThreadInput("");
+          if (threadTextareaRef.current) threadTextareaRef.current.style.height = "auto";
         };
 
         const statusColors: Record<string, string> = {
@@ -1334,14 +1342,16 @@ export function LandlordFacility({
 
             {/* Fixed thread input at bottom */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-10">
-              <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
-                <input
-                  type="text"
+              <div className="flex items-end gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
+                <textarea
+                  ref={threadTextareaRef}
+                  rows={1}
                   value={threadInput}
-                  onChange={(e) => setThreadInput(e.target.value)}
+                  onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                   placeholder="Add an update…"
-                  className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none"
+                  className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
+                  style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
                 />
                 <button
                   type="button"
@@ -1528,6 +1538,7 @@ export function LandlordFacility({
                         timestamp: new Date().toISOString(),
                       });
                       setThreadInput("");
+                      if (threadTextareaRef.current) threadTextareaRef.current.style.height = "auto";
                     };
 
                     return (
@@ -1589,14 +1600,16 @@ export function LandlordFacility({
                         </div>
 
                         {/* Input */}
-                        <div className="flex items-center gap-2 mt-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
-                          <input
-                            type="text"
+                        <div className="flex items-end gap-2 mt-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
+                          <textarea
+                            ref={threadTextareaRef}
+                            rows={1}
                             value={threadInput}
-                            onChange={(e) => setThreadInput(e.target.value)}
+                            onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
                             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                             placeholder="Add an update…"
-                            className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none"
+                            className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
+                            style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
                           />
                           <button
                             type="button"
