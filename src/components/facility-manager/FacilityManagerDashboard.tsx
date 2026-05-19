@@ -348,13 +348,17 @@ export default function FacilityManagerDashboard() {
                 </span>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {sorted.map((issue) => (
-                  <TaskCard
-                    key={issue.id}
-                    issue={issue}
-                    onClick={() => handleItemClick(issue)}
-                  />
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {sorted.map((issue, i) => (
+                  <div key={issue.id}>
+                    <TaskCard
+                      issue={issue}
+                      onClick={() => handleItemClick(issue)}
+                    />
+                    {i < sorted.length - 1 && (
+                      <div style={{ height: 1, background: "#F0EEEA", margin: "10px 0" }} />
+                    )}
+                  </div>
                 ))}
               </div>
             )}
