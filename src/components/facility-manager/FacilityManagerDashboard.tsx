@@ -322,9 +322,7 @@ export default function FacilityManagerDashboard() {
                 margin: 0,
               }}
             >
-              Here you can view and manage all pending maintenance requests
-              assigned to you. Tap any request to see details and update
-              progress.
+              Here are the maintenance tasks waiting for your attention.
             </p>
           </div>
 
