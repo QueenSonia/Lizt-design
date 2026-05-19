@@ -328,7 +328,7 @@ export default function FacilityManagerDashboard() {
             </p>
           </div>
 
-          <div style={{ marginTop: 20, paddingBottom: 28 }}>
+          <div style={{ marginTop: 20, padding: "0 16px 28px" }}>
             {sorted.length === 0 ? (
               <div
                 style={{
