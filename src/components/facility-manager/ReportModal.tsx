@@ -1,8 +1,126 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Ico } from "./Icon";
 import { useIsMobile } from "./helpers";
-import { COMMON_AREAS, PROPS_DATA } from "./mockData";
+import { COMMON_AREAS, PROPS_DATA, FmProperty } from "./mockData";
+
+// ── Custom property dropdown ──────────────────────────────────────────────────
+
+function PropertyDropdown({
+  value,
+  onChange,
+  inputStyle,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  inputStyle: React.CSSProperties;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = PROPS_DATA.find((p) => p.id === value) as FmProperty | undefined;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          ...inputStyle,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          textAlign: "left",
+          paddingRight: 34,
+          border: open ? "1px solid #B0ADA8" : (inputStyle.border as string),
+        }}
+      >
+        {selected ? (
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontWeight: 500, color: "#1A1A1A" }}>{selected.name}</span>
+            <span style={{ fontWeight: 400, color: "#1A1A1A" }}> · {selected.tenant || "Vacant"}</span>
+          </span>
+        ) : (
+          <span style={{ flex: 1, color: "#B0ADA8" }}>Select a property…</span>
+        )}
+        <span
+          style={{
+            position: "absolute",
+            right: 10,
+            top: "50%",
+            transform: `translateY(-50%) rotate(${open ? "180deg" : "0deg"})`,
+            transition: "transform .15s",
+            color: "#B0ADA8",
+            pointerEvents: "none",
+          }}
+        >
+          <Ico n="chev" s={14} />
+        </span>
+      </button>
+
+      {/* Dropdown list */}
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            background: "#FFFFFF",
+            border: "1px solid #E2E0DC",
+            borderRadius: 8,
+            boxShadow: "0 4px 16px rgba(0,0,0,.10)",
+            zIndex: 200,
+            maxHeight: 240,
+            overflowY: "auto",
+          }}
+        >
+          {PROPS_DATA.map((p, i) => {
+            const isSelected = p.id === value;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => { onChange(p.id); setOpen(false); }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
+                  padding: "10px 14px",
+                  background: isSelected ? "#F5F4F1" : "transparent",
+                  border: "none",
+                  borderBottom: i < PROPS_DATA.length - 1 ? "1px solid #F0EEEA" : "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  gap: 1,
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  transition: "background .1s",
+                }}
+                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "#F8F7F4"; }}
+                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 500, color: "#1A1A1A", lineHeight: 1.4 }}>
+                  {p.name}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 400, color: "#1A1A1A", lineHeight: 1.4 }}>
+                  {p.tenant || "Vacant"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export interface ReportSubmitPayload {
   desc: string;
@@ -333,40 +451,7 @@ export function ReportModal({
                   })()}
                 </div>
               ) : (
-                <>
-                  <select
-                    value={prop}
-                    onChange={(e) => setProp(e.target.value)}
-                    style={{
-                      ...inputStyle,
-                      cursor: "pointer",
-                      appearance: "none",
-                      paddingRight: 34,
-                      color: prop ? "#1A1A1A" : "#B0ADA8",
-                    }}
-                  >
-                    <option value="" disabled>
-                      Select a property…
-                    </option>
-                    {PROPS_DATA.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} · {p.tenant || "Vacant"}
-                      </option>
-                    ))}
-                  </select>
-                  <div
-                    style={{
-                      position: "absolute",
-                      right: 10,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                      color: "#B0ADA8",
-                    }}
-                  >
-                    <Ico n="chev" s={14} />
-                  </div>
-                </>
+                <PropertyDropdown value={prop} onChange={setProp} inputStyle={inputStyle} />
               )}
             </div>
           </div>
