@@ -38,8 +38,7 @@ function TaskCard({
       onClick={onClick}
       style={{
         padding: "16px 20px",
-        background: isPriority ? "#FAFAF9" : "#FFFFFF",
-        borderLeft: isPriority ? "3px solid #FF5000" : "3px solid transparent",
+        background: "#FFFFFF",
         cursor: "pointer",
       }}
     >
