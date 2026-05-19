@@ -1134,7 +1134,11 @@ export function LandlordFacility({
               </button>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{req.description}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{req.property_name}</p>
+                {isApproved && assignee ? (
+                  <p className="text-xs text-[#FF5000] mt-0.5 font-medium">Assigned to {assignee.name}</p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-0.5">{req.property_name}</p>
+                )}
               </div>
               <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full border ${statusColors[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
                 {formatStatusLabel(currentStatus)}
@@ -1142,7 +1146,7 @@ export function LandlordFacility({
             </div>
 
             {/* Scrollable body */}
-            <div className="flex-1 overflow-y-auto pb-[72px]">
+            <div className={`flex-1 overflow-y-auto ${isApproved ? "pb-[72px]" : "pb-6"}`}>
               <div className="px-4 py-5 space-y-6">
 
                 {/* Details grid */}
@@ -1177,8 +1181,8 @@ export function LandlordFacility({
                   <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{req.description}</p>
                 </div>
 
-                {/* Assigned FM */}
-                <div className="bg-white rounded-xl p-4 shadow-sm">
+                {/* Assigned FM — hidden after approval */}
+                {!isApproved && <div className="bg-white rounded-xl p-4 shadow-sm">
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Assigned Facility Manager</p>
                   <Select
                     value={assignee?.id ?? "unassigned"}
@@ -1207,7 +1211,7 @@ export function LandlordFacility({
                     </SelectContent>
                   </Select>
                   <p className="text-[11px] text-gray-400 mt-2">Assigning sends a WhatsApp notification to the facility manager.</p>
-                </div>
+                </div>}
 
                 {/* Attachments */}
                 {req.issue_images && req.issue_images.length > 0 && (
@@ -1223,8 +1227,8 @@ export function LandlordFacility({
                   </div>
                 )}
 
-                {/* Thread */}
-                <div className="bg-white rounded-xl p-4 shadow-sm">
+                {/* Thread — visible only after approval */}
+                {isApproved && <div className="bg-white rounded-xl p-4 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Updates & Thread</p>
@@ -1272,7 +1276,7 @@ export function LandlordFacility({
                       </div>
                     ))}
                   </div>
-                </div>
+                </div>}
 
                 {/* Resolution */}
                 {req.resolution && (
@@ -1340,8 +1344,8 @@ export function LandlordFacility({
               </div>
             </div>
 
-            {/* Fixed thread input at bottom */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-10">
+            {/* Fixed thread input at bottom — visible only after approval */}
+            {isApproved && <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-10">
               <div className="flex items-end gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
                 <textarea
                   ref={threadTextareaRef}
@@ -1362,7 +1366,7 @@ export function LandlordFacility({
                   <Send className="w-3.5 h-3.5 text-white" />
                 </button>
               </div>
-            </div>
+            </div>}
           </div>
         );
       })()}
@@ -1375,6 +1379,7 @@ export function LandlordFacility({
             const currentStatus = statusOverrides[selectedRequest.id] ?? selectedRequest.status;
             const source = resolveSource(selectedRequest);
             const isApproved = ["in_progress", "resolved", "closed"].includes(currentStatus.toLowerCase());
+            const desktopAssignee = getRequestAssignee(selectedRequest.id);
             const setStatus = (next: string, message: string) => {
               setStatusOverrides((prev) => ({ ...prev, [selectedRequest.id]: next }));
               setSelectedRequest((r) => (r ? { ...r, status: next } : r));
@@ -1385,9 +1390,14 @@ export function LandlordFacility({
                 {/* Header: title (left) + status badge (top-right) */}
                 <DialogHeader>
                   <div className="flex items-start gap-3 pr-8">
-                    <DialogTitle className="text-lg font-semibold leading-snug flex-1">
-                      {selectedRequest.description}
-                    </DialogTitle>
+                    <div className="flex-1 min-w-0">
+                      <DialogTitle className="text-lg font-semibold leading-snug">
+                        {selectedRequest.description}
+                      </DialogTitle>
+                      {isApproved && desktopAssignee && (
+                        <p className="text-xs text-[#FF5000] mt-0.5 font-medium">Assigned to {desktopAssignee.name}</p>
+                      )}
+                    </div>
                     <span
                       className={`shrink-0 mt-0.5 text-xs px-2.5 py-1 rounded-full border ${
                         ({
@@ -1431,8 +1441,8 @@ export function LandlordFacility({
                     </div>
                   </div>
 
-                  {/* Assigned facility manager */}
-                  <div className="border-t border-gray-100 pt-4">
+                  {/* Assigned facility manager — hidden after approval */}
+                  {!isApproved && <div className="border-t border-gray-100 pt-4">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                       Assigned Facility Manager
                     </p>
@@ -1482,7 +1492,7 @@ export function LandlordFacility({
                     <p className="text-[11px] text-gray-400 mt-2">
                       Assigning sends a WhatsApp notification to the facility manager and updates the tenant.
                     </p>
-                  </div>
+                  </div>}
 
                   {/* Description */}
                   <div>
@@ -1512,8 +1522,8 @@ export function LandlordFacility({
                     </div>
                   )}
 
-                  {/* ── Task Thread ────────────────────────────────────────── */}
-                  {(() => {
+                  {/* ── Task Thread — visible only after approval ──────────── */}
+                  {isApproved && (() => {
                     const thread = getThread(selectedRequest.id);
 
                     // Group entries by date label
