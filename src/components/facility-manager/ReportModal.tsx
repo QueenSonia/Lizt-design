@@ -327,7 +327,10 @@ export function ReportModal({
                     alignItems: "center",
                   }}
                 >
-                  {PROPS_DATA.find((x) => x.id === initialProp)?.name || ""}
+                  {(() => {
+                    const p = PROPS_DATA.find((x) => x.id === initialProp);
+                    return p ? `${p.name} · ${p.tenant || "Vacant"}` : "";
+                  })()}
                 </div>
               ) : (
                 <>
@@ -347,7 +350,7 @@ export function ReportModal({
                     </option>
                     {PROPS_DATA.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name}
+                        {p.name} · {p.tenant || "Vacant"}
                       </option>
                     ))}
                   </select>
