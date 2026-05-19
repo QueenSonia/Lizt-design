@@ -29,8 +29,7 @@ function TaskCard({
   onClick: () => void;
 }) {
   const isPriority = isTaskPriority(issue.id);
-  const isPending = issue.status === "open";
-  const duration = isPending ? pendingDuration(issue.time) : null;
+  const duration = pendingDuration(issue.time);
 
   return (
     <div
@@ -58,55 +57,51 @@ function TaskCard({
           fontSize: 13,
           color: "#9A9790",
           lineHeight: 1.5,
-          marginBottom: isPending ? 10 : 0,
+          marginBottom: 10,
         }}
       >
         {issue.property}
         {issue.tenant ? ` · ${issue.tenant}` : ""}
       </div>
-      {isPending && (
-        <div
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 5,
+        }}
+      >
+        {isPriority && (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 400,
+              color: "#C94A00",
+              background: "#FFF1EC",
+              border: "1px solid #FFD4C2",
+              borderRadius: 99,
+              padding: "2px 8px",
+              lineHeight: 1.6,
+            }}
+          >
+            Priority
+          </span>
+        )}
+        <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
+            fontSize: 11,
+            fontWeight: 400,
+            color: "#7A6A00",
+            background: "#FEFBE8",
+            border: "1px solid #F0E68A",
+            borderRadius: 99,
+            padding: "2px 8px",
+            lineHeight: 1.6,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            {isPriority && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 400,
-                  color: "#C94A00",
-                  background: "#FFF1EC",
-                  border: "1px solid #FFD4C2",
-                  borderRadius: 99,
-                  padding: "2px 8px",
-                  lineHeight: 1.6,
-                }}
-              >
-                Priority
-              </span>
-            )}
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 400,
-                color: "#7A6A00",
-                background: "#FEFBE8",
-                border: "1px solid #F0E68A",
-                borderRadius: 99,
-                padding: "2px 8px",
-                lineHeight: 1.6,
-              }}
-            >
-              {duration ? `Pending · ${duration}` : "Pending"}
-            </span>
-          </div>
-        </div>
-      )}
+          {`Pending · ${duration}`}
+        </span>
+      </div>
     </div>
   );
 }
@@ -331,13 +326,7 @@ export default function FacilityManagerDashboard() {
             </p>
           </div>
 
-          <div
-            style={{
-              background: "#F5F4F1",
-              padding: "24px 20px 28px",
-              marginTop: 24,
-            }}
-          >
+          <div style={{ marginTop: 20, paddingBottom: 28 }}>
             {sorted.length === 0 ? (
               <div
                 style={{
@@ -350,24 +339,14 @@ export default function FacilityManagerDashboard() {
                 }}
               >
                 <Ico n="wave" s={28} c="#DDDBD6" />
-                <span
-                  style={{ fontSize: 14, fontWeight: 400, color: "#6B7280" }}
-                >
+                <span style={{ fontSize: 14, fontWeight: 400, color: "#6B7280" }}>
                   {search
                     ? "No requests match your search"
                     : "No pending tasks — all caught up!"}
                 </span>
               </div>
             ) : (
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  borderRadius: 12,
-                  boxShadow:
-                    "0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.03)",
-                  overflow: "hidden",
-                }}
-              >
+              <>
                 {sorted.map((issue, i) => (
                   <div key={issue.id}>
                     <TaskCard
@@ -375,17 +354,11 @@ export default function FacilityManagerDashboard() {
                       onClick={() => handleItemClick(issue)}
                     />
                     {i < sorted.length - 1 && (
-                      <div
-                        style={{
-                          height: 1,
-                          background: "#F0EEEA",
-                          marginLeft: 23,
-                        }}
-                      />
+                      <div style={{ height: 1, background: "#F0EEEA", marginLeft: 20 }} />
                     )}
                   </div>
                 ))}
-              </div>
+              </>
             )}
           </div>
         </div>
