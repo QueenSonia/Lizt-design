@@ -28,7 +28,8 @@ export function ResolutionModal({
   const [busy, setBusy] = useState(false);
 
   const costValid =
-    hadCost === false || (hadCost === true && costAmount.trim());
+    hadCost === false ||
+    (hadCost === true && costAmount.trim() && artisanName.trim() && artisanPhone.trim());
   const canSubmit =
     summary.trim() && category && hadCost !== null && costValid;
 
@@ -195,10 +196,7 @@ export function ResolutionModal({
               </div>
 
               <div style={{ marginBottom: 18 }}>
-                <label style={labelStyle}>
-                  Artisan name{" "}
-                  <span style={{ fontWeight: 400, color: "#B0ADA8" }}>(optional)</span>
-                </label>
+                <label style={labelStyle}>Artisan name</label>
                 <input
                   type="text"
                   value={artisanName}
@@ -209,10 +207,7 @@ export function ResolutionModal({
               </div>
 
               <div style={{ marginBottom: 18 }}>
-                <label style={labelStyle}>
-                  Artisan phone number{" "}
-                  <span style={{ fontWeight: 400, color: "#B0ADA8" }}>(optional)</span>
-                </label>
+                <label style={labelStyle}>Artisan phone number</label>
                 <input
                   type="tel"
                   inputMode="tel"
