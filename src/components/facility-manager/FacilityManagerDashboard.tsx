@@ -2,46 +2,45 @@
 import { useState, useEffect } from "react";
 import { Ico } from "./Icon";
 import { FacilityManagerHeader } from "./FacilityManagerHeader";
-import { groupByDate, formatTime } from "./helpers";
+import { formatTime, useIsMobile } from "./helpers";
 import { useFmContext } from "./FacilityManagerProvider";
-import { EVENT_DEF, FmFeedItem, ISSUES } from "./mockData";
+import { FmFeedItem, FmIssue, ISSUES, EVENT_DEF } from "./mockData";
 import { isTaskPriority, subscribeToThreadStore } from "@/lib/taskThreadStore";
 
+// ── Duration helper ───────────────────────────────────────────────────────────
+
 function pendingDuration(sinceMs: number): string {
-  const diffMs = Date.now() - sinceMs;
-  const mins = Math.floor(diffMs / 60000);
-  const hours = Math.floor(diffMs / 3600000);
-  const days = Math.floor(diffMs / 86400000);
+  const diff = Date.now() - sinceMs;
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor(diff / 3600000);
+  const mins = Math.floor(diff / 60000);
   if (days >= 1) return `${days}d`;
   if (hours >= 1) return `${hours}h`;
   return `${mins}m`;
 }
 
-function FeedRow({
-  item,
-  isNew,
+// ── Task card ─────────────────────────────────────────────────────────────────
+
+function TaskCard({
+  issue,
   onClick,
-  pinned,
-  isPriority,
 }: {
-  item: FmFeedItem;
-  isNew: boolean;
-  onClick: (item: FmFeedItem) => void;
-  pinned?: boolean;
-  isPriority?: boolean;
+  issue: FmIssue;
+  onClick: () => void;
 }) {
-  const issue = ISSUES.find((iss) => iss.id === item.issueId);
-  const tenantName = issue?.tenant || null;
-  const duration = pinned && issue ? pendingDuration(issue.time) : null;
+  const isPriority = isTaskPriority(issue.id);
+  const isPending = issue.status === "open";
+  const duration = isPending ? pendingDuration(issue.time) : null;
 
   return (
     <div
-      className={`fm-feed-row${isNew ? " fm-new-item" : ""}`}
-      onClick={() => onClick(item)}
+      className="fm-feed-row"
+      onClick={onClick}
       style={{
         padding: "16px 20px",
-        background: pinned ? "#FAFAF9" : "#FFFFFF",
-        borderLeft: pinned ? "3px solid #FF5000" : "3px solid transparent",
+        background: isPriority ? "#FAFAF9" : "#FFFFFF",
+        borderLeft: isPriority ? "3px solid #FF5000" : "3px solid transparent",
+        cursor: "pointer",
       }}
     >
       <div
@@ -50,27 +49,31 @@ function FeedRow({
           fontWeight: 600,
           color: "#1A1A1A",
           lineHeight: 1.4,
-          marginBottom: 5,
+          marginBottom: 4,
         }}
       >
-        {item.entity}
+        {issue.title}
       </div>
       <div
         style={{
           fontSize: 13,
           color: "#9A9790",
           lineHeight: 1.5,
-          marginBottom: 3,
+          marginBottom: isPending ? 10 : 0,
         }}
       >
-        {item.property}
-        {tenantName ? ` · ${tenantName}` : ""}
+        {issue.property}
+        {issue.tenant ? ` · ${issue.tenant}` : ""}
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12, color: "#B0ADA8" }}>
-          {formatTime(item.time)}
-        </span>
-        {pinned && (
+      {isPending && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             {isPriority && (
               <span
@@ -103,213 +106,298 @@ function FeedRow({
               {duration ? `Pending · ${duration}` : "Pending"}
             </span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function DateGroup({
-  label,
-  items,
-  newIds,
-  onItemClick,
-  isLast,
+// ── Notifications slide-in panel ──────────────────────────────────────────────
+
+function NotificationsPanel({
+  feed,
+  onClose,
 }: {
-  label: string;
-  items: FmFeedItem[];
-  newIds: Set<string>;
-  onItemClick: (item: FmFeedItem) => void;
-  isLast: boolean;
+  feed: FmFeedItem[];
+  onClose: () => void;
 }) {
+  const isMobile = useIsMobile();
+
   return (
-    <div
-      style={{
-        background: "#FFFFFF",
-        borderRadius: 12,
-        boxShadow: "0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.03)",
-        marginBottom: isLast ? 0 : 28,
-        overflow: "hidden",
-      }}
-    >
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.18)",
+          zIndex: 100,
+        }}
+      />
+      {/* Panel */}
       <div
         style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: "#1A1A1A",
-          padding: "16px 20px 12px",
-          borderBottom: "1px solid #F0EEE9",
+          position: "fixed",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: isMobile ? "100vw" : 360,
+          background: "#FFFFFF",
+          zIndex: 101,
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
         }}
       >
-        {label}
-      </div>
-      {items.map((item, i) => (
-        <div key={item.id}>
-          <FeedRow
-            item={item}
-            isNew={newIds.has(item.id)}
-            onClick={onItemClick}
-          />
-          {i < items.length - 1 && (
-            <div style={{ height: 1, background: "#F0EEEA", marginLeft: 23 }} />
-          )}
+        {/* Header */}
+        <div
+          style={{
+            height: 52,
+            display: "flex",
+            alignItems: "center",
+            padding: "0 20px",
+            borderBottom: "1px solid #EDECEA",
+            gap: 12,
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{ fontSize: 16, fontWeight: 600, color: "#1A1A1A", flex: 1 }}
+          >
+            Activity
+          </span>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              color: "#9A9790",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <Ico n="x" s={16} c="currentColor" />
+          </button>
         </div>
-      ))}
-    </div>
-  );
-}
 
-export default function FacilityManagerDashboard() {
-  const { feed, newIds, search, openIssueDetail, issues } = useFmContext();
-  const [, tick] = useState(0);
-
-  useEffect(() => {
-    return subscribeToThreadStore(() => tick((n) => n + 1));
-  }, []);
-
-  const isPending = (item: FmFeedItem) => {
-    if (!item.issueId) return false;
-    const issue = issues.find((iss) => iss.id === item.issueId);
-    return issue?.status === "open";
-  };
-
-  const filtered = feed.filter(
-    (i) =>
-      !search ||
-      i.entity.toLowerCase().includes(search.toLowerCase()) ||
-      i.property.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const pendingItems = filtered
-    .filter(isPending)
-    .sort((a, b) => {
-      const ap = a.issueId && isTaskPriority(a.issueId) ? 0 : 1;
-      const bp = b.issueId && isTaskPriority(b.issueId) ? 0 : 1;
-      if (ap !== bp) return ap - bp;
-      return b.time - a.time;
-    });
-
-  const pendingIds = new Set(pendingItems.map((i) => i.id));
-  const otherItems = filtered.filter((i) => !pendingIds.has(i.id));
-  const otherGroups = groupByDate(otherItems);
-
-  const handleItemClick = (item: FmFeedItem) => {
-    if (!item.issueId) return;
-    const issue = issues.find((iss) => iss.id === item.issueId);
-    if (issue) openIssueDetail(issue);
-  };
-
-  const isEmpty = pendingItems.length === 0 && otherGroups.length === 0;
-
-  return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        minWidth: 0,
-        overflow: "hidden",
-        background: "#FFFFFF",
-      }}
-    >
-      <FacilityManagerHeader />
-      <div style={{ flex: 1, overflowY: "auto", background: "#FFFFFF" }}>
-        <div style={{ padding: "24px 20px 0" }}>
-          <p style={{ fontSize: 13, color: "#9A9790", lineHeight: 1.55, margin: 0 }}>
-            Here you can view what's happening across all properties assigned to you.
-          </p>
-        </div>
-        <div style={{ background: "#F5F4F1", padding: "24px 20px 28px", marginTop: 24 }}>
-          {isEmpty ? (
+        {/* Feed list */}
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {feed.length === 0 ? (
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "40px 0",
+                padding: "48px 24px",
                 gap: 8,
               }}
             >
               <Ico n="wave" s={28} c="#DDDBD6" />
-              <span style={{ fontSize: 14, fontWeight: 400, color: "#6B7280" }}>
-                No activity matches your search
+              <span style={{ fontSize: 14, color: "#9A9790" }}>
+                No recent activity
               </span>
             </div>
           ) : (
-            <>
-              {pendingItems.length > 0 && (
-                <div
-                  style={{
-                    background: "#FFFFFF",
-                    borderRadius: 12,
-                    boxShadow: "0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.03)",
-                    marginBottom: 28,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "#1A1A1A",
-                      padding: "16px 20px 12px",
-                      borderBottom: "1px solid #F0EEE9",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    Pending
-                    <span
+            feed.map((item, i) => {
+              const def = EVENT_DEF[item.type] || EVENT_DEF.issue_reported;
+              return (
+                <div key={item.id}>
+                  <div style={{ padding: "14px 20px" }}>
+                    <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: 600,
-                        color: "#FF5000",
-                        background: "#FFF1EC",
-                        border: "1px solid #FFD4C2",
-                        borderRadius: 99,
-                        padding: "1px 6px",
-                        lineHeight: 1.6,
+                        color: "#1A1A1A",
+                        marginBottom: 3,
                       }}
                     >
-                      {pendingItems.length}
-                    </span>
+                      {def.title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#9A9790",
+                        lineHeight: 1.5,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {item.entity} · {item.property}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#B0ADA8" }}>
+                      {formatTime(item.time)}
+                    </div>
                   </div>
-                  {pendingItems.map((item, i) => {
-                    const priority = item.issueId ? isTaskPriority(item.issueId) : false;
-                    return (
-                      <div key={item.id}>
-                        <FeedRow
-                          item={item}
-                          isNew={newIds.has(item.id)}
-                          onClick={handleItemClick}
-                          pinned
-                          isPriority={priority}
-                        />
-                        {i < pendingItems.length - 1 && (
-                          <div style={{ height: 1, background: "#F0EEEA", marginLeft: 23 }} />
-                        )}
-                      </div>
-                    );
-                  })}
+                  {i < feed.length - 1 && (
+                    <div
+                      style={{
+                        height: 1,
+                        background: "#F0EEEA",
+                        marginLeft: 20,
+                      }}
+                    />
+                  )}
                 </div>
-              )}
-
-              {otherGroups.map((group, gi) => (
-                <DateGroup
-                  key={group.label}
-                  label={group.label}
-                  items={group.items}
-                  newIds={newIds}
-                  isLast={gi === otherGroups.length - 1}
-                  onItemClick={handleItemClick}
-                />
-              ))}
-            </>
+              );
+            })
           )}
         </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
+export default function FacilityManagerDashboard() {
+  const { feed, newIds, search, openIssueDetail, issues } = useFmContext();
+  const [, tick] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  // Count unread feed items (items added since page load = those in newIds, plus feed length as proxy)
+  const unreadCount = feed.filter((f) => newIds.has(f.id)).length;
+
+  useEffect(() => {
+    return subscribeToThreadStore(() => tick((n) => n + 1));
+  }, []);
+
+  // Task list: open + in_progress only, no resolved
+  const activeTasks = issues.filter(
+    (i) => i.status === "open" || i.status === "in_progress"
+  );
+
+  // Filter by search
+  const filtered = activeTasks.filter(
+    (i) =>
+      !search ||
+      i.title.toLowerCase().includes(search.toLowerCase()) ||
+      i.property.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Sort: priority+open first, then open (oldest first), then in_progress
+  const sorted = [...filtered].sort((a, b) => {
+    const rankA =
+      isTaskPriority(a.id) && a.status === "open"
+        ? 0
+        : a.status === "open"
+        ? 1
+        : 2;
+    const rankB =
+      isTaskPriority(b.id) && b.status === "open"
+        ? 0
+        : b.status === "open"
+        ? 1
+        : 2;
+    if (rankA !== rankB) return rankA - rankB;
+    // Within same rank: oldest pending first (smallest time = oldest)
+    return a.time - b.time;
+  });
+
+  const handleItemClick = (issue: FmIssue) => {
+    openIssueDetail(issue);
+  };
+
+  return (
+    <>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          overflow: "hidden",
+          background: "#FFFFFF",
+        }}
+      >
+        <FacilityManagerHeader
+          onNotifClick={() => setNotifOpen(true)}
+          notifCount={unreadCount}
+        />
+        <div style={{ flex: 1, overflowY: "auto", background: "#FFFFFF" }}>
+          <div style={{ padding: "24px 20px 0" }}>
+            <p
+              style={{
+                fontSize: 13,
+                color: "#9A9790",
+                lineHeight: 1.55,
+                margin: 0,
+              }}
+            >
+              Here you can view and manage all pending maintenance requests
+              assigned to you. Tap any request to see details and update
+              progress.
+            </p>
+          </div>
+
+          <div
+            style={{
+              background: "#F5F4F1",
+              padding: "24px 20px 28px",
+              marginTop: 24,
+            }}
+          >
+            {sorted.length === 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "40px 0",
+                  gap: 8,
+                }}
+              >
+                <Ico n="wave" s={28} c="#DDDBD6" />
+                <span
+                  style={{ fontSize: 14, fontWeight: 400, color: "#6B7280" }}
+                >
+                  {search
+                    ? "No requests match your search"
+                    : "No pending tasks — all caught up!"}
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  borderRadius: 12,
+                  boxShadow:
+                    "0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.03)",
+                  overflow: "hidden",
+                }}
+              >
+                {sorted.map((issue, i) => (
+                  <div key={issue.id}>
+                    <TaskCard
+                      issue={issue}
+                      onClick={() => handleItemClick(issue)}
+                    />
+                    {i < sorted.length - 1 && (
+                      <div
+                        style={{
+                          height: 1,
+                          background: "#F0EEEA",
+                          marginLeft: 23,
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {notifOpen && (
+        <NotificationsPanel
+          feed={feed}
+          onClose={() => setNotifOpen(false)}
+        />
+      )}
+    </>
   );
 }

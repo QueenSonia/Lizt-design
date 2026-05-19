@@ -13,7 +13,13 @@ const PAGE_TITLES: Record<string, string> = {
 
 const HIDE_REPORT_ON: string[] = ["properties", "common-areas"];
 
-export function FacilityManagerHeader() {
+export function FacilityManagerHeader({
+  onNotifClick,
+  notifCount = 0,
+}: {
+  onNotifClick?: () => void;
+  notifCount?: number;
+}) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
   const { openReportModal, setMobileSidebarOpen } = useFmContext();
@@ -22,6 +28,7 @@ export function FacilityManagerHeader() {
   const screen = segments[1] || "dashboard";
   const title = PAGE_TITLES[screen] ?? "Dashboard";
   const showReport = !HIDE_REPORT_ON.includes(screen);
+  const showNotif = !!onNotifClick;
 
   return (
     <header
@@ -71,6 +78,45 @@ export function FacilityManagerHeader() {
       >
         {title}
       </h1>
+
+      {/* Notifications bell — dashboard only */}
+      {showNotif && (
+        <button
+          onClick={onNotifClick}
+          style={{
+            position: "relative",
+            background: "none",
+            border: "1px solid #EDECEA",
+            borderRadius: 8,
+            cursor: "pointer",
+            width: 36,
+            height: 36,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            color: "#6B7280",
+          }}
+          aria-label="Activity notifications"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          {notifCount > 0 && (
+            <span
+              style={{
+                position: "absolute",
+                top: 6,
+                right: 6,
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "#FF5000",
+                border: "1.5px solid #FFFFFF",
+              }}
+            />
+          )}
+        </button>
+      )}
+
       {showReport && (
         <button
           onClick={() => openReportModal()}
