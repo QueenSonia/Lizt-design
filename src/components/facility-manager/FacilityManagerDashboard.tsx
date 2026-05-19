@@ -36,8 +36,10 @@ function TaskCard({
       className="fm-feed-row"
       onClick={onClick}
       style={{
-        padding: "16px 20px",
+        padding: "16px 18px",
         background: "#FFFFFF",
+        borderRadius: 12,
+        boxShadow: "0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04)",
         cursor: "pointer",
       }}
     >
@@ -346,19 +348,15 @@ export default function FacilityManagerDashboard() {
                 </span>
               </div>
             ) : (
-              <>
-                {sorted.map((issue, i) => (
-                  <div key={issue.id}>
-                    <TaskCard
-                      issue={issue}
-                      onClick={() => handleItemClick(issue)}
-                    />
-                    {i < sorted.length - 1 && (
-                      <div style={{ height: 1, background: "#F0EEEA", marginLeft: 20 }} />
-                    )}
-                  </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {sorted.map((issue) => (
+                  <TaskCard
+                    key={issue.id}
+                    issue={issue}
+                    onClick={() => handleItemClick(issue)}
+                  />
                 ))}
-              </>
+              </div>
             )}
           </div>
         </div>
