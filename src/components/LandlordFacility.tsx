@@ -14,6 +14,7 @@ import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import AddManagerModal from "./AddManagerModal";
+import { LandlordReportMaintenanceModal, LandlordMaintenancePayload } from "./LandlordReportMaintenanceModal";
 import { toast } from "sonner";
 import {
   useGetAllServiceRequests,
@@ -361,7 +362,10 @@ export function LandlordFacility({
 
   // Design sandbox — always show the mock dataset so resolution previews are
   // visible regardless of what the API returns.
-  const requests: ServiceRequest[] = MOCK_SERVICE_REQUESTS;
+  const [localRequests, setLocalRequests] = useState<ServiceRequest[]>([]);
+  const requests: ServiceRequest[] = [...localRequests, ...MOCK_SERVICE_REQUESTS];
+
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // appendThreadEntry imported from @/lib/taskThreadStore
 
@@ -551,6 +555,14 @@ export function LandlordFacility({
                       className="pl-10"
                     />
                   </div>
+                  <Button
+                    onClick={() => setReportModalOpen(true)}
+                    className="shrink-0 bg-[#FF5000] hover:bg-[#e04600] text-white gap-1.5 px-3"
+                    size="sm"
+                  >
+                    <span className="text-lg leading-none font-light">+</span>
+                    <span className="hidden sm:inline text-sm">Report</span>
+                  </Button>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="icon" className="shrink-0">
@@ -1831,6 +1843,31 @@ export function LandlordFacility({
         </DialogContent>
       </Dialog>
       )}
+
+      {/* Report Maintenance Request Modal */}
+      <LandlordReportMaintenanceModal
+        open={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        onSubmit={(payload: LandlordMaintenancePayload) => {
+          const newReq: ServiceRequest = {
+            id: "sr-new-" + Date.now(),
+            request_id: "SR-NEW",
+            source: "facility_manager",
+            reporter_name: "You (Landlord)",
+            tenant_name: payload.tenantName || "—",
+            property_name: payload.propertyName || payload.commonAreaName || "",
+            issue_category: payload.category || "Maintenance",
+            description: payload.description,
+            status: payload.assignedFmId ? "in_progress" : "open",
+            date_reported: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            tenant_id: payload.propertyId || "",
+            property_id: payload.propertyId || "",
+          };
+          setLocalRequests((prev) => [newReq, ...prev]);
+          setReportModalOpen(false);
+        }}
+      />
     </div>
   );
 }

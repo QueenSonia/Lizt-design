@@ -83,6 +83,7 @@ import { LandlordEditPropertyModal } from "@/components/LandlordEditPropertyModa
 import { GenerateKYCLinkModal } from "@/components/GenerateKYCLinkModal";
 
 import { AttachTenantModal } from "@/components/AttachTenantModal";
+import { LandlordReportMaintenanceModal } from "@/components/LandlordReportMaintenanceModal";
 import { getAvailableActions } from "@/utilities/propertyStateLogic";
 import {
   getErrorDisplayInfo,
@@ -184,6 +185,7 @@ export default function LandlordPropertyDetail({
   const [showScopePicker, setShowScopePicker] = useState(false);
   const [showPaymentPlanModal, setShowPaymentPlanModal] = useState(false);
   const [paymentPlanScope, setPaymentPlanScope] = useState<PlanScope>("tenancy");
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   useEffect(() => {
     return subscribeToFMStore(() => fmTick((n) => n + 1));
@@ -1483,6 +1485,14 @@ export default function LandlordPropertyDetail({
                         </DropdownMenuItem>
                       )}
 
+                    <DropdownMenuItem
+                      onClick={() => setReportModalOpen(true)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-[#FFF3EB] transition-colors duration-150"
+                    >
+                      <Wrench className="w-4 h-4" />
+                      <span>Report Maintenance Request</span>
+                    </DropdownMenuItem>
+
                     {availableActions.canDelete && (
                       <>
                         <DropdownMenuSeparator className="my-1.5 bg-gray-100" />
@@ -2539,6 +2549,19 @@ export default function LandlordPropertyDetail({
           isLoading={attachTenantFromKYCMutation.isPending}
         />
       )}
+
+      <LandlordReportMaintenanceModal
+        open={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        preselectedProperty={{
+          id: propertyData?.id ?? "",
+          name: propertyData?.name ?? "",
+          tenantName: propertyData?.currentTenant?.name ?? "",
+        }}
+        onSubmit={() => {
+          setReportModalOpen(false);
+        }}
+      />
     </div>
   );
 }

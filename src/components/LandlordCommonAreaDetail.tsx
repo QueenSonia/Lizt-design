@@ -26,6 +26,7 @@ import {
 } from "./ui/dialog";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { LandlordReportMaintenanceModal } from "@/components/LandlordReportMaintenanceModal";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -189,6 +190,7 @@ export default function LandlordCommonAreaDetail({ }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const handleApprove = (requestId: string) => {
     setAllAreas((prev) =>
@@ -254,6 +256,14 @@ export default function LandlordCommonAreaDetail({ }: Props) {
             <p className="text-xs text-gray-500 mt-0.5 truncate">{area.address}</p>
             <p className="text-xs text-gray-400 mt-0.5">Added {formatCreatedDate(area.createdAt)}</p>
           </div>
+
+          <button
+            onClick={() => setReportModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#FF5000] hover:bg-[#e04600] text-white text-xs font-medium rounded-lg transition-colors shrink-0"
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Report</span>
+          </button>
         </div>
       </div>
 
@@ -429,6 +439,36 @@ export default function LandlordCommonAreaDetail({ }: Props) {
           )}
         </DialogContent>
       </Dialog>
+
+      <LandlordReportMaintenanceModal
+        open={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        preselectedCommonArea={area ? { id: area.id, name: area.name } : undefined}
+        onSubmit={(payload) => {
+          if (!area) return;
+          setAllAreas((prev) =>
+            prev.map((a) =>
+              a.id === id
+                ? {
+                    ...a,
+                    serviceRequests: [
+                      {
+                        id: "sr-ca-new-" + Date.now(),
+                        issue_category: payload.category || "Maintenance",
+                        description: payload.description,
+                        status: "open" as const,
+                        reported_by: "You (Landlord)",
+                        date_reported: new Date().toISOString(),
+                      },
+                      ...a.serviceRequests,
+                    ],
+                  }
+                : a,
+            ),
+          );
+          setReportModalOpen(false);
+        }}
+      />
     </div>
   );
 }
