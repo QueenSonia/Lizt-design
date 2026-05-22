@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { X, ChevronLeft, ChevronDown, Home, MapPin, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronDown, Home, MapPin, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -48,17 +48,6 @@ const COMMON_AREA_OPTIONS = [
   "Parking Lot B",
   "Generator Room",
   "Laundry Room",
-];
-
-const JOB_CATEGORIES = [
-  "Plumbing",
-  "Electrical",
-  "Structural",
-  "HVAC",
-  "Cleaning",
-  "Security",
-  "Maintenance",
-  "Other",
 ];
 
 const MOCK_FMS = [
@@ -155,7 +144,6 @@ export function LandlordReportMaintenanceModal({
   // Form fields
   const [selectedPropertyId, setSelectedPropertyId] = useState(preselectedProperty?.id ?? "");
   const [selectedCommonArea, setSelectedCommonArea] = useState(preselectedCommonArea?.name ?? "");
-  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [isPriority, setIsPriority] = useState(false);
@@ -168,7 +156,6 @@ export function LandlordReportMaintenanceModal({
     setMode(initialMode);
     setSelectedPropertyId(preselectedProperty?.id ?? "");
     setSelectedCommonArea(preselectedCommonArea?.name ?? "");
-    setTitle("");
     setDescription("");
     setCategory("");
     setIsPriority(false);
@@ -191,7 +178,7 @@ export function LandlordReportMaintenanceModal({
   const propertyOk = mode === "property" && (preselectedProperty ? true : !!selectedPropertyId);
   const commonAreaOk = mode === "common_area" && (preselectedCommonArea ? true : !!selectedCommonArea);
   const locationOk = propertyOk || commonAreaOk;
-  const isValid = locationOk && title.trim().length > 0 && description.trim().length > 0;
+  const isValid = locationOk && description.trim().length > 0;
 
   const handleSubmit = () => {
     if (!isValid) return;
@@ -232,7 +219,7 @@ export function LandlordReportMaintenanceModal({
       tenantName,
       commonAreaId,
       commonAreaName,
-      title: title.trim(),
+      title: description.trim(),
       description: description.trim(),
       category,
       isPriority,
@@ -323,12 +310,6 @@ export function LandlordReportMaintenanceModal({
                   {mode === "property" ? "Reporting at a property" : "Reporting at a common area"}
                 </p>
               </div>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg bg-[#F5F4F1] border border-[#E8E6E1] text-[#9A9790] hover:text-[#6B7280] transition-colors shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Scrollable form body */}
@@ -379,47 +360,16 @@ export function LandlordReportMaintenanceModal({
                 )}
               </div>
 
-              {/* Title */}
+              {/* Describe the issue */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Title <span className="text-red-400">*</span></label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Broken ceiling fan in bedroom"
-                  className="w-full px-3 py-2.5 bg-[#F8F7F4] border border-[#E2E0DC] rounded-lg text-sm text-[#1A1A1A] placeholder-[#B0ADA8] focus:outline-none focus:border-[#B0ADA8] transition-colors"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Description <span className="text-red-400">*</span></label>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Describe the issue <span className="text-red-400">*</span></label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe what's wrong and where exactly…"
+                  placeholder="e.g. Kitchen sink is leaking and water pools under the cabinet."
                   rows={4}
                   className="w-full px-3 py-2.5 bg-[#F8F7F4] border border-[#E2E0DC] rounded-lg text-sm text-[#1A1A1A] placeholder-[#B0ADA8] focus:outline-none focus:border-[#B0ADA8] transition-colors resize-none leading-relaxed"
                 />
-              </div>
-
-              {/* Job Category */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Job Category</label>
-                <div className="relative">
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F8F7F4] border border-[#E2E0DC] rounded-lg text-sm appearance-none cursor-pointer pr-9 focus:outline-none focus:border-[#B0ADA8] transition-colors"
-                    style={{ color: category ? "#1A1A1A" : "#B0ADA8" }}
-                  >
-                    <option value="" style={{ color: "#B0ADA8" }}>Select category (optional)</option>
-                    {JOB_CATEGORIES.map((c) => (
-                      <option key={c} value={c} style={{ color: "#1A1A1A" }}>{c}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0ADA8] pointer-events-none" />
-                </div>
               </div>
 
               {/* Priority toggle */}
@@ -455,14 +405,11 @@ export function LandlordReportMaintenanceModal({
                   </select>
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0ADA8] pointer-events-none" />
                 </div>
-                <p className="mt-1.5 text-xs text-gray-400">
-                  Assigning sends a WhatsApp notification to the facility manager.
-                </p>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 shrink-0 bg-white">
+            <div className="px-6 py-4 border-t border-gray-100 shrink-0 bg-white flex flex-col gap-2.5">
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -474,6 +421,13 @@ export function LandlordReportMaintenanceModal({
                 }`}
               >
                 Submit Request
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </>
