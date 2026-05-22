@@ -59,12 +59,17 @@ function TaskCard({
           fontSize: 13,
           color: "#9A9790",
           lineHeight: 1.5,
-          marginBottom: 10,
+          marginBottom: 6,
         }}
       >
         {issue.property}
         {issue.tenant ? ` · ${issue.tenant}` : ""}
       </div>
+      {issue.source && (
+        <div style={{ fontSize: 11, color: "#B0ADA8", marginBottom: 10 }}>
+          Created by: {issue.source === "landlord" ? "Landlord" : "Tenant"}
+        </div>
+      )}
       <div
         style={{
           display: "flex",

@@ -119,15 +119,24 @@ function IssueRow({
           display: "flex",
           alignItems: "center",
           gap: 5,
+          flexWrap: "wrap",
         }}
       >
         {issue.tenant && <span>{issue.tenant}</span>}
         {issue.tenant && <span style={{ color: "#D5D2CD" }}>·</span>}
         <span>
-          {isResolved && issue.resolution?.resolvedAt
-            ? fmtResolved(issue.resolution.resolvedAt)
+          {isResolved && issue.resolutions?.[issue.resolutions.length - 1]?.resolvedAt
+            ? fmtResolved(issue.resolutions[issue.resolutions.length - 1].resolvedAt!)
             : fmtDate(issue.time)}
         </span>
+        {issue.source && (
+          <>
+            <span style={{ color: "#D5D2CD" }}>·</span>
+            <span style={{ color: "#C0BDB8" }}>
+              Created by: {issue.source === "landlord" ? "Landlord" : "Tenant"}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

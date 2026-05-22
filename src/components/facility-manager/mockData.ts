@@ -45,6 +45,7 @@ export interface FmIssue {
   tenant: string;
   phone: string;
   status: FmIssueStatus;
+  source?: "tenant" | "landlord";
   desc: string;
   time: number;
   media: string | null;
@@ -181,6 +182,12 @@ const _ISSUES_BASE: Omit<FmIssue, "ref">[] = [
     desc: "Full intercom system outage on Tower A. All units affected. Wiring fault traced and repaired.",
     time: _T(54, 0), media: null,
     resolutions: [{ hadCost: true, costAmount: "₦58,000", artisanName: "Teknik Electrical Services", artisanPhone: "0802 345 6789", summary: "Identified and repaired wiring fault on the 4th floor junction box. All intercom units now operational.", category: "Electrical", resolvedAt: new Date(Date.now() - 53 * 3600000).toISOString(), resolvedBy: "Jide Akinola" }],
+  },
+  {
+    id: "is11", title: "Quarterly inspection — cracked bathroom tiles in unit 4B", property: "Parkview Estate", propertyId: "p3", tenant: "Dr. Amina Bello", phone: "+234 810 123 4567", status: "open",
+    source: "landlord",
+    desc: "Landlord inspection flagged cracked tiles in the main bathroom of unit 4B. Requires replacement before tenant reports it.",
+    time: _T(0, 20), media: null,
   },
 ];
 
