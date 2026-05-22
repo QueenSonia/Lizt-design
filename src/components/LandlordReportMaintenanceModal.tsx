@@ -240,7 +240,7 @@ export function LandlordReportMaintenanceModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="p-0 gap-0 max-w-[440px] rounded-xl overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="p-0 gap-0 max-w-[440px] rounded-xl overflow-hidden max-h-[90vh] flex flex-col [&>button:last-child]:hidden">
         {/* Step 1: Choose type */}
         {step === 1 && (
           <>
