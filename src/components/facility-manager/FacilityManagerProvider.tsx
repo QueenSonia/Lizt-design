@@ -154,7 +154,7 @@ export function FacilityManagerProvider({
       prev.map((i) => {
         if (i.id !== id) return i;
         const next: FmIssue = { ...i, status: status as FmIssue["status"] };
-        if (resolution !== undefined) next.resolution = resolution;
+        if (resolution !== undefined) next.resolutions = [...(i.resolutions ?? []), resolution];
         return next;
       })
     );
@@ -162,7 +162,7 @@ export function FacilityManagerProvider({
       if (!prev || prev.id !== id) return prev;
       const next = { ...prev, status };
       if (resolution !== undefined)
-        (next as IssueDetailIssue).resolution = resolution;
+        (next as IssueDetailIssue).resolutions = [...((prev as IssueDetailIssue).resolutions ?? []), resolution];
       return next as IssueDetailIssue;
     });
   };

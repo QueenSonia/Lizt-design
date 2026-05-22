@@ -33,6 +33,8 @@ export interface FmResolution {
   category: string;
   resolvedAt?: string;
   resolvedBy?: string;
+  rejectedByTenant?: boolean;
+  tenantFeedback?: string;
 }
 
 export interface FmIssue {
@@ -47,7 +49,7 @@ export interface FmIssue {
   time: number;
   media: string | null;
   ref?: string;
-  resolution?: FmResolution;
+  resolutions?: FmResolution[];
 }
 
 export interface FmFeedItem {
@@ -77,7 +79,7 @@ export interface FmCaRequest {
   desc: string;
   time: number;
   status: FmCaRequestStatus;
-  resolution?: FmResolution;
+  resolutions?: FmResolution[];
 }
 
 export const PROPS_DATA: FmProperty[] = [
@@ -156,26 +158,29 @@ const _ISSUES_BASE: Omit<FmIssue, "ref">[] = [
     id: "is06", title: "Broken gate latch — East entrance", property: "Parkview Estate", propertyId: "p3", tenant: "Funke A.", phone: "+234 806 789 0123", status: "resolved",
     desc: "The latch on the secondary gate was loose and could not lock. A replacement has been fitted and verified.",
     time: _T(0, 44), media: null,
-    resolution: { hadCost: true, costAmount: "₦25,000", artisanName: "Mr. Tobi Gate Repairs", artisanPhone: "0803 123 4567", summary: "Replaced damaged gate latch and confirmed proper locking.", category: "Maintenance", resolvedAt: new Date(Date.now() - 44 * 60000).toISOString(), resolvedBy: "Jide Akinola" },
+    resolutions: [{ hadCost: true, costAmount: "₦25,000", artisanName: "Mr. Tobi Gate Repairs", artisanPhone: "0803 123 4567", summary: "Replaced damaged gate latch and confirmed proper locking.", category: "Maintenance", resolvedAt: new Date(Date.now() - 44 * 60000).toISOString(), resolvedBy: "Jide Akinola" }],
   },
   {
     id: "is07", title: "Pool pump failure", property: "Horizon Residences", propertyId: "p2", tenant: "Ngozi K.", phone: "+234 807 890 1234", status: "resolved",
     desc: "Pool circulation pump stopped working. Replacement unit was sourced and installed. Pool is operational again.",
     time: _T(26, 0), media: null,
-    resolution: { hadCost: true, costAmount: "₦120,000", artisanName: "AquaTech Pool Services", artisanPhone: "0801 987 6543", summary: "Faulty circulation pump replaced with a new unit. Pool pressure tested and confirmed operational.", category: "Plumbing", resolvedAt: new Date(Date.now() - 25 * 3600000).toISOString(), resolvedBy: "Jide Akinola" },
+    resolutions: [{ hadCost: true, costAmount: "₦120,000", artisanName: "AquaTech Pool Services", artisanPhone: "0801 987 6543", summary: "Faulty circulation pump replaced with a new unit. Pool pressure tested and confirmed operational.", category: "Plumbing", resolvedAt: new Date(Date.now() - 25 * 3600000).toISOString(), resolvedBy: "Jide Akinola" }],
   },
   { id: "is08", title: "Intercom system offline — Tower A", property: "Greenfield Towers", propertyId: "p1", tenant: "Sade L.", phone: "+234 808 901 2345", status: "in_progress", desc: "Visitors cannot buzz into units. Technician identified a wiring fault on the 4th floor junction box.", time: _T(27, 40), media: null },
   {
     id: "is09", title: "Kitchen sink leakage fixed", property: "Marina Heights", propertyId: "p4", tenant: "James O.", phone: "+234 809 012 3456", status: "resolved",
     desc: "Persistent dripping under the kitchen sink in unit 302. Pipe replaced and joints sealed.",
     time: _T(30, 0), media: null,
-    resolution: { hadCost: true, costAmount: "₦35,000", artisanName: "Mr. Musa Plumbing Services", artisanPhone: "0803 123 4567", summary: "Replaced damaged pipe and fixed leakage under kitchen sink.", category: "Plumbing", resolvedAt: new Date(Date.now() - 29 * 3600000).toISOString(), resolvedBy: "Jide Akinola" },
+    resolutions: [
+      { hadCost: true, costAmount: "₦35,000", artisanName: "Mr. Musa Plumbing Services", artisanPhone: "0803 123 4567", summary: "Replaced damaged pipe — leakage appeared to stop.", category: "Plumbing", resolvedAt: new Date(Date.now() - 48 * 3600000).toISOString(), resolvedBy: "Jide Akinola", rejectedByTenant: true, tenantFeedback: "Water is still leaking." },
+      { hadCost: true, costAmount: "₦10,000", artisanName: "Tobi Repairs", artisanPhone: "0808 456 7890", summary: "Replaced damaged valve and tightened all fittings. Confirmed no leakage.", category: "Plumbing", resolvedAt: new Date(Date.now() - 29 * 3600000).toISOString(), resolvedBy: "Jide Akinola" },
+    ],
   },
   {
     id: "is10", title: "Intercom system restored — Tower A", property: "Greenfield Towers", propertyId: "p1", tenant: "Sade L.", phone: "+234 808 901 2345", status: "resolved",
     desc: "Full intercom system outage on Tower A. All units affected. Wiring fault traced and repaired.",
     time: _T(54, 0), media: null,
-    resolution: { hadCost: true, costAmount: "₦58,000", artisanName: "Teknik Electrical Services", artisanPhone: "0802 345 6789", summary: "Identified and repaired wiring fault on the 4th floor junction box. All intercom units now operational.", category: "Electrical", resolvedAt: new Date(Date.now() - 53 * 3600000).toISOString(), resolvedBy: "Jide Akinola" },
+    resolutions: [{ hadCost: true, costAmount: "₦58,000", artisanName: "Teknik Electrical Services", artisanPhone: "0802 345 6789", summary: "Identified and repaired wiring fault on the 4th floor junction box. All intercom units now operational.", category: "Electrical", resolvedAt: new Date(Date.now() - 53 * 3600000).toISOString(), resolvedBy: "Jide Akinola" }],
   },
 ];
 

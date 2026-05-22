@@ -32,7 +32,7 @@ export interface IssueDetailIssue {
   tenant?: string;
   status: string;
   ref?: string;
-  resolution?: FmResolution;
+  resolutions?: FmResolution[];
 }
 
 interface IssueDetailModalProps {
@@ -459,94 +459,75 @@ export function IssueDetailModal({
               );
             })()}
 
-            {/* ── Resolution Record ─────────────────────────────────── */}
-            {issue.resolution && (
-              <div
-                style={{
-                  marginTop: 24,
-                  borderRadius: 12,
-                  border: "1px solid #D1FAE5",
-                  background: "#F0FDF4",
-                  overflow: "hidden",
-                }}
-              >
-                {/* Header */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "12px 16px",
-                    borderBottom: "1px solid #D1FAE5",
-                    background: "#DCFCE7",
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#166534", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                    Resolution Record
-                  </span>
+            {/* ── Resolution History ────────────────────────────────── */}
+            {issue.resolutions && issue.resolutions.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                {/* Section label */}
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#B0ADA8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+                  Resolution History
                 </div>
-
-                <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
-                  {/* Resolution details */}
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "#166534", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
-                      Resolution Details
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                      {issue.resolution.resolvedAt && (
-                        <ResRow label="Resolved on" value={
-                          new Date(issue.resolution.resolvedAt).toLocaleDateString("en-GB", {
-                            day: "numeric", month: "long", year: "numeric",
-                          }) + " · " +
-                          new Date(issue.resolution.resolvedAt).toLocaleTimeString("en-GB", {
-                            hour: "2-digit", minute: "2-digit",
-                          })
-                        } />
-                      )}
-                      <ResRow label="Job category" value={issue.resolution.category} />
-                      <div>
-                        <span style={{ fontSize: 11, color: "#6B7280", display: "block", marginBottom: 3 }}>Description</span>
-                        <p style={{ fontSize: 13, color: "#1A1A1A", lineHeight: 1.6, margin: 0 }}>{issue.resolution.summary}</p>
-                      </div>
-                      {issue.resolution.hadCost && issue.resolution.costAmount && (
-                        <ResRow label="Cost amount" value={issue.resolution.costAmount} />
-                      )}
-                      {!issue.resolution.hadCost && (
-                        <ResRow label="Cost" value="No cost" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Artisan details — only if hadCost and at least one field present */}
-                  {issue.resolution.hadCost && (issue.resolution.artisanName || issue.resolution.artisanPhone) && (
-                    <>
-                      <div style={{ height: 1, background: "#D1FAE5" }} />
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "#166534", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
-                          Artisan Details
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {[...issue.resolutions].reverse().map((attempt, revIdx) => {
+                    const origIdx = issue.resolutions!.length - 1 - revIdx;
+                    const attemptNum = origIdx + 1;
+                    const isLatest = revIdx === 0;
+                    return (
+                      <div key={origIdx}>
+                        <div style={{ borderRadius: 12, border: "1px solid #D1FAE5", background: "#F0FDF4", overflow: "hidden" }}>
+                          {/* Card header */}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "10px 16px", borderBottom: "1px solid #D1FAE5", background: "#DCFCE7" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: "#166534", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                Resolution Attempt {attemptNum}
+                              </span>
+                            </div>
+                            {attempt.rejectedByTenant && (
+                              <span style={{ fontSize: 10, fontWeight: 600, color: "#991B1B", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: 20, padding: "2px 8px", letterSpacing: "0.04em" }}>
+                                Rejected by tenant
+                              </span>
+                            )}
+                          </div>
+                          {/* Card body */}
+                          <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+                            {attempt.resolvedAt && (
+                              <ResRow label="Resolved on" value={
+                                new Date(attempt.resolvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) +
+                                " · " +
+                                new Date(attempt.resolvedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+                              } />
+                            )}
+                            <ResRow label="Job category" value={attempt.category} />
+                            <div>
+                              <span style={{ fontSize: 11, color: "#6B7280", display: "block", marginBottom: 3 }}>Description</span>
+                              <p style={{ fontSize: 13, color: "#1A1A1A", lineHeight: 1.6, margin: 0 }}>{attempt.summary}</p>
+                            </div>
+                            {attempt.hadCost && attempt.costAmount
+                              ? <ResRow label="Cost amount" value={attempt.costAmount} />
+                              : <ResRow label="Cost amount" value="No cost" />
+                            }
+                            {attempt.artisanName && <ResRow label="Artisan name" value={attempt.artisanName} />}
+                            {attempt.artisanPhone && <ResRow label="Phone number" value={attempt.artisanPhone} />}
+                            {attempt.resolvedBy && <ResRow label="Resolved by" value={attempt.resolvedBy} />}
+                          </div>
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                          {issue.resolution.artisanName && (
-                            <ResRow label="Artisan name" value={issue.resolution.artisanName} />
-                          )}
-                          {issue.resolution.artisanPhone && (
-                            <ResRow label="Phone number" value={issue.resolution.artisanPhone} />
-                          )}
-                        </div>
+                        {/* Rejected feedback */}
+                        {attempt.rejectedByTenant && attempt.tenantFeedback && (
+                          <div style={{ marginTop: 6, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "8px 12px" }}>
+                            <span style={{ fontSize: 12, color: "#92400E", fontStyle: "italic" }}>"{attempt.tenantFeedback}"</span>
+                          </div>
+                        )}
+                        {/* Awaiting confirmation note */}
+                        {isLatest && !attempt.rejectedByTenant && (
+                          <div style={{ marginTop: 6, background: "#F3F4F6", borderRadius: 8, padding: "6px 12px" }}>
+                            <span style={{ fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>Awaiting tenant confirmation</span>
+                          </div>
+                        )}
                       </div>
-                    </>
-                  )}
-
-                  {/* Resolved by */}
-                  {issue.resolution.resolvedBy && (
-                    <>
-                      <div style={{ height: 1, background: "#D1FAE5" }} />
-                      <ResRow label="Resolved by" value={issue.resolution.resolvedBy} />
-                    </>
-                  )}
+                    );
+                  })}
                 </div>
               </div>
             )}

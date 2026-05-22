@@ -113,6 +113,10 @@ interface ResolutionDetails {
   costAmount?: string;
   resolvedAt: string;
   resolvedBy: string;
+  artisanName?: string;
+  artisanPhone?: string;
+  rejectedByTenant?: boolean;
+  tenantFeedback?: string;
 }
 
 interface ServiceRequest {
@@ -138,6 +142,7 @@ interface ServiceRequest {
   source?: "tenant" | "facility_manager";
   reporter_name?: string;
   resolution?: ResolutionDetails;
+  resolutions?: ResolutionDetails[];
 }
 
 type RequestSource = "tenant" | "facility_manager";
@@ -185,15 +190,30 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     description: "Quarterly inspection found a cracked tile in the bathroom.",
     status: "resolved", date_reported: "2026-04-18T10:00:00.000Z", updated_at: "2026-04-24T16:30:00.000Z",
     tenant_id: "", property_id: "p-002",
-    resolution: {
-      summary:
-        "Replaced the cracked floor tile near the shower drain. Re-grouted surrounding tiles and tested for water tightness. No further damage observed.",
-      category: "Tiling & Flooring",
-      hadCost: true,
-      costAmount: "₦18,500",
-      resolvedAt: "2026-04-24T16:30:00.000Z",
-      resolvedBy: "Tunde Adeyemi",
-    },
+    resolutions: [
+      {
+        summary: "Attempted to patch the cracked tile with adhesive filler. Appeared stable after initial inspection.",
+        category: "Tiling & Flooring",
+        hadCost: true,
+        costAmount: "₦5,000",
+        artisanName: "Kunle Fixes",
+        artisanPhone: "0802 111 2233",
+        resolvedAt: "2026-04-22T10:00:00.000Z",
+        resolvedBy: "Tunde Adeyemi",
+        rejectedByTenant: true,
+        tenantFeedback: "The tile is still cracked and water seeps through.",
+      },
+      {
+        summary: "Replaced the cracked floor tile near the shower drain. Re-grouted surrounding tiles and tested for water tightness. No further damage observed.",
+        category: "Tiling & Flooring",
+        hadCost: true,
+        costAmount: "₦18,500",
+        artisanName: "ProTile Services",
+        artisanPhone: "0809 887 6654",
+        resolvedAt: "2026-04-24T16:30:00.000Z",
+        resolvedBy: "Tunde Adeyemi",
+      },
+    ],
   },
   {
     id: "sr-005", request_id: "SR-005", tenant_name: "Emmanuel Etim", reporter_name: "Emmanuel Etim", source: "tenant",
@@ -1278,39 +1298,79 @@ export function LandlordFacility({
                   </div>
                 </div>}
 
-                {/* Resolution */}
-                {req.resolution && (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden shadow-sm">
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-emerald-200/70 bg-emerald-50">
-                      <Check className="w-4 h-4 text-emerald-700" />
-                      <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Resolution Submitted</p>
-                    </div>
-                    <div className="px-4 py-4 space-y-4 text-sm">
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Resolution description</p>
-                        <p className="text-gray-900 whitespace-pre-line leading-relaxed">{req.resolution.summary}</p>
+                {/* Resolution History */}
+                {(req.resolutions ?? (req.resolution ? [req.resolution] : [])).length > 0 && (() => {
+                  const resArr = req.resolutions ?? (req.resolution ? [req.resolution] : []);
+                  return (
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Resolution History</p>
+                      <div className="flex flex-col gap-3">
+                        {[...resArr].reverse().map((attempt, revIdx) => {
+                          const origIdx = resArr.length - 1 - revIdx;
+                          const attemptNum = origIdx + 1;
+                          const isLatest = revIdx === 0;
+                          return (
+                            <div key={origIdx}>
+                              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden shadow-sm">
+                                <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
+                                  <div className="flex items-center gap-2">
+                                    <Check className="w-3.5 h-3.5 text-emerald-700" />
+                                    <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolution Attempt {attemptNum}</p>
+                                  </div>
+                                  {attempt.rejectedByTenant && (
+                                    <span className="text-[10px] font-semibold text-red-800 bg-red-100 border border-red-200 rounded-full px-2 py-0.5">Rejected by tenant</span>
+                                  )}
+                                </div>
+                                <div className="px-4 py-3.5 space-y-2.5 text-sm">
+                                  <div>
+                                    <p className="text-xs text-gray-500 mb-0.5">Description</p>
+                                    <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.summary}</p>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-0.5">Job category</p>
+                                      <p className="text-gray-900">{attempt.category}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-0.5">Cost</p>
+                                      <p className="text-gray-900 tabular-nums">{attempt.hadCost ? attempt.costAmount || "—" : "No cost"}</p>
+                                    </div>
+                                    {attempt.artisanName && <div>
+                                      <p className="text-xs text-gray-500 mb-0.5">Artisan name</p>
+                                      <p className="text-gray-900">{attempt.artisanName}</p>
+                                    </div>}
+                                    {attempt.artisanPhone && <div>
+                                      <p className="text-xs text-gray-500 mb-0.5">Phone number</p>
+                                      <p className="text-gray-900">{attempt.artisanPhone}</p>
+                                    </div>}
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
+                                      <p className="text-gray-900">{formatDateTime(attempt.resolvedAt)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
+                                      <p className="text-gray-900">{attempt.resolvedBy}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              {attempt.rejectedByTenant && attempt.tenantFeedback && (
+                                <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                  <p className="text-xs text-amber-800 italic">"{attempt.tenantFeedback}"</p>
+                                </div>
+                              )}
+                              {isLatest && !attempt.rejectedByTenant && (
+                                <div className="mt-1.5 bg-gray-100 rounded-lg px-3 py-1.5">
+                                  <p className="text-[11px] text-gray-500 italic">Awaiting tenant confirmation</p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-0.5">Job category</p>
-                          <p className="text-gray-900">{req.resolution.category}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 mb-0.5">Cost</p>
-                          <p className="text-gray-900 tabular-nums">{req.resolution.hadCost ? req.resolution.costAmount || "—" : "No cost"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
-                          <p className="text-gray-900">{formatDateTime(req.resolution.resolvedAt)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
-                          <p className="text-gray-900">{req.resolution.resolvedBy}</p>
-                        </div>
-                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Actions (priority + approve) */}
                 <div className="space-y-3">
@@ -1634,49 +1694,79 @@ export function LandlordFacility({
                     );
                   })()}
 
-                  {/* Resolution submitted by facility manager */}
-                  {selectedRequest.resolution && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
-                        <Check className="w-4 h-4 text-emerald-700" />
-                        <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
-                          Resolution Submitted
-                        </p>
-                      </div>
-                      <div className="px-4 py-3.5 space-y-3 text-sm">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-0.5">Resolution description</p>
-                          <p className="text-gray-900 whitespace-pre-line leading-relaxed">
-                            {selectedRequest.resolution.summary}
-                          </p>
+                  {/* Resolution History */}
+                  {(selectedRequest.resolutions ?? (selectedRequest.resolution ? [selectedRequest.resolution] : [])).length > 0 && (() => {
+                    const resArr = selectedRequest.resolutions ?? (selectedRequest.resolution ? [selectedRequest.resolution] : []);
+                    return (
+                      <div>
+                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Resolution History</p>
+                        <div className="flex flex-col gap-3">
+                          {[...resArr].reverse().map((attempt, revIdx) => {
+                            const origIdx = resArr.length - 1 - revIdx;
+                            const attemptNum = origIdx + 1;
+                            const isLatest = revIdx === 0;
+                            return (
+                              <div key={origIdx}>
+                                <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+                                  <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
+                                    <div className="flex items-center gap-2">
+                                      <Check className="w-3.5 h-3.5 text-emerald-700" />
+                                      <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolution Attempt {attemptNum}</p>
+                                    </div>
+                                    {attempt.rejectedByTenant && (
+                                      <span className="text-[10px] font-semibold text-red-800 bg-red-100 border border-red-200 rounded-full px-2 py-0.5">Rejected by tenant</span>
+                                    )}
+                                  </div>
+                                  <div className="px-4 py-3.5 space-y-3 text-sm">
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-0.5">Description</p>
+                                      <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.summary}</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                                      <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Job category</p>
+                                        <p className="text-gray-900">{attempt.category}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Cost</p>
+                                        <p className="text-gray-900 tabular-nums">{attempt.hadCost ? attempt.costAmount || "—" : "No cost"}</p>
+                                      </div>
+                                      {attempt.artisanName && <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Artisan name</p>
+                                        <p className="text-gray-900">{attempt.artisanName}</p>
+                                      </div>}
+                                      {attempt.artisanPhone && <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Phone number</p>
+                                        <p className="text-gray-900">{attempt.artisanPhone}</p>
+                                      </div>}
+                                      <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
+                                        <p className="text-gray-900">{formatDateTime(attempt.resolvedAt)}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
+                                        <p className="text-gray-900">{attempt.resolvedBy}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                {attempt.rejectedByTenant && attempt.tenantFeedback && (
+                                  <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                    <p className="text-xs text-amber-800 italic">"{attempt.tenantFeedback}"</p>
+                                  </div>
+                                )}
+                                {isLatest && !attempt.rejectedByTenant && (
+                                  <div className="mt-1.5 bg-gray-100 rounded-lg px-3 py-1.5">
+                                    <p className="text-[11px] text-gray-500 italic">Awaiting tenant confirmation</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-0.5">Job category</p>
-                            <p className="text-gray-900">{selectedRequest.resolution.category}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-0.5">Cost</p>
-                            <p className="text-gray-900 tabular-nums">
-                              {selectedRequest.resolution.hadCost
-                                ? selectedRequest.resolution.costAmount || "—"
-                                : "No cost"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
-                            <p className="text-gray-900">
-                              {formatDateTime(selectedRequest.resolution.resolvedAt)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
-                            <p className="text-gray-900">{selectedRequest.resolution.resolvedBy}</p>
-                          </div>
-                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Context-aware footer */}
