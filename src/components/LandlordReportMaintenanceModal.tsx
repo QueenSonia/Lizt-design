@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronDown, Home, MapPin, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronDown, Home, MapPin, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
