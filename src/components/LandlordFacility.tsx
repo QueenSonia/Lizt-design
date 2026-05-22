@@ -515,6 +515,8 @@ export function LandlordFacility({
         buttonText={activeTab === "common_areas" ? "Add Common Area" : "Add Facility Manager"}
         onMenuClick={onMenuClick}
         isMobile={isMobile}
+        secondaryAction={activeTab === "service_requests" ? () => setReportModalOpen(true) : undefined}
+        secondaryButtonText={activeTab === "service_requests" ? "Report Maintenance Request" : undefined}
       />
 
       {/* Tab bar */}
@@ -555,14 +557,6 @@ export function LandlordFacility({
                       className="pl-10"
                     />
                   </div>
-                  <Button
-                    onClick={() => setReportModalOpen(true)}
-                    className="shrink-0 bg-[#FF5000] hover:bg-[#e04600] text-white gap-1.5 px-3"
-                    size="sm"
-                  >
-                    <span className="text-lg leading-none font-light">+</span>
-                    <span className="hidden sm:inline text-sm">Report</span>
-                  </Button>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="icon" className="shrink-0">

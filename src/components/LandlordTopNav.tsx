@@ -18,6 +18,8 @@ interface LandlordTopNavProps {
   isMobile?: boolean;
   isMenuOpen?: boolean;
   buttonText?: string;
+  secondaryAction?: () => void;
+  secondaryButtonText?: string;
 }
 
 export const LandlordTopNav = memo(function LandlordTopNav({
@@ -34,6 +36,8 @@ export const LandlordTopNav = memo(function LandlordTopNav({
   isMobile = false,
   isMenuOpen = false,
   buttonText = "Add Property",
+  secondaryAction,
+  secondaryButtonText,
 }: LandlordTopNavProps) {
   return (
     <div className="lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white border-b border-slate-200 shadow-sm transition-none">
@@ -84,6 +88,18 @@ export const LandlordTopNav = memo(function LandlordTopNav({
           {/* Right: Action Buttons - Only show one at a time based on priority */}
           {showAddButton && (
             <>
+              {/* Secondary action button (e.g. Report Maintenance) */}
+              {secondaryAction && secondaryButtonText && (
+                <Button
+                  onClick={secondaryAction}
+                  variant="outline"
+                  className="shrink-0 h-9 lg:h-10 px-3 lg:px-4 rounded-lg border-[#FF5000] text-[#FF5000] hover:bg-[#FFF3EB]"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  <span>{secondaryButtonText}</span>
+                </Button>
+              )}
+
               {/* Generate KYC Link Button - Highest priority for KYC page */}
               {onGenerateKYC && (
                 <Button
