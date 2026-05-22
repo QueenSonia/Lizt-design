@@ -31,6 +31,8 @@ export interface FmResolution {
   artisanPhone?: string;
   summary: string;
   category: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
 }
 
 export interface FmIssue {

@@ -37,7 +37,11 @@ export function ResolutionModal({
     if (!canSubmit || busy) return;
     setBusy(true);
     setTimeout(() => {
-      onConfirm({ hadCost, costAmount, artisanName, artisanPhone, summary, category });
+      onConfirm({
+        hadCost, costAmount, artisanName, artisanPhone, summary, category,
+        resolvedAt: new Date().toISOString(),
+        resolvedBy: "Jide Akinola",
+      });
       onClose();
     }, 600);
   };

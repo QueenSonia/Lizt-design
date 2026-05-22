@@ -14,6 +14,15 @@ import {
   ThreadEntry,
 } from "@/lib/taskThreadStore";
 
+function ResRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", gap: 10 }}>
+      <span style={{ fontSize: 11, color: "#6B7280", flexShrink: 0, minWidth: 90 }}>{label}</span>
+      <span style={{ fontSize: 13, color: "#1A1A1A", fontWeight: 500 }}>{value}</span>
+    </div>
+  );
+}
+
 export interface IssueDetailIssue {
   id: string;
   title: string;
@@ -225,76 +234,7 @@ export function IssueDetailModal({
               </span>
             </div>
 
-            {issue.resolution && (
-              <div style={{ marginBottom: 24 }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#B0ADA8",
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    marginBottom: 10,
-                  }}
-                >
-                  Resolution
-                </div>
-                <p
-                  style={{
-                    fontSize: 14,
-                    color: "#374151",
-                    lineHeight: 1.65,
-                    margin: "0 0 12px",
-                  }}
-                >
-                  {issue.resolution.summary}
-                </p>
-                <div
-                  style={{
-                    background: "#FAFAF8",
-                    border: "1px solid #EDECEA",
-                    borderRadius: 10,
-                    padding: 12,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                  }}
-                >
-                  <div style={{ display: "flex", gap: 12 }}>
-                    <span
-                      style={{
-                        width: 80,
-                        fontSize: 12,
-                        color: "#9A9790",
-                        flexShrink: 0,
-                      }}
-                    >
-                      Category
-                    </span>
-                    <span style={{ fontSize: 13, color: "#374151" }}>
-                      {issue.resolution.category}
-                    </span>
-                  </div>
-                  {issue.resolution.hadCost && (
-                    <div style={{ display: "flex", gap: 12 }}>
-                      <span
-                        style={{
-                          width: 80,
-                          fontSize: 12,
-                          color: "#9A9790",
-                          flexShrink: 0,
-                        }}
-                      >
-                        Cost
-                      </span>
-                      <span style={{ fontSize: 13, color: "#374151" }}>
-                        {issue.resolution.costAmount}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Resolution record — shown inline above thread when resolved */}
 
             <div>
               <div
@@ -518,6 +458,98 @@ export function IssueDetailModal({
                 </div>
               );
             })()}
+
+            {/* ── Resolution Record ─────────────────────────────────── */}
+            {issue.resolution && (
+              <div
+                style={{
+                  marginTop: 24,
+                  borderRadius: 12,
+                  border: "1px solid #D1FAE5",
+                  background: "#F0FDF4",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "12px 16px",
+                    borderBottom: "1px solid #D1FAE5",
+                    background: "#DCFCE7",
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#166534", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    Resolution Record
+                  </span>
+                </div>
+
+                <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Resolution details */}
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#166534", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
+                      Resolution Details
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                      {issue.resolution.resolvedAt && (
+                        <ResRow label="Resolved on" value={
+                          new Date(issue.resolution.resolvedAt).toLocaleDateString("en-GB", {
+                            day: "numeric", month: "long", year: "numeric",
+                          }) + " · " +
+                          new Date(issue.resolution.resolvedAt).toLocaleTimeString("en-GB", {
+                            hour: "2-digit", minute: "2-digit",
+                          })
+                        } />
+                      )}
+                      <ResRow label="Job category" value={issue.resolution.category} />
+                      <div>
+                        <span style={{ fontSize: 11, color: "#6B7280", display: "block", marginBottom: 3 }}>Description</span>
+                        <p style={{ fontSize: 13, color: "#1A1A1A", lineHeight: 1.6, margin: 0 }}>{issue.resolution.summary}</p>
+                      </div>
+                      {issue.resolution.hadCost && issue.resolution.costAmount && (
+                        <ResRow label="Cost amount" value={issue.resolution.costAmount} />
+                      )}
+                      {!issue.resolution.hadCost && (
+                        <ResRow label="Cost" value="No cost" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Artisan details — only if hadCost and at least one field present */}
+                  {issue.resolution.hadCost && (issue.resolution.artisanName || issue.resolution.artisanPhone) && (
+                    <>
+                      <div style={{ height: 1, background: "#D1FAE5" }} />
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#166534", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
+                          Artisan Details
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                          {issue.resolution.artisanName && (
+                            <ResRow label="Artisan name" value={issue.resolution.artisanName} />
+                          )}
+                          {issue.resolution.artisanPhone && (
+                            <ResRow label="Phone number" value={issue.resolution.artisanPhone} />
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Resolved by */}
+                  {issue.resolution.resolvedBy && (
+                    <>
+                      <div style={{ height: 1, background: "#D1FAE5" }} />
+                      <ResRow label="Resolved by" value={issue.resolution.resolvedBy} />
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {(isPending || isResolved) && (
