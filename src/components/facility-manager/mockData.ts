@@ -152,8 +152,18 @@ const _ISSUES_BASE: Omit<FmIssue, "ref">[] = [
   { id: "is03", title: "Power outage in parking bay 3", property: "Greenfield Towers", propertyId: "p1", tenant: "Emeka P.", phone: "+234 803 456 7890", status: "in_progress", desc: "Lighting circuit tripped overnight. The entire parking bay is unlit. Electrician is reviewing the fuse board.", time: _T(1, 22), media: null },
   { id: "is04", title: "HVAC noise in Unit 501", property: "Marina Heights", propertyId: "p4", tenant: "Tunde B.", phone: "+234 804 567 8901", status: "open", desc: "Loud rattling from the central air unit in block C. Tenant has reported it twice this week.", time: _T(2, 0), media: null },
   { id: "is05", title: "Fire exit door jammed — Floor 3", property: "Marina Heights", propertyId: "p4", tenant: "Akin F.", phone: "+234 805 678 9012", status: "open", desc: "Emergency exit on floor 3 is stuck and cannot be opened from inside. Flagged as urgent safety concern.", time: _T(2, 33), media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=200&q=60" },
-  { id: "is06", title: "Broken gate latch — East entrance", property: "Parkview Estate", propertyId: "p3", tenant: "Funke A.", phone: "+234 806 789 0123", status: "resolved", desc: "The latch on the secondary gate was loose and could not lock. A replacement has been fitted and verified.", time: _T(0, 44), media: null },
-  { id: "is07", title: "Pool pump failure", property: "Horizon Residences", propertyId: "p2", tenant: "Ngozi K.", phone: "+234 807 890 1234", status: "resolved", desc: "Pool circulation pump stopped working. Replacement unit was sourced and installed. Pool is operational again.", time: _T(26, 0), media: null },
+  {
+    id: "is06", title: "Broken gate latch — East entrance", property: "Parkview Estate", propertyId: "p3", tenant: "Funke A.", phone: "+234 806 789 0123", status: "resolved",
+    desc: "The latch on the secondary gate was loose and could not lock. A replacement has been fitted and verified.",
+    time: _T(0, 44), media: null,
+    resolution: { hadCost: true, costAmount: "₦25,000", artisanName: "Mr. Tobi Gate Repairs", artisanPhone: "0803 123 4567", summary: "Replaced damaged gate latch and confirmed proper locking.", category: "Maintenance", resolvedAt: new Date(Date.now() - 44 * 60000).toISOString(), resolvedBy: "Jide Akinola" },
+  },
+  {
+    id: "is07", title: "Pool pump failure", property: "Horizon Residences", propertyId: "p2", tenant: "Ngozi K.", phone: "+234 807 890 1234", status: "resolved",
+    desc: "Pool circulation pump stopped working. Replacement unit was sourced and installed. Pool is operational again.",
+    time: _T(26, 0), media: null,
+    resolution: { hadCost: true, costAmount: "₦120,000", artisanName: "AquaTech Pool Services", artisanPhone: "0801 987 6543", summary: "Faulty circulation pump replaced with a new unit. Pool pressure tested and confirmed operational.", category: "Plumbing", resolvedAt: new Date(Date.now() - 25 * 3600000).toISOString(), resolvedBy: "Jide Akinola" },
+  },
   { id: "is08", title: "Intercom system offline — Tower A", property: "Greenfield Towers", propertyId: "p1", tenant: "Sade L.", phone: "+234 808 901 2345", status: "in_progress", desc: "Visitors cannot buzz into units. Technician identified a wiring fault on the 4th floor junction box.", time: _T(27, 40), media: null },
   {
     id: "is09", title: "Kitchen sink leakage fixed", property: "Marina Heights", propertyId: "p4", tenant: "James O.", phone: "+234 809 012 3456", status: "resolved",
