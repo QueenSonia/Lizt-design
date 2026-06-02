@@ -359,7 +359,7 @@ export function LandlordFacility({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
-  const [sourceFilter, setSourceFilter] = useState<"all" | RequestSource>("all");
+  const [statusGroupFilter, setStatusGroupFilter] = useState<"in_progress" | "resolved" | "closed" | "reopened">("in_progress");
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
   const page = 1;
@@ -493,9 +493,18 @@ export function LandlordFacility({
 
   const properties = ["all", ...new Set(requests.map((r) => r.property_name))];
 
+  const STATUS_GROUP_MAP: Record<typeof statusGroupFilter, string[]> = {
+    in_progress: ["open", "pending", "in_progress", "assigned", "urgent"],
+    resolved: ["resolved"],
+    closed: ["closed", "completed"],
+    reopened: ["reopened"],
+  };
+
   const filteredRequests = requests
     .filter((request) => {
-      const matchesStatus = statusFilter === "all" || (request.status ?? "").toLowerCase() === statusFilter.toLowerCase();
+      const effectiveStatus = (statusOverrides[request.id] ?? request.status ?? "").toLowerCase();
+      const matchesStatusGroup = STATUS_GROUP_MAP[statusGroupFilter].includes(effectiveStatus);
+      const matchesStatus = statusFilter === "all" || effectiveStatus === statusFilter.toLowerCase();
       const matchesSearch =
         searchQuery === "" ||
         (request.issue_category ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -503,17 +512,13 @@ export function LandlordFacility({
         reporterName(request).toLowerCase().includes(searchQuery.toLowerCase()) ||
         (request.description ?? "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesProperty = propertyFilter === "all" || request.property_name === propertyFilter;
-      const matchesSource = sourceFilter === "all" || resolveSource(request) === sourceFilter;
-      return matchesStatus && matchesSearch && matchesProperty && matchesSource;
+      return matchesStatusGroup && matchesStatus && matchesSearch && matchesProperty;
     })
     .sort((a, b) => {
       const aPriority = isTaskPriority(a.id) ? 0 : 1;
       const bPriority = isTaskPriority(b.id) ? 0 : 1;
       return aPriority - bPriority;
     });
-
-  const tenantRequests = filteredRequests.filter((r) => resolveSource(r) === "tenant");
-  const facilityManagerRequests = filteredRequests.filter((r) => resolveSource(r) === "facility_manager");
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -610,19 +615,20 @@ export function LandlordFacility({
                 </div>
               </div>
 
-              {/* Source filter — secondary refinement */}
+              {/* Status group filter */}
               <div className="mb-2.5 flex items-center gap-1.5 flex-wrap">
                 {([
-                  { value: "all", label: "All" },
-                  { value: "tenant", label: "Tenants" },
-                  { value: "facility_manager", label: "Facility Managers" },
+                  { value: "in_progress", label: "In Progress" },
+                  { value: "resolved", label: "Resolved" },
+                  { value: "closed", label: "Closed" },
+                  { value: "reopened", label: "Reopened" },
                 ] as const).map((opt) => {
-                  const active = sourceFilter === opt.value;
+                  const active = statusGroupFilter === opt.value;
                   return (
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setSourceFilter(opt.value)}
+                      onClick={() => setStatusGroupFilter(opt.value)}
                       className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
                         active
                           ? "bg-gray-900 text-white border-gray-900"
@@ -741,23 +747,6 @@ export function LandlordFacility({
                   );
                 };
 
-                if (sourceFilter === "all") {
-                  return (
-                    <div className="space-y-8">
-                      {tenantRequests.length > 0 && (
-                        <section>
-                          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">From Tenants</h3>
-                          <div className="space-y-4">{tenantRequests.map(renderCard)}</div>
-                        </section>
-                      )}
-                      {facilityManagerRequests.length > 0 && (
-                        <section>
-                          <div className="space-y-4">{facilityManagerRequests.map(renderCard)}</div>
-                        </section>
-                      )}
-                    </div>
-                  );
-                }
                 return <div className="space-y-4">{filteredRequests.map(renderCard)}</div>;
               })()}
             </div>
