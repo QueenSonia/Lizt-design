@@ -686,23 +686,15 @@ export function LandlordFacility({
                     }}
                     className={`bg-white rounded-xl p-6 shadow-sm border hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1 ${isPriority ? "border-orange-300 ring-1 ring-orange-200" : "border-gray-100"}`}
                   >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="flex-1 flex items-start gap-2">
-                        {isPriority && (
-                          <span className="shrink-0 mt-1 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">
-                            <AlertCircle className="w-3 h-3" />
-                            Priority
-                          </span>
-                        )}
-                        <h3 className="text-lg text-gray-900">{request.description}</h3>
+                      {isPriority && (
+                      <div className="mb-2">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">
+                          <AlertCircle className="w-3 h-3" />
+                          Priority
+                        </span>
                       </div>
-                      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <StatusBadgeDropdown
-                          status={formatStatusLabel(statusOverrides[request.id] ?? request.status) as "Open" | "Resolved" | "Reopened" | "Closed" | "Pending" | "In Progress" | "Urgent"}
-                          statusHistory={formatStatusHistory(request.statusHistory)}
-                        />
-                      </div>
-                    </div>
+                    )}
+                    <h3 className="text-lg text-gray-900 mb-3">{request.description}</h3>
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Property:</span>
