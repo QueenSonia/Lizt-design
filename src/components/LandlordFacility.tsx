@@ -957,39 +957,46 @@ export function LandlordFacility({
                 <span className="text-sm text-gray-900">{formatDate(detailManager.date)}</span>
               </div>
 
-              {/* Assigned maintenance requests */}
+              {/* Active maintenance requests */}
               <div className="border-t border-gray-100 pt-4">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-                  Assigned Maintenance Requests
+                  Active Maintenance Requests
                 </p>
                 {(() => {
                   const assignedReqIds = getRequestsForManager(detailManager.id);
-                  const assignedReqs = requests.filter((r) =>
-                    assignedReqIds.includes(r.id),
+                  const activeStatuses = ["open", "in_progress", "reopened", "pending", "urgent"];
+                  const activeReqs = requests.filter((r) =>
+                    assignedReqIds.includes(r.id) &&
+                    activeStatuses.includes((statusOverrides[r.id] ?? r.status).toLowerCase())
                   );
-                  if (assignedReqs.length === 0) {
+                  if (activeReqs.length === 0) {
                     return (
                       <p className="text-sm text-gray-500">
-                        No maintenance requests currently assigned to this manager.
+                        No active maintenance requests assigned.
                       </p>
                     );
                   }
                   return (
                     <ul className="space-y-2">
-                      {assignedReqs.map((r) => (
+                      {activeReqs.map((r) => (
                         <li
                           key={r.id}
-                          className="flex items-start gap-2 px-3 py-2 rounded-md border border-gray-200 bg-gray-50"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedRequest(r)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedRequest(r); } }}
+                          className="flex items-start gap-2 px-3 py-2.5 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
                         >
                           <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm text-gray-900 truncate">
+                            <p className="text-sm text-gray-900 leading-snug mb-0.5">
                               {r.description}
                             </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {r.property_name} · {formatStatusLabel(r.status)}
+                            <p className="text-xs text-gray-500">
+                              {r.property_name} · {formatStatusLabel(statusOverrides[r.id] ?? r.status)}
                             </p>
                           </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
                         </li>
                       ))}
                     </ul>
