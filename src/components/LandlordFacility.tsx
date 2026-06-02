@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, Check, AlertCircle, Send, MessageSquare } from "lucide-react";
+import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, Check, AlertCircle, Send, MessageSquare, Paperclip, Play, ChevronLeft } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
@@ -132,6 +132,7 @@ interface ServiceRequest {
   resolution_date?: string | null;
   reopened_at?: string | null;
   issue_images?: string[] | null;
+  attachments?: Array<{ url: string; type: "image" | "video"; group: "original" | "reopened" }>;
   notes?: string;
   tenant_id: string;
   property_id: string;
@@ -170,6 +171,12 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     description: "Kitchen sink is leaking and water pools under the cabinet.",
     status: "open", date_reported: "2026-04-25T09:30:00.000Z", updated_at: "2026-04-26T11:00:00.000Z",
     tenant_id: "t-001", property_id: "p-001",
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400", type: "image", group: "original" },
+      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", type: "image", group: "original" },
+      { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400", type: "image", group: "original" },
+      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video", group: "original" },
+    ],
   },
   {
     id: "sr-002", request_id: "SR-002", tenant_name: "Adaeze Nwosu", reporter_name: "Adaeze Nwosu", source: "tenant",
@@ -177,6 +184,9 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     description: "Living room sockets stopped working after last power outage.",
     status: "in_progress", date_reported: "2026-04-22T14:10:00.000Z", updated_at: "2026-04-27T08:20:00.000Z",
     tenant_id: "t-002", property_id: "p-002",
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=400", type: "image", group: "reopened" },
+    ],
   },
   {
     id: "sr-003", request_id: "SR-003", tenant_name: "—", reporter_name: "Tobi Adekunle", source: "facility_manager",
@@ -288,6 +298,7 @@ export function LandlordFacility({
   const userRole = user?.role || pathname.split("/")[1] || "landlord";
 
   const [activeTab, setActiveTab] = useState<"service_requests" | "common_areas" | "facility_managers">("service_requests");
+  const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [, fmStoreTick] = useState(0);
   const [, threadTick] = useState(0);
   const [threadInput, setThreadInput] = useState("");
@@ -720,6 +731,12 @@ export function LandlordFacility({
                         Last Updated: {getRelativeTime(request.updated_at || request.updatedAt)}
                       </div>
                     </div>
+                    {request.attachments && request.attachments.length > 0 && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Paperclip className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-xs text-gray-500">{request.attachments.length} attachment{request.attachments.length !== 1 ? "s" : ""}</span>
+                      </div>
+                    )}
                   </div>
                   );
                 };
@@ -1240,18 +1257,66 @@ export function LandlordFacility({
                 </div>}
 
                 {/* Attachments */}
-                {req.issue_images && req.issue_images.length > 0 && (
-                  <div className="bg-white rounded-xl p-4 shadow-sm">
-                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Attachments</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {req.issue_images.map((src, i) => (
-                        <a key={i} href={src} target="_blank" rel="noopener noreferrer" className="block rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50">
-                          <img src={src} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover" />
-                        </a>
-                      ))}
+                {(() => {
+                  const allAttachments = req.attachments ?? (req.issue_images ? req.issue_images.map((url) => ({ url, type: "image" as const, group: "original" as const })) : []);
+                  if (allAttachments.length === 0) return null;
+                  const origItems = allAttachments.filter((a) => a.group === "original");
+                  const reopenedItems = allAttachments.filter((a) => a.group === "reopened");
+                  const showGroupLabels = origItems.length > 0 && reopenedItems.length > 0;
+                  const renderGroup = (items: typeof allAttachments, label: string) => {
+                    if (items.length === 0) return null;
+                    const lightboxItems = items.map((a) => ({ url: a.url, type: a.type }));
+                    const MAX_VISIBLE = 4;
+                    const visible = items.slice(0, MAX_VISIBLE - 1);
+                    const extra = items.length - visible.length;
+                    const showExtra = extra > 1;
+                    const displayItems = showExtra ? visible : items.slice(0, MAX_VISIBLE);
+                    return (
+                      <div key={label}>
+                        {showGroupLabels && <p className="text-[11px] text-gray-400 font-medium mb-1.5">{label}</p>}
+                        <div className="grid grid-cols-3 gap-2">
+                          {displayItems.map((item, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setLightbox({ items: lightboxItems, index: i })}
+                              className="relative rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#FF5000]"
+                            >
+                              {item.type === "video" ? (
+                                <>
+                                  <video src={item.url} className="w-full h-full object-cover" muted preload="metadata" />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                    <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
+                                      <Play className="w-4 h-4 text-gray-800 ml-0.5" />
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <img src={item.url} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover" />
+                              )}
+                            </button>
+                          ))}
+                          {showExtra && (
+                            <button
+                              onClick={() => setLightbox({ items: lightboxItems, index: visible.length })}
+                              className="rounded-lg border border-gray-200 aspect-square bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#FF5000]"
+                            >
+                              +{extra + 1} more
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  };
+                  return (
+                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Attachments</p>
+                      <div className="space-y-3">
+                        {renderGroup(origItems, "Original Request")}
+                        {renderGroup(reopenedItems, "Reopened Request")}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Thread — visible only after approval */}
                 {isApproved && <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -1569,24 +1634,66 @@ export function LandlordFacility({
                   </div>
 
                   {/* Media */}
-                  {selectedRequest.issue_images && selectedRequest.issue_images.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Attachments</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {selectedRequest.issue_images.map((src, i) => (
-                          <a
-                            key={i}
-                            href={src}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50"
-                          >
-                            <img src={src} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover" />
-                          </a>
-                        ))}
+                  {(() => {
+                    const allAttachments = selectedRequest.attachments ?? (selectedRequest.issue_images ? selectedRequest.issue_images.map((url) => ({ url, type: "image" as const, group: "original" as const })) : []);
+                    if (allAttachments.length === 0) return null;
+                    const origItems = allAttachments.filter((a) => a.group === "original");
+                    const reopenedItems = allAttachments.filter((a) => a.group === "reopened");
+                    const showGroupLabels = origItems.length > 0 && reopenedItems.length > 0;
+                    const renderGroup = (items: typeof allAttachments, label: string) => {
+                      if (items.length === 0) return null;
+                      const lightboxItems = items.map((a) => ({ url: a.url, type: a.type }));
+                      const MAX_VISIBLE = 4;
+                      const visible = items.slice(0, MAX_VISIBLE - 1);
+                      const extra = items.length - visible.length;
+                      const showExtra = extra > 1;
+                      const displayItems = showExtra ? visible : items.slice(0, MAX_VISIBLE);
+                      return (
+                        <div key={label}>
+                          {showGroupLabels && <p className="text-[11px] text-gray-400 font-medium mb-1.5">{label}</p>}
+                          <div className="grid grid-cols-3 gap-2">
+                            {displayItems.map((item, i) => (
+                              <button
+                                key={i}
+                                onClick={() => setLightbox({ items: lightboxItems, index: i })}
+                                className="relative rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#FF5000]"
+                              >
+                                {item.type === "video" ? (
+                                  <>
+                                    <video src={item.url} className="w-full h-full object-cover" muted preload="metadata" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                      <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
+                                        <Play className="w-4 h-4 text-gray-800 ml-0.5" />
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <img src={item.url} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover" />
+                                )}
+                              </button>
+                            ))}
+                            {showExtra && (
+                              <button
+                                onClick={() => setLightbox({ items: lightboxItems, index: visible.length })}
+                                className="rounded-lg border border-gray-200 aspect-square bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#FF5000]"
+                              >
+                                +{extra + 1} more
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    };
+                    return (
+                      <div>
+                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Attachments</p>
+                        <div className="space-y-3">
+                          {renderGroup(origItems, "Original Request")}
+                          {renderGroup(reopenedItems, "Reopened Request")}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* ── Task Thread — visible only after approval ──────────── */}
                   {isApproved && (() => {
@@ -1836,6 +1943,70 @@ export function LandlordFacility({
           })()}
         </DialogContent>
       </Dialog>
+      )}
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+          onClick={() => setLightbox(null)}
+        >
+          {/* Close button */}
+          <button
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none"
+            onClick={() => setLightbox(null)}
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Prev button */}
+          {lightbox.items.length > 1 && (
+            <button
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none"
+              onClick={(e) => { e.stopPropagation(); setLightbox((lb) => lb ? { ...lb, index: (lb.index - 1 + lb.items.length) % lb.items.length } : null); }}
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          )}
+
+          {/* Media */}
+          <div
+            className="max-w-[90vw] max-h-[85vh] flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {lightbox.items[lightbox.index].type === "video" ? (
+              <video
+                src={lightbox.items[lightbox.index].url}
+                controls
+                autoPlay
+                className="max-w-full max-h-[80vh] rounded-lg"
+              />
+            ) : (
+              <img
+                src={lightbox.items[lightbox.index].url}
+                alt={`Attachment ${lightbox.index + 1}`}
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              />
+            )}
+          </div>
+
+          {/* Next button */}
+          {lightbox.items.length > 1 && (
+            <button
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none"
+              onClick={(e) => { e.stopPropagation(); setLightbox((lb) => lb ? { ...lb, index: (lb.index + 1) % lb.items.length } : null); }}
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          )}
+
+          {/* Counter */}
+          {lightbox.items.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/50 rounded-full text-white text-sm">
+              {lightbox.index + 1} / {lightbox.items.length}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Report Maintenance Request Modal */}
