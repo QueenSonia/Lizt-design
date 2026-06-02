@@ -230,8 +230,37 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     id: "sr-005", request_id: "SR-005", tenant_name: "Emmanuel Etim", reporter_name: "Emmanuel Etim", source: "tenant",
     property_name: "Victoria Island Studio", issue_category: "HVAC",
     description: "Air conditioner not cooling, just blowing warm air.",
-    status: "urgent", date_reported: "2026-04-27T19:05:00.000Z", updated_at: "2026-04-27T19:05:00.000Z",
+    status: "urgent", date_reported: "2026-04-27T19:05:00.000Z", updated_at: "2026-04-27T21:05:00.000Z",
     tenant_id: "t-003", property_id: "p-003",
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" as const, group: "original" as const },
+    ],
+  },
+  {
+    id: "sr-006", request_id: "SR-006", tenant_name: "—", reporter_name: "Tobi Adekunle", source: "facility_manager" as const,
+    property_name: "Lekki Phase 1 Duplex", issue_category: "Electrical",
+    description: "Generator failed during power outage and building currently has no backup power.",
+    status: "open", date_reported: "2026-04-28T09:15:00.000Z", updated_at: "2026-04-28T09:30:00.000Z",
+    tenant_id: "", property_id: "p-001",
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400", type: "image" as const, group: "original" as const },
+    ],
+  },
+  {
+    id: "sr-007", request_id: "SR-007", tenant_name: "Chidi Okafor", reporter_name: "Chidi Okafor", source: "tenant" as const,
+    property_name: "Greenfield Towers", issue_category: "Plumbing",
+    description: "Major water leakage affecting multiple apartments on floors 3 and 4.",
+    status: "open", date_reported: "2026-04-28T07:30:00.000Z", updated_at: "2026-04-28T07:50:00.000Z",
+    tenant_id: "t-007", property_id: "p-004",
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" as const, group: "original" as const },
+    ],
   },
 ];
 
