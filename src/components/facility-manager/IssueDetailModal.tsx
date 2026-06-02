@@ -33,6 +33,8 @@ export interface IssueDetailIssue {
   status: string;
   ref?: string;
   resolutions?: FmResolution[];
+  attachments?: Array<{ url: string; type: "image" | "video"; group: "original" | "reopened" }>;
+  source?: "tenant" | "landlord";
 }
 
 interface IssueDetailModalProps {
@@ -53,6 +55,7 @@ export function IssueDetailModal({
   const isMobile = useIsMobile();
   const [resolveOpen, setResolveOpen] = useState(false);
   const [threadTick, setThreadTick] = useState(0);
+  const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [threadInput, setThreadInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -193,6 +196,11 @@ export function IssueDetailModal({
               <span style={{ fontSize: 12, color: "#B0ADA8" }}>
                 {fmtDate(issue.time)}
               </span>
+              {issue.attachments && issue.attachments.length > 0 && issue.source === "tenant" && (
+                <span style={{ fontSize: 12, color: "#9A9790", marginTop: 2 }}>
+                  📎 Tenant attached {issue.attachments.length} file{issue.attachments.length !== 1 ? "s" : ""}.
+                </span>
+              )}
             </div>
           </div>
 
@@ -213,6 +221,92 @@ export function IssueDetailModal({
             >
               {issue.desc}
             </p>
+
+            {issue.attachments && issue.attachments.length > 0 && (() => {
+              const originalItems = issue.attachments!.filter(a => a.group === "original");
+              const reopenedItems = issue.attachments!.filter(a => a.group === "reopened");
+              const showGroupLabels = originalItems.length > 0 && reopenedItems.length > 0;
+
+              const renderGroup = (items: typeof issue.attachments, groupLabel: string) => {
+                if (!items || items.length === 0) return null;
+                const lightboxItems = items.map(a => ({ url: a.url, type: a.type }));
+                const displayed = items.slice(0, items.length > 4 ? 3 : 4);
+                const extra = items.length > 4 ? items.length - 3 : 0;
+                return (
+                  <div style={{ marginBottom: showGroupLabels ? 12 : 0 }}>
+                    {showGroupLabels && (
+                      <div style={{ fontSize: 11, color: "#B0ADA8", fontWeight: 500, marginBottom: 8 }}>{groupLabel}</div>
+                    )}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                      {displayed.map((att, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => setLightbox({ items: lightboxItems, index: idx })}
+                          style={{
+                            position: "relative",
+                            aspectRatio: "1 / 1",
+                            borderRadius: 8,
+                            overflow: "hidden",
+                            border: "1px solid #EDECEA",
+                            cursor: "pointer",
+                            background: "#F5F4F1",
+                          }}
+                        >
+                          {att.type === "image" ? (
+                            <img src={att.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <>
+                              <video src={att.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              <div style={{
+                                position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                                background: "rgba(0,0,0,0.25)",
+                              }}>
+                                <div style={{
+                                  width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.5)",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                }}>
+                                  <div style={{ width: 0, height: 0, borderTop: "7px solid transparent", borderBottom: "7px solid transparent", borderLeft: "12px solid white", marginLeft: 3 }} />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {extra > 0 && (
+                        <div
+                          onClick={() => setLightbox({ items: lightboxItems, index: 3 })}
+                          style={{
+                            aspectRatio: "1 / 1",
+                            borderRadius: 8,
+                            border: "1px solid #EDECEA",
+                            background: "#F5F4F1",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "#6B7280",
+                          }}
+                        >
+                          +{extra} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              };
+
+              return (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#B0ADA8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
+                    Attachments
+                  </div>
+                  {renderGroup(originalItems, "Original Request")}
+                  {renderGroup(reopenedItems, "Reopened Request")}
+                </div>
+              );
+            })()}
 
             <div style={{ marginBottom: 24 }}>
               <div
@@ -594,6 +688,85 @@ export function IssueDetailModal({
             appendThreadEntry(issue.id, { id: makeMsgId(), type: "event", body: "Marked as resolved", timestamp: new Date().toISOString() });
           }}
         />
+      )}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1200,
+            background: "rgba(0,0,0,0.92)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setLightbox(null)}
+            style={{
+              position: "absolute", top: 16, right: 16,
+              background: "none", border: "none", cursor: "pointer",
+              color: "white", display: "flex", alignItems: "center", justifyContent: "center",
+              width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.1)",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+
+          {/* Left arrow */}
+          {lightbox.items.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightbox(lb => lb ? { ...lb, index: (lb.index - 1 + lb.items.length) % lb.items.length } : null); }}
+              style={{
+                position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
+                background: "rgba(255,255,255,0.12)", border: "none", cursor: "pointer",
+                width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
+
+          {/* Current item */}
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: "90vw", maxHeight: "90vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {lightbox.items[lightbox.index].type === "image" ? (
+              <img
+                src={lightbox.items[lightbox.index].url}
+                alt=""
+                style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }}
+              />
+            ) : (
+              <video
+                src={lightbox.items[lightbox.index].url}
+                controls
+                style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 8 }}
+              />
+            )}
+          </div>
+
+          {/* Right arrow */}
+          {lightbox.items.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightbox(lb => lb ? { ...lb, index: (lb.index + 1) % lb.items.length } : null); }}
+              style={{
+                position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
+                background: "rgba(255,255,255,0.12)", border: "none", cursor: "pointer",
+                width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          )}
+
+          {/* Counter */}
+          <div style={{ position: "absolute", bottom: 16, left: 0, right: 0, textAlign: "center", color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
+            {lightbox.index + 1} / {lightbox.items.length}
+          </div>
+        </div>
       )}
     </>
   );

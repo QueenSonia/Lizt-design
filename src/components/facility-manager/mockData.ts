@@ -51,6 +51,7 @@ export interface FmIssue {
   media: string | null;
   ref?: string;
   resolutions?: FmResolution[];
+  attachments?: Array<{ url: string; type: "image" | "video"; group: "original" | "reopened" }>;
 }
 
 export interface FmFeedItem {
@@ -150,8 +151,15 @@ export const LIVE_POOL: Omit<FmFeedItem, "id" | "time">[] = [
 const _T = (h: number, m = 0) => Date.now() - h * 3600000 - m * 60000;
 
 const _ISSUES_BASE: Omit<FmIssue, "ref">[] = [
-  { id: "is01", title: "Elevator malfunction on Floor 8", property: "Greenfield Towers", propertyId: "p1", tenant: "Chidi O.", phone: "+234 801 234 5678", status: "open", desc: "Elevator B has been stuck since 6 AM. Residents on upper floors are unable to get down. Engineer has been called.", time: _T(0, 2), media: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=60" },
-  { id: "is02", title: "Water leakage in B-block corridor", property: "Horizon Residences", propertyId: "p2", tenant: "Adaeze M.", phone: "+234 802 345 6789", status: "in_progress", desc: "Ceiling dripping near unit 204. Plumber has been dispatched and is currently on site assessing the source.", time: _T(0, 17), media: null },
+  { id: "is01", title: "Elevator malfunction on Floor 8", property: "Greenfield Towers", propertyId: "p1", tenant: "Chidi O.", phone: "+234 801 234 5678", status: "open", source: "tenant", desc: "Elevator B has been stuck since 6 AM. Residents on upper floors are unable to get down. Engineer has been called.", time: _T(0, 2), media: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=60", attachments: [
+    { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", type: "image", group: "original" },
+    { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400", type: "image", group: "original" },
+    { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400", type: "image", group: "original" },
+    { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video", group: "original" },
+  ] },
+  { id: "is02", title: "Water leakage in B-block corridor", property: "Horizon Residences", propertyId: "p2", tenant: "Adaeze M.", phone: "+234 802 345 6789", status: "in_progress", source: "tenant", desc: "Ceiling dripping near unit 204. Plumber has been dispatched and is currently on site assessing the source.", time: _T(0, 17), media: null, attachments: [
+    { url: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=400", type: "image", group: "reopened" },
+  ] },
   { id: "is03", title: "Power outage in parking bay 3", property: "Greenfield Towers", propertyId: "p1", tenant: "Emeka P.", phone: "+234 803 456 7890", status: "in_progress", desc: "Lighting circuit tripped overnight. The entire parking bay is unlit. Electrician is reviewing the fuse board.", time: _T(1, 22), media: null },
   { id: "is04", title: "HVAC noise in Unit 501", property: "Marina Heights", propertyId: "p4", tenant: "Tunde B.", phone: "+234 804 567 8901", status: "open", desc: "Loud rattling from the central air unit in block C. Tenant has reported it twice this week.", time: _T(2, 0), media: null },
   { id: "is05", title: "Fire exit door jammed — Floor 3", property: "Marina Heights", propertyId: "p4", tenant: "Akin F.", phone: "+234 805 678 9012", status: "open", desc: "Emergency exit on floor 3 is stuck and cannot be opened from inside. Flagged as urgent safety concern.", time: _T(2, 33), media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=200&q=60" },
