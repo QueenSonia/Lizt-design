@@ -216,8 +216,6 @@ const STATUS_CONFIG = {
   ended: { label: "Ended", bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
 };
 
-type FilterType = "all" | "active" | "expiring_soon" | "outstanding" | "ended";
-
 // ── Tenancy List ──────────────────────────────────────────────────────────────
 
 function TenancyListScreen({
@@ -230,27 +228,18 @@ function TenancyListScreen({
   isMobile?: boolean;
 }) {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterType>("all");
-
-  const filters: { value: FilterType; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "active", label: "Active" },
-    { value: "expiring_soon", label: "Expiring Soon" },
-    { value: "outstanding", label: "Outstanding Balance" },
-    { value: "ended", label: "Ended" },
-  ];
 
   const filtered = useMemo(() => {
     return MOCK_TENANCIES.filter((t) => {
-      const matchesFilter = filter === "all" || t.status === filter;
+      if (t.status === "ended") return false;
       const q = search.toLowerCase();
-      const matchesSearch =
+      return (
         !q ||
         t.tenantName.toLowerCase().includes(q) ||
-        t.propertyName.toLowerCase().includes(q);
-      return matchesFilter && matchesSearch;
+        t.propertyName.toLowerCase().includes(q)
+      );
     });
-  }, [search, filter]);
+  }, [search]);
 
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
@@ -262,7 +251,7 @@ function TenancyListScreen({
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
         {/* Search */}
-        <div className="relative mb-4 max-w-md">
+        <div className="relative mb-6 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             value={search}
@@ -272,79 +261,48 @@ function TenancyListScreen({
           />
         </div>
 
-        {/* Filter pills */}
-        <div className="flex items-center gap-1.5 flex-wrap mb-6">
-          {filters.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => setFilter(f.value)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                filter === f.value
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
         {/* List */}
         {filtered.length === 0 ? (
           <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-            <p className="text-gray-500 text-sm">No tenancies match your search.</p>
+            <p className="text-gray-500 text-sm">No active tenancies found.</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((tenancy) => {
-              const s = STATUS_CONFIG[tenancy.status];
-              return (
-                <div
-                  key={tenancy.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onSelect(tenancy)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(tenancy); } }}
-                  className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <p className="text-base font-semibold text-gray-900 leading-snug">{tenancy.tenantName}</p>
-                      <p className="text-sm text-gray-500 mt-0.5">{tenancy.propertyName}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${s.bg} ${s.text}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                        {s.label}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
-                    </div>
+            {filtered.map((tenancy) => (
+              <div
+                key={tenancy.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect(tenancy)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(tenancy); } }}
+                className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-base font-semibold text-gray-900 leading-snug">{tenancy.tenantName}</p>
+                    <p className="text-sm text-gray-500 mt-0.5">{tenancy.propertyName}</p>
                   </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
+                </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-sm">
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Rent</p>
-                      <p className="text-gray-900 font-medium">{fmtCurrency(tenancy.rentAmount)}<span className="text-gray-400 font-normal">/{tenancy.rentFrequency}</span></p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Outstanding</p>
-                      <p className={tenancy.outstandingBalance > 0 ? "text-red-600 font-medium" : "text-gray-500"}>
-                        {tenancy.outstandingBalance > 0 ? fmtCurrency(tenancy.outstandingBalance) : "None"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Ends</p>
-                      <p className="text-gray-900">{fmtDate(tenancy.endDate)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Type</p>
-                      <p className="text-gray-900">{tenancy.tenancyType}</p>
-                    </div>
+                <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Rent</p>
+                    <p className="text-gray-900 font-medium">{fmtCurrency(tenancy.rentAmount)}<span className="text-gray-400 font-normal">/{tenancy.rentFrequency}</span></p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Outstanding</p>
+                    <p className={tenancy.outstandingBalance > 0 ? "text-red-600 font-medium" : "text-gray-500"}>
+                      {tenancy.outstandingBalance > 0 ? fmtCurrency(tenancy.outstandingBalance) : "None"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Ends</p>
+                    <p className="text-gray-900">{fmtDate(tenancy.endDate)}</p>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
