@@ -5,7 +5,7 @@ import {
   Search, ChevronRight, X, Phone, MessageSquare, FileText,
   Download, Upload, RefreshCw, Edit, AlertCircle, CheckCircle,
   Clock, Calendar, DollarSign, Building, User, Send,
-  ChevronLeft, MoreHorizontal, Paperclip, Receipt,
+  ChevronLeft, MoreHorizontal, Paperclip, Receipt, Info,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -358,6 +358,7 @@ function TenancyDetailScreen({
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [msgInput, setMsgInput] = useState("");
   const [editBillingOpen, setEditBillingOpen] = useState(false);
+  const [showBillingBreakdown, setShowBillingBreakdown] = useState(false);
 
   const billingOverride = useBillingOverride(tenancy.id);
   const effectiveRent = billingOverride?.rentAmount ?? tenancy.rentAmount;
@@ -501,11 +502,51 @@ function TenancyDetailScreen({
                 </div>
               </div>
 
-              <p className="text-sm text-gray-900 mb-6">
+              <p className="text-sm text-gray-900 mb-2">
                 The tenant is expected to pay{" "}
                 <span className="font-semibold">{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => setShowBillingBreakdown(v => !v)}
+                  className="inline-flex items-center ml-0.5 text-gray-400 hover:text-gray-600 transition-colors align-middle"
+                  aria-label="View billing breakdown"
+                >
+                  <Info className="w-4 h-4" />
+                </button>
                 {" "}by {fmtDate(tenancy.endDate)}.
               </p>
+
+              {showBillingBreakdown && (
+                <div className="mb-4 sm:max-w-[340px]">
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
+                    <div className="flex justify-between text-gray-700">
+                      <span>Rent</span>
+                      <span className="font-medium">{fmtCurrency(effectiveRent)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-700">
+                      <span>Service Charge</span>
+                      <span className="font-medium">₦50,000</span>
+                    </div>
+                    <div className="flex justify-between text-gray-700">
+                      <span>Legal Fee</span>
+                      <span className="font-medium">₦30,000</span>
+                    </div>
+                    {effectiveServiceCharge > 0 && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>Additional Service Charge</span>
+                        <span className="font-medium">{fmtCurrency(effectiveServiceCharge)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1.5">
+                      <span>Total</span>
+                      <span>{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-6" />
 
               {/* Payment Plans sub-link */}
               <div className="mb-6">
