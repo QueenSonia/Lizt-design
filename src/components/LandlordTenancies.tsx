@@ -491,30 +491,39 @@ function TenancyDetailScreen({
               </div>
             </div>
 
-            {/* Payment plans link */}
-            <button
-              type="button"
-              onClick={() => {
-                const charges = [
-                  { name: "Rent", amount: effectiveRent },
-                  ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
-                  { name: "Legal Fee", amount: 30000 },
-                ];
-                const params = new URLSearchParams({
-                  property: tenancy.propertyName,
-                  tenant: tenancy.tenantId,
-                  charges: JSON.stringify(charges),
-                });
-                router.push(`/landlord/payment-plans?${params.toString()}`);
-              }}
-              className="flex items-center gap-1 mb-4 text-left group cursor-pointer"
-            >
-              <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">Payment Plans</span>
-              <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-            </button>
+          </div>
+        )}
 
-            {/* Billing section */}
-            <div className="pt-4 mt-2 border-t border-gray-100">
+        {/* ── Billing ── */}
+        {activeTab === "billing" && (
+          <div className="space-y-5 max-w-xl">
+
+            {/* Payment Plans */}
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  const charges = [
+                    { name: "Rent", amount: effectiveRent },
+                    ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
+                    { name: "Legal Fee", amount: 30000 },
+                  ];
+                  const params = new URLSearchParams({
+                    property: tenancy.propertyName,
+                    tenant: tenancy.tenantId,
+                    charges: JSON.stringify(charges),
+                  });
+                  router.push(`/landlord/payment-plans?${params.toString()}`);
+                }}
+                className="flex items-center gap-1 text-left group cursor-pointer"
+              >
+                <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">Payment Plans</span>
+                <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+
+            {/* Billing summary */}
+            <div className="pt-4 border-t border-gray-100">
               <div className="flex items-baseline gap-1.5 mb-1">
                 <p className="text-xl font-bold text-gray-900">Billing</p>
                 <div className="flex items-center gap-1 text-xs text-gray-400">
@@ -522,18 +531,15 @@ function TenancyDetailScreen({
                   <button type="button" onClick={() => setEditBillingOpen(true)} className="font-medium text-[#FF5000] hover:underline transition-colors">Edit</button>
                 </div>
               </div>
-              <p className="text-sm text-gray-900 mb-2">
+              <p className="text-sm text-gray-900 mb-5">
                 The tenant is expected to pay{" "}
                 <span className="font-semibold">{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
                 {" "}by {fmtDate(tenancy.endDate)}.
               </p>
-
-              <hr className="border-0 border-t border-gray-200 my-5" />
-
-              <div className="sm:max-w-[340px] flex flex-col gap-4 mb-2">
+              <div className="flex flex-col gap-4 mb-2">
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">{fmtCurrency(tenancy.rentAmount + 50000)}</p>
+                  <p className="text-2xl font-bold text-gray-900">{fmtCurrency(effectiveRent + 50000)}</p>
                   <p className="text-sm text-gray-500 mt-1">Next invoice is due {fmtDate(tenancy.endDate)}</p>
                 </div>
                 <button
@@ -545,12 +551,9 @@ function TenancyDetailScreen({
                 </button>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* ── Billing ── */}
-        {activeTab === "billing" && (
-          <div className="space-y-5 max-w-xl">
+            <hr className="border-gray-100" />
+
             <div className="flex gap-2">
               <Button size="sm" className="bg-[#FF5000] hover:bg-[#e04600] text-white" onClick={() => toast.success("Invoice generated.")}>
                 <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
