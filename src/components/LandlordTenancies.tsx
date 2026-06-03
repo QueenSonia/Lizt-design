@@ -5,8 +5,15 @@ import {
   Search, ChevronRight, X, Phone, MessageSquare, FileText,
   Download, Upload, RefreshCw, Edit, AlertCircle, CheckCircle,
   Clock, Calendar, DollarSign, Building, User, Send,
-  ChevronLeft, MoreHorizontal, Paperclip, Receipt, Info,
+  ChevronLeft, MoreHorizontal, Paperclip, Receipt, Info, Plus, Trash2,
 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "./ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "./ui/select";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import LandlordTopNav from "./LandlordTopNav";
@@ -359,6 +366,41 @@ function TenancyDetailScreen({
   const [msgInput, setMsgInput] = useState("");
   const [editBillingOpen, setEditBillingOpen] = useState(false);
   const [showBillingBreakdown, setShowBillingBreakdown] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceStep, setInvoiceStep] = useState<"form" | "preview">("form");
+  const [invoiceForm, setInvoiceForm] = useState<{
+    items: { feeName: string; amount: string }[];
+    dueDate: Date | null;
+    frequency: "one_time" | "weekly" | "monthly" | "quarterly" | "annually";
+  }>({ items: [{ feeName: "", amount: "" }], dueDate: null, frequency: "one_time" });
+  const [invoiceItemErrors, setInvoiceItemErrors] = useState<{ feeName: string; amount: string }[]>([{ feeName: "", amount: "" }]);
+  const [invoiceDueDateError, setInvoiceDueDateError] = useState("");
+
+  const resetInvoiceModal = () => {
+    setInvoiceStep("form");
+    setInvoiceForm({ items: [{ feeName: "", amount: "" }], dueDate: null, frequency: "one_time" });
+    setInvoiceItemErrors([{ feeName: "", amount: "" }]);
+    setInvoiceDueDateError("");
+  };
+
+  const invoiceTotal = invoiceForm.items.reduce((sum, item) => {
+    const n = parseFloat(item.amount.replace(/,/g, ""));
+    return sum + (isNaN(n) ? 0 : n);
+  }, 0);
+
+  const validateInvoiceForm = () => {
+    let valid = true;
+    const errs = invoiceForm.items.map((item) => {
+      const e = { feeName: "", amount: "" };
+      if (!item.feeName.trim()) { e.feeName = "Fee name is required"; valid = false; }
+      const n = parseFloat(item.amount.replace(/,/g, ""));
+      if (!item.amount.trim() || isNaN(n) || n <= 0) { e.amount = "Enter a valid amount"; valid = false; }
+      return e;
+    });
+    setInvoiceItemErrors(errs);
+    if (!invoiceForm.dueDate) { setInvoiceDueDateError("Due date is required"); valid = false; }
+    return valid;
+  };
 
   const billingOverride = useBillingOverride(tenancy.id);
   const effectiveRent = billingOverride?.rentAmount ?? tenancy.rentAmount;
@@ -539,6 +581,16 @@ function TenancyDetailScreen({
                   </div>
                 </div>
               )}
+
+              <div className="mb-4">
+                <Button
+                  size="sm"
+                  className="bg-[#FF5000] hover:bg-[#e04600] text-white"
+                  onClick={() => { resetInvoiceModal(); setShowInvoiceModal(true); }}
+                >
+                  <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
+                </Button>
+              </div>
 
               <div className="mb-6" />
 
@@ -830,6 +882,210 @@ function TenancyDetailScreen({
         )}
 
       </div>
+
+      {/* Generate Invoice Modal */}
+      <Dialog
+        open={showInvoiceModal}
+        onOpenChange={(open) => { if (!open) { setShowInvoiceModal(false); resetInvoiceModal(); } }}
+      >
+        <DialogContent className="bg-white max-w-lg max-h-[90vh] overflow-y-auto">
+          {invoiceStep === "form" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Generate Invoice</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-5 py-2">
+                {/* Tenant (read-only) */}
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">Tenant</label>
+                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-900">
+                    {tenancy.tenantName}
+                  </div>
+                </div>
+                {/* Invoice Items */}
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">
+                    Invoice Items <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-3">
+                    {invoiceForm.items.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                        <div className="flex-1 space-y-1">
+                          <Input
+                            placeholder="Fee name (e.g. Diesel Fee)"
+                            value={item.feeName}
+                            onChange={(e) => {
+                              const items = [...invoiceForm.items];
+                              items[idx] = { ...items[idx], feeName: e.target.value };
+                              setInvoiceForm((f) => ({ ...f, items }));
+                              const errs = [...invoiceItemErrors];
+                              errs[idx] = { ...errs[idx], feeName: "" };
+                              setInvoiceItemErrors(errs);
+                            }}
+                            className={invoiceItemErrors[idx]?.feeName ? "border-red-500" : ""}
+                          />
+                          {invoiceItemErrors[idx]?.feeName && (
+                            <p className="text-xs text-red-500">{invoiceItemErrors[idx].feeName}</p>
+                          )}
+                        </div>
+                        <div className="w-36 space-y-1">
+                          <Input
+                            placeholder="Amount"
+                            value={item.amount}
+                            onChange={(e) => {
+                              const items = [...invoiceForm.items];
+                              items[idx] = { ...items[idx], amount: e.target.value };
+                              setInvoiceForm((f) => ({ ...f, items }));
+                              const errs = [...invoiceItemErrors];
+                              errs[idx] = { ...errs[idx], amount: "" };
+                              setInvoiceItemErrors(errs);
+                            }}
+                            className={invoiceItemErrors[idx]?.amount ? "border-red-500" : ""}
+                          />
+                          {invoiceItemErrors[idx]?.amount && (
+                            <p className="text-xs text-red-500">{invoiceItemErrors[idx].amount}</p>
+                          )}
+                        </div>
+                        {invoiceForm.items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInvoiceForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
+                              setInvoiceItemErrors((e) => e.filter((_, i) => i !== idx));
+                            }}
+                            className="mt-2 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInvoiceForm((f) => ({ ...f, items: [...f.items, { feeName: "", amount: "" }] }));
+                      setInvoiceItemErrors((e) => [...e, { feeName: "", amount: "" }]);
+                    }}
+                    className="mt-3 flex items-center gap-1.5 text-sm text-[#FF5000] hover:text-[#E64500] transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Add Item
+                  </button>
+                  <div className="mt-4 flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-md border border-gray-200">
+                    <span className="text-sm text-gray-600">Total Amount</span>
+                    <span className="text-sm font-semibold text-gray-900">₦{invoiceTotal.toLocaleString()}</span>
+                  </div>
+                </div>
+                {/* Due Date */}
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">Due Date <span className="text-red-500">*</span></label>
+                  <DatePickerInput
+                    value={invoiceForm.dueDate}
+                    onChange={(date) => { setInvoiceForm((f) => ({ ...f, dueDate: date })); setInvoiceDueDateError(""); }}
+                    placeholder="Select due date"
+                    className={invoiceDueDateError ? "border-red-500" : ""}
+                  />
+                  {invoiceDueDateError && <p className="text-xs text-red-500 mt-1">{invoiceDueDateError}</p>}
+                </div>
+                {/* Frequency */}
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">Frequency</label>
+                  <Select value={invoiceForm.frequency} onValueChange={(v) => setInvoiceForm((f) => ({ ...f, frequency: v as typeof f.frequency }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="one_time">One-time</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                      <SelectItem value="annually">Annually</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => { setShowInvoiceModal(false); resetInvoiceModal(); }}>Cancel</Button>
+                <Button className="bg-[#FF5000] hover:bg-[#E64500] text-white" onClick={() => { if (validateInvoiceForm()) setInvoiceStep("preview"); }}>Continue</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Invoice Preview</DialogTitle>
+              </DialogHeader>
+              <div className="py-2">
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="bg-[#FF5000] px-6 py-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white/80 text-xs uppercase tracking-wide mb-1">Invoice</p>
+                        <p className="text-white font-semibold text-lg">#{String(Date.now()).slice(-6)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white/80 text-xs mb-0.5">Date Issued</p>
+                        <p className="text-white text-sm">{new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Billed To</p>
+                      <p className="text-sm font-semibold text-gray-900">{tenancy.tenantName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{tenancy.tenantPhone}</p>
+                    </div>
+                    <div className="sm:text-right">
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Due Date</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {invoiceForm.dueDate ? invoiceForm.dueDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Frequency</p>
+                        <p className="text-sm text-gray-900 capitalize">{invoiceForm.frequency.replace("_", " ")}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-6 py-4">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="text-left py-2 text-xs text-gray-500 font-medium uppercase tracking-wide">Description</th>
+                          <th className="text-right py-2 text-xs text-gray-500 font-medium uppercase tracking-wide">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invoiceForm.items.map((item, idx) => (
+                          <tr key={idx} className="border-b border-gray-50 last:border-0">
+                            <td className="py-3 text-gray-900">{item.feeName}</td>
+                            <td className="py-3 text-right text-gray-900">₦{(parseFloat(item.amount.replace(/,/g, "")) || 0).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-700">Total Due</span>
+                    <span className="text-lg font-bold text-[#FF5000]">₦{invoiceTotal.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => setInvoiceStep("form")}>Back / Edit</Button>
+                <Button
+                  className="bg-[#FF5000] hover:bg-[#E64500] text-white"
+                  onClick={() => {
+                    setShowInvoiceModal(false);
+                    resetInvoiceModal();
+                    toast.success("Invoice generated successfully");
+                  }}
+                >
+                  Confirm &amp; Generate Invoice
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <EditTenancyModal
         isOpen={editBillingOpen}
