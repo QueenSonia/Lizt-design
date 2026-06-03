@@ -429,7 +429,7 @@ function TenancyDetailScreen({
 
         {/* ── Overview ── */}
         {activeTab === "overview" && (
-          <div className="bg-white rounded-xl shadow-sm p-8 max-w-3xl">
+          <div className="bg-white rounded-xl shadow-sm p-8 max-w-5xl">
             {/* Tenant block */}
             <div className="flex items-start gap-5 mb-8 pb-8 border-b border-gray-100">
               <div className="w-12 h-12 rounded-full bg-[#FFF3EB] flex items-center justify-center shrink-0">
@@ -452,7 +452,7 @@ function TenancyDetailScreen({
             </div>
 
             {/* Tenancy info grid */}
-            <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-6">
+            <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 gap-x-20 gap-y-6">
               <div>
                 <p className="text-xs text-gray-400 mb-1">Tenancy Type</p>
                 <p className="text-sm text-gray-900 font-medium">{tenancy.rentFrequency === "year" ? "Annually" : "Monthly"}</p>
@@ -468,26 +468,20 @@ function TenancyDetailScreen({
             </div>
 
             {/* Charges grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-7 mb-10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-20 gap-y-7 mb-10">
               <div>
-                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-4 w-fit">
-                  <span className="text-sm text-gray-600">Rent</span>
-                  <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmtCurrency(tenancy.rentAmount)}</span>
-                </div>
+                <p className="text-xs text-gray-400 mb-1">Rent</p>
+                <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtCurrency(tenancy.rentAmount)}</p>
                 <p className="text-xs text-gray-400 mt-1">{tenancy.rentFrequency === "year" ? "Annually" : "Monthly"} · Next due: {fmtDate(tenancy.endDate)}</p>
               </div>
               <div>
-                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-4 w-fit">
-                  <span className="text-sm text-gray-600">Service Charge</span>
-                  <span className="text-sm font-semibold text-gray-900 tabular-nums">₦50,000</span>
-                </div>
+                <p className="text-xs text-gray-400 mb-1">Service Charge</p>
+                <p className="text-sm font-semibold text-gray-900 tabular-nums">₦50,000</p>
                 <p className="text-xs text-gray-400 mt-1">Annually · Next due: {fmtDate(tenancy.endDate)}</p>
               </div>
               <div>
-                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-4 w-fit">
-                  <span className="text-sm text-gray-600">Legal Fee</span>
-                  <span className="text-sm font-semibold text-gray-900 tabular-nums">₦30,000</span>
-                </div>
+                <p className="text-xs text-gray-400 mb-1">Legal Fee</p>
+                <p className="text-sm font-semibold text-gray-900 tabular-nums">₦30,000</p>
                 <p className="text-xs text-gray-400 mt-1">One-time · Due: {fmtDate(tenancy.endDate)}</p>
               </div>
             </div>
@@ -518,8 +512,8 @@ function TenancyDetailScreen({
               </p>
 
               {showBillingBreakdown && (
-                <div className="mb-4 sm:max-w-[340px]">
-                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-1.5">
+                <div className="mb-4 max-w-lg">
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-2">
                     <div className="flex justify-between text-gray-700">
                       <span>Rent</span>
                       <span className="font-medium">{fmtCurrency(effectiveRent)}</span>
@@ -575,7 +569,7 @@ function TenancyDetailScreen({
 
               <hr className="border-0 border-t border-gray-100 mb-6" />
 
-              <div className="sm:max-w-[340px] flex flex-col gap-5">
+              <div className="max-w-lg flex flex-col gap-5">
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
                   <p className="text-2xl font-bold text-gray-900">{fmtCurrency(effectiveRent + 50000)}</p>
