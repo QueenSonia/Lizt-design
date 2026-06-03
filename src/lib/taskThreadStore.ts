@@ -72,6 +72,45 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "m-104", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "Tile replaced and re-grouted. No further damage observed. Resolution form submitted.", timestamp: "2026-04-24T16:35:00.000Z" },
     ],
   ],
+  // Reopened requests — landlord side
+  [
+    "sr-008",
+    [
+      { id: "r8-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-05-10T09:00:00.000Z" },
+      { id: "r8-e002", type: "event", body: "Assigned to Chukwuemeka Obi", timestamp: "2026-05-10T09:30:00.000Z" },
+      { id: "r8-e003", type: "event", body: "Request approved", timestamp: "2026-05-10T10:00:00.000Z" },
+      { id: "r8-m001", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "Plumber attended site. Pipe under sink replaced and joints re-sealed. Tested — no drips observed.", timestamp: "2026-05-24T14:30:00.000Z" },
+      { id: "r8-e004", type: "event", body: "Marked as resolved", timestamp: "2026-05-24T15:00:00.000Z" },
+      { id: "r8-e005", type: "event", body: "Tenant marked as not resolved — Status changed: Resolved → Reopened", timestamp: "2026-05-27T10:15:00.000Z" },
+      { id: "r8-m002", type: "message", author: "landlord", authorName: "You", body: "James, can you send a photo of where it's still leaking so we can assess further?", timestamp: "2026-05-27T11:00:00.000Z" },
+      { id: "r8-m003", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "I'll revisit the property tomorrow morning.", timestamp: "2026-05-27T11:45:00.000Z" },
+    ],
+  ],
+  [
+    "sr-009",
+    [
+      { id: "r9-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-05-08T11:30:00.000Z" },
+      { id: "r9-e002", type: "event", body: "Assigned to Chukwuemeka Obi", timestamp: "2026-05-08T12:00:00.000Z" },
+      { id: "r9-e003", type: "event", body: "Request approved", timestamp: "2026-05-09T09:00:00.000Z" },
+      { id: "r9-m001", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "Transfer switch replaced. Generator ran for 4 hours with no issues. Monitoring overnight.", timestamp: "2026-05-23T17:00:00.000Z" },
+      { id: "r9-e004", type: "event", body: "Marked as resolved", timestamp: "2026-05-23T17:30:00.000Z" },
+      { id: "r9-e005", type: "event", body: "Tenant marked as not resolved — Status changed: Resolved → Reopened", timestamp: "2026-05-26T16:32:00.000Z" },
+      { id: "r9-m002", type: "message", author: "landlord", authorName: "You", body: "Chukwuemeka, please follow up urgently. The generator issue is affecting all tenants in common areas.", timestamp: "2026-05-26T17:00:00.000Z" },
+    ],
+  ],
+  [
+    "sr-010",
+    [
+      { id: "r10-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-05-05T08:00:00.000Z" },
+      { id: "r10-e002", type: "event", body: "Assigned to Tunde Adeyemi", timestamp: "2026-05-05T09:00:00.000Z" },
+      { id: "r10-e003", type: "event", body: "Request approved", timestamp: "2026-05-05T10:00:00.000Z" },
+      { id: "r10-m001", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "Tiles re-grouted and sealant applied. Work complete.", timestamp: "2026-05-22T12:00:00.000Z" },
+      { id: "r10-e004", type: "event", body: "Marked as resolved", timestamp: "2026-05-22T12:30:00.000Z" },
+      { id: "r10-e005", type: "event", body: "Tenant marked as not resolved — Status changed: Resolved → Reopened", timestamp: "2026-05-25T09:20:00.000Z" },
+      { id: "r10-m002", type: "message", author: "landlord", authorName: "You", body: "Tunde, please reassess. It seems the sealant wasn't sufficient. May need to check the wall cavity.", timestamp: "2026-05-25T10:00:00.000Z" },
+      { id: "r10-m003", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "Understood. I'll bring a waterproofing specialist this time.", timestamp: "2026-05-25T10:30:00.000Z" },
+    ],
+  ],
   // FM-side issues (seeded conversations for is01, is02)
   [
     "is01",

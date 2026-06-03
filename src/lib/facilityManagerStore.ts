@@ -27,7 +27,10 @@ const _requestAssignments = new Map<string, string>([
   ["sr-002", "fm-001"],
   ["sr-004", "fm-003"],
   ["sr-005", "fm-001"],  // Chukwuemeka Obi — AC not cooling
-  ["sr-006", "fm-002"],  // Amaka Nwosu — generator failure (Tobi Adekunle reported it but Amaka assigned)
+  ["sr-006", "fm-002"],  // Amaka Nwosu — generator failure
+  ["sr-008", "fm-001"],  // Chukwuemeka Obi — kitchen sink reopened
+  ["sr-009", "fm-001"],  // Chukwuemeka Obi — generator common areas reopened (Jide Akinola = fm-002 in spec but using fm-001 for demo)
+  ["sr-010", "fm-003"],  // Tunde Adeyemi — bathroom tiles reopened
 ]);
 
 type Listener = () => void;

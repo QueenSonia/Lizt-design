@@ -262,6 +262,92 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
       { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" as const, group: "original" as const },
     ],
   },
+  // ── Reopened requests ─────────────────────────────────────────────────────
+  {
+    id: "sr-008", request_id: "SR-008", tenant_name: "James Okafor", reporter_name: "James Okafor", source: "tenant" as const,
+    property_name: "Lekki Phase 1 Duplex", issue_category: "Plumbing",
+    description: "Kitchen sink still leaking after repair.",
+    status: "reopened", date_reported: "2026-05-10T09:00:00.000Z", updated_at: "2026-05-27T10:15:00.000Z",
+    reopened_at: "2026-05-27T10:15:00.000Z",
+    tenant_id: "t-001", property_id: "p-001",
+    notes: "Tenant marked issue as not resolved.",
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", type: "image" as const, group: "reopened" as const },
+      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" as const, group: "reopened" as const },
+    ],
+    resolutions: [
+      {
+        summary: "Replaced damaged pipe under sink. Joints sealed and checked for drips.",
+        category: "Plumbing",
+        hadCost: true,
+        costAmount: "₦25,000",
+        artisanName: "Musa Plumbing Services",
+        artisanPhone: "0803 500 1122",
+        resolvedAt: "2026-05-24T14:00:00.000Z",
+        resolvedBy: "Chukwuemeka Obi",
+        rejectedByTenant: true,
+        tenantFeedback: "Water is still leaking under the sink.",
+      },
+    ],
+  },
+  {
+    id: "sr-009", request_id: "SR-009", tenant_name: "Chidi Okafor", reporter_name: "Chidi Okafor", source: "tenant" as const,
+    property_name: "Greenfield Towers", issue_category: "Electrical",
+    description: "Generator still not powering common areas consistently.",
+    status: "reopened", date_reported: "2026-05-08T11:30:00.000Z", updated_at: "2026-05-26T16:32:00.000Z",
+    reopened_at: "2026-05-26T16:32:00.000Z",
+    tenant_id: "t-004", property_id: "p-004",
+    notes: "Issue partially resolved. Problem still occurring.",
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=400", type: "image" as const, group: "reopened" as const },
+    ],
+    resolutions: [
+      {
+        summary: "Replaced faulty transfer switch on generator. Common areas power tested and appeared stable.",
+        category: "Electrical",
+        hadCost: true,
+        costAmount: "₦68,000",
+        artisanName: "Teknik Electrical Services",
+        artisanPhone: "0802 345 6789",
+        resolvedAt: "2026-05-23T16:00:00.000Z",
+        resolvedBy: "Chukwuemeka Obi",
+        rejectedByTenant: true,
+        tenantFeedback: "Issue partially resolved. Problem still occurring in the evenings.",
+      },
+    ],
+  },
+  {
+    id: "sr-010", request_id: "SR-010", tenant_name: "Emmanuel Etim", reporter_name: "Emmanuel Etim", source: "tenant" as const,
+    property_name: "Victoria Island Studio", issue_category: "Tiling & Flooring",
+    description: "Bathroom tiles replaced but water still seeps through the wall.",
+    status: "reopened", date_reported: "2026-05-05T08:00:00.000Z", updated_at: "2026-05-25T09:20:00.000Z",
+    reopened_at: "2026-05-25T09:20:00.000Z",
+    tenant_id: "t-003", property_id: "p-003",
+    notes: "Tenant reported the original issue still exists.",
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400", type: "image" as const, group: "original" as const },
+      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", type: "image" as const, group: "reopened" as const },
+      { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400", type: "image" as const, group: "reopened" as const },
+      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" as const, group: "reopened" as const },
+    ],
+    resolutions: [
+      {
+        summary: "Re-grouted wall tiles in bathroom and applied waterproof sealant behind tiles.",
+        category: "Tiling & Flooring",
+        hadCost: true,
+        costAmount: "₦32,000",
+        artisanName: "ProTile Services",
+        artisanPhone: "0809 887 6654",
+        resolvedAt: "2026-05-22T11:30:00.000Z",
+        resolvedBy: "Tunde Adeyemi",
+        rejectedByTenant: true,
+        tenantFeedback: "Water is still seeping through the wall after rain.",
+      },
+    ],
+  },
 ];
 
 // Thread types, helpers, and seed data live in @/lib/taskThreadStore (shared with FM dashboard)
@@ -1240,6 +1326,18 @@ export function LandlordFacility({
                   <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{req.description}</p>
                 </div>
 
+                {/* Reopened notice */}
+                {req.reopened_at && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                      <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Reopened</p>
+                    </div>
+                    <p className="text-xs text-red-600 mb-0.5">Last reopened: {formatDateTime(req.reopened_at)}</p>
+                    {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
+                  </div>
+                )}
+
                 {/* Assigned FM — hidden after approval */}
                 {!isApproved && <div className="bg-white rounded-xl p-4 shadow-sm">
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Assigned Facility Manager</p>
@@ -1648,6 +1746,18 @@ export function LandlordFacility({
                       {selectedRequest.description}
                     </p>
                   </div>
+
+                  {/* Reopened notice */}
+                  {selectedRequest.reopened_at && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                        <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Reopened</p>
+                      </div>
+                      <p className="text-xs text-red-600 mb-0.5">Last reopened: {formatDateTime(selectedRequest.reopened_at)}</p>
+                      {selectedRequest.notes && <p className="text-xs text-red-500 italic mt-1">"{selectedRequest.notes}"</p>}
+                    </div>
+                  )}
 
                   {/* Media */}
                   {(() => {
