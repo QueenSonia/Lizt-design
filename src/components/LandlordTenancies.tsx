@@ -428,14 +428,14 @@ function TenancyDetailScreen({
 
         {/* ── Overview ── */}
         {activeTab === "overview" && (
-          <div className="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
+          <div className="bg-white rounded-xl shadow-sm p-8 max-w-3xl">
             {/* Tenant block */}
-            <div className="flex items-start gap-4 mb-[21px] pb-[21px] border-b border-gray-100">
+            <div className="flex items-start gap-5 mb-8 pb-8 border-b border-gray-100">
               <div className="w-12 h-12 rounded-full bg-[#FFF3EB] flex items-center justify-center shrink-0">
                 <User className="w-6 h-6 text-[#FF5000]" />
               </div>
               <div className="flex-1">
-                <button className="flex items-center gap-1 text-gray-900 font-semibold mb-1 underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left">
+                <button className="flex items-center gap-1 text-gray-900 font-semibold mb-1.5 underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left">
                   <span>{tenancy.tenantName}</span>
                 </button>
                 <button className="flex items-center gap-1 text-gray-900 text-sm underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left">
@@ -451,71 +451,73 @@ function TenancyDetailScreen({
             </div>
 
             {/* Tenancy info grid */}
-            <div className="mb-5 grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-3">
+            <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-6">
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Tenancy Type</p>
+                <p className="text-xs text-gray-400 mb-1">Tenancy Type</p>
                 <p className="text-sm text-gray-900 font-medium">{tenancy.rentFrequency === "year" ? "Annually" : "Monthly"}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Tenancy Start Date</p>
+                <p className="text-xs text-gray-400 mb-1">Tenancy Start Date</p>
                 <p className="text-sm text-gray-900 font-medium">{fmtDate(tenancy.startDate)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Tenancy End Date</p>
+                <p className="text-xs text-gray-400 mb-1">Tenancy End Date</p>
                 <p className="text-sm text-gray-900 font-medium">{fmtDate(tenancy.endDate)}</p>
               </div>
             </div>
 
             {/* Charges grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-5 my-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-7 mb-10">
               <div>
-                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-3 w-fit">
+                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-4 w-fit">
                   <span className="text-sm text-gray-600">Rent</span>
                   <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmtCurrency(tenancy.rentAmount)}</span>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">{tenancy.rentFrequency === "year" ? "Annually" : "Monthly"} · Next due: {fmtDate(tenancy.endDate)}</p>
+                <p className="text-xs text-gray-400 mt-1">{tenancy.rentFrequency === "year" ? "Annually" : "Monthly"} · Next due: {fmtDate(tenancy.endDate)}</p>
               </div>
               <div>
-                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-3 w-fit">
+                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-4 w-fit">
                   <span className="text-sm text-gray-600">Service Charge</span>
                   <span className="text-sm font-semibold text-gray-900 tabular-nums">₦50,000</span>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">Annually · Next due: {fmtDate(tenancy.endDate)}</p>
+                <p className="text-xs text-gray-400 mt-1">Annually · Next due: {fmtDate(tenancy.endDate)}</p>
               </div>
               <div>
-                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-3 w-fit">
+                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-4 w-fit">
                   <span className="text-sm text-gray-600">Legal Fee</span>
                   <span className="text-sm font-semibold text-gray-900 tabular-nums">₦30,000</span>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">One-time · Due: {fmtDate(tenancy.endDate)}</p>
+                <p className="text-xs text-gray-400 mt-1">One-time · Due: {fmtDate(tenancy.endDate)}</p>
               </div>
             </div>
 
             {/* Payment Plans */}
-            <button
-              type="button"
-              onClick={() => {
-                const charges = [
-                  { name: "Rent", amount: effectiveRent },
-                  ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
-                  { name: "Legal Fee", amount: 30000 },
-                ];
-                const params = new URLSearchParams({
-                  property: tenancy.propertyName,
-                  tenant: tenancy.tenantId,
-                  charges: JSON.stringify(charges),
-                });
-                router.push(`/landlord/payment-plans?${params.toString()}`);
-              }}
-              className="flex items-center gap-1 mb-4 text-left group cursor-pointer"
-            >
-              <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">Payment Plans</span>
-              <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-            </button>
+            <div className="pt-8 border-t border-gray-100 mb-10">
+              <button
+                type="button"
+                onClick={() => {
+                  const charges = [
+                    { name: "Rent", amount: effectiveRent },
+                    ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
+                    { name: "Legal Fee", amount: 30000 },
+                  ];
+                  const params = new URLSearchParams({
+                    property: tenancy.propertyName,
+                    tenant: tenancy.tenantId,
+                    charges: JSON.stringify(charges),
+                  });
+                  router.push(`/landlord/payment-plans?${params.toString()}`);
+                }}
+                className="flex items-center gap-1 text-left group cursor-pointer"
+              >
+                <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">Payment Plans</span>
+                <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
 
             {/* Billing section */}
-            <div className="pt-4 mt-2 border-t border-gray-100">
-              <div className="flex items-baseline gap-1.5 mb-1">
+            <div className="pt-8 border-t border-gray-100">
+              <div className="flex items-baseline gap-1.5 mb-2">
                 <p className="text-xl font-bold text-gray-900">Billing</p>
                 <div className="flex items-center gap-1 text-xs text-gray-400">
                   <span>·</span>
@@ -527,8 +529,8 @@ function TenancyDetailScreen({
                 <span className="font-semibold">{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
                 {" "}by {fmtDate(tenancy.endDate)}.
               </p>
-              <hr className="border-0 border-t border-gray-200 my-5" />
-              <div className="sm:max-w-[340px] flex flex-col gap-4 mb-2">
+              <hr className="border-0 border-t border-gray-200 my-6" />
+              <div className="sm:max-w-[340px] flex flex-col gap-5 mb-2">
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
                   <p className="text-2xl font-bold text-gray-900">{fmtCurrency(effectiveRent + 50000)}</p>
