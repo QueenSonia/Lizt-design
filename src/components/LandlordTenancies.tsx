@@ -354,6 +354,12 @@ function TenancyDetailScreen({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">Tenancy Details</p>
         </div>
+        {tenancy.outstandingBalance > 0 && (
+          <div className="shrink-0 text-right">
+            <p className="text-xs text-gray-400">Outstanding Balance</p>
+            <p className="text-sm font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
+          </div>
+        )}
       </div>
 
       {/* Tab bar */}
@@ -411,14 +417,6 @@ function TenancyDetailScreen({
                 <p className="text-sm text-gray-900 font-medium">{fmtDate(tenancy.endDate)}</p>
               </div>
             </div>
-
-            {/* Outstanding balance */}
-            {tenancy.outstandingBalance > 0 && (
-              <div className="mb-6">
-                <p className="text-xs text-gray-400 mb-1">Outstanding Balance</p>
-                <p className="text-lg font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
-              </div>
-            )}
 
             {/* Charges grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-5 my-8">
