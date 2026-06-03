@@ -413,27 +413,114 @@ function TenancyDetailScreen({
 
         {/* ── Overview ── */}
         {activeTab === "overview" && (
-          <div className="space-y-4 max-w-xl">
-            <Section title="Tenancy Information">
-              <Row label="Tenant" value={tenancy.tenantName} />
-              <Row label="Property" value={tenancy.propertyName} />
-              <Row label="Address" value={tenancy.propertyAddress} />
-              <Row label="Tenancy Type" value={tenancy.tenancyType} />
-              <Row label="Start Date" value={fmtDate(tenancy.startDate)} />
-              <Row label="End Date" value={fmtDate(tenancy.endDate)} />
-              <Row label="Status" value={s.label} />
-            </Section>
-            <Section title="Rent Information">
-              <Row label="Rent Amount" value={`${fmtCurrency(tenancy.rentAmount)}/${tenancy.rentFrequency}`} />
-              <Row label="Payment Method" value="Bank Transfer" />
-            </Section>
-            <Section title="Outstanding Balance">
-              <Row
-                label="Balance Due"
-                value={tenancy.outstandingBalance > 0 ? fmtCurrency(tenancy.outstandingBalance) : "None"}
-                valueClass={tenancy.outstandingBalance > 0 ? "text-red-600 font-semibold" : "text-green-600"}
-              />
-            </Section>
+          <div className="bg-white rounded-xl shadow-sm p-6 max-w-xl">
+            {/* Tenant block */}
+            <div className="flex items-start gap-4 mb-[21px] pb-[21px] border-b border-gray-100">
+              <div className="w-12 h-12 rounded-full bg-[#FFF3EB] flex items-center justify-center shrink-0">
+                <User className="w-6 h-6 text-[#FF5000]" />
+              </div>
+              <div className="flex-1">
+                <button className="flex items-center gap-1 text-[#FF5000] font-semibold mb-1 hover:underline transition-all cursor-pointer text-left">
+                  <span>{tenancy.tenantName}</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </button>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <span>{tenancy.tenantPhone}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tenancy info grid */}
+            <div className="mb-5 grid grid-cols-2 gap-x-8 gap-y-3">
+              <div>
+                <p className="text-xs text-gray-400 mb-0.5">Tenancy Type</p>
+                <p className="text-sm text-gray-900 font-medium">{tenancy.rentFrequency === "year" ? "Annually" : "Monthly"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-0.5">Tenancy Start Date</p>
+                <p className="text-sm text-gray-900 font-medium">{fmtDate(tenancy.startDate)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-0.5">Tenancy End Date</p>
+                <p className="text-sm text-gray-900 font-medium">{fmtDate(tenancy.endDate)}</p>
+              </div>
+            </div>
+
+            {/* Outstanding balance */}
+            {tenancy.outstandingBalance > 0 && (
+              <div className="mb-6">
+                <p className="text-xs text-gray-400 mb-1">Outstanding Balance</p>
+                <p className="text-lg font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
+              </div>
+            )}
+
+            {/* Charges grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 my-8">
+              <div>
+                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-3 w-fit">
+                  <span className="text-sm text-gray-600">Rent</span>
+                  <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmtCurrency(tenancy.rentAmount)}</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">{tenancy.rentFrequency === "year" ? "Annually" : "Monthly"} · Next due: {fmtDate(tenancy.endDate)}</p>
+              </div>
+              <div>
+                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-3 w-fit">
+                  <span className="text-sm text-gray-600">Service Charge</span>
+                  <span className="text-sm font-semibold text-gray-900 tabular-nums">₦50,000</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">Annually · Next due: {fmtDate(tenancy.endDate)}</p>
+              </div>
+              <div>
+                <div className="grid grid-cols-[auto_auto] items-baseline gap-x-3 w-fit">
+                  <span className="text-sm text-gray-600">Legal Fee</span>
+                  <span className="text-sm font-semibold text-gray-900 tabular-nums">₦30,000</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">One-time · Due: {fmtDate(tenancy.endDate)}</p>
+              </div>
+            </div>
+
+            {/* Payment plans link */}
+            <button
+              type="button"
+              onClick={() => toast.success("Payment Plans — coming soon.")}
+              className="flex items-center gap-1 mb-4 text-left group cursor-pointer"
+            >
+              <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">Payment Plans</span>
+              <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+
+            {/* Billing section */}
+            <div className="pt-4 mt-2 border-t border-gray-100">
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <p className="text-xl font-bold text-gray-900">Billing</p>
+                <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <span>·</span>
+                  <button type="button" onClick={() => toast.success("Edit billing — coming soon.")} className="font-medium text-[#FF5000] hover:underline transition-colors">Edit</button>
+                </div>
+              </div>
+              <p className="text-sm text-gray-900 mb-2">
+                The tenant is expected to pay{" "}
+                <span className="font-semibold">{fmtCurrency(tenancy.rentAmount + 50000)}</span>
+                {" "}by {fmtDate(tenancy.endDate)}.
+              </p>
+
+              <hr className="border-0 border-t border-gray-200 my-5" />
+
+              <div className="sm:max-w-[340px] flex flex-col gap-4 mb-2">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
+                  <p className="text-2xl font-bold text-gray-900">{fmtCurrency(tenancy.rentAmount + 50000)}</p>
+                  <p className="text-sm text-gray-500 mt-1">Next invoice is due {fmtDate(tenancy.endDate)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toast.success("View All Invoices — coming soon.")}
+                  className="w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  View all invoices
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
