@@ -1,6 +1,6 @@
 /* eslint-disable */
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Search, ChevronRight, X, Phone, MessageSquare, FileText,
   Download, Upload, RefreshCw, Edit, AlertCircle, CheckCircle,
@@ -11,6 +11,7 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import LandlordTopNav from "./LandlordTopNav";
 import { toast } from "sonner";
+import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -216,6 +217,35 @@ const STATUS_CONFIG = {
   ended: { label: "Ended", bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
 };
 
+// ── Billing overrides (in-memory, shared across list + detail) ────────────────
+// Keyed by tenancy ID. Stores only the fields that have been edited.
+interface BillingOverride {
+  rentAmount: number;
+  serviceCharge: number;
+  paymentFrequency: string;
+}
+const _billingOverrides = new Map<string, BillingOverride>();
+const _billingListeners = new Set<() => void>();
+
+function getBillingOverride(tenancyId: string): BillingOverride | null {
+  return _billingOverrides.get(tenancyId) ?? null;
+}
+
+function setBillingOverride(tenancyId: string, data: BillingOverride) {
+  _billingOverrides.set(tenancyId, data);
+  _billingListeners.forEach((l) => l());
+}
+
+function useBillingOverride(tenancyId: string) {
+  const [, forceUpdate] = useState(0);
+  useMemo(() => {
+    const listener = () => forceUpdate((n) => n + 1);
+    _billingListeners.add(listener);
+    return () => _billingListeners.delete(listener);
+  }, []);
+  return getBillingOverride(tenancyId);
+}
+
 // ── Tenancy List ──────────────────────────────────────────────────────────────
 
 function TenancyListScreen({
@@ -325,6 +355,22 @@ function TenancyDetailScreen({
 }) {
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [msgInput, setMsgInput] = useState("");
+  const [editBillingOpen, setEditBillingOpen] = useState(false);
+
+  const billingOverride = useBillingOverride(tenancy.id);
+  const effectiveRent = billingOverride?.rentAmount ?? tenancy.rentAmount;
+  const effectiveServiceCharge = billingOverride?.serviceCharge ?? 0;
+  const effectivePaymentFrequency = billingOverride?.paymentFrequency ?? (tenancy.rentFrequency === "year" ? "Annually" : "Monthly");
+
+  const handleSaveBilling = useCallback((data: EditTenancyData) => {
+    setBillingOverride(tenancy.id, {
+      rentAmount: data.rentAmount,
+      serviceCharge: data.serviceCharge,
+      paymentFrequency: data.paymentFrequency,
+    });
+    setEditBillingOpen(false);
+    toast.success("Billing updated.");
+  }, [tenancy.id]);
 
   const s = STATUS_CONFIG[tenancy.status];
 
@@ -495,10 +541,29 @@ function TenancyDetailScreen({
               <Button size="sm" className="bg-[#FF5000] hover:bg-[#e04600] text-white" onClick={() => toast.success("Invoice generated.")}>
                 <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
               </Button>
-              <Button size="sm" variant="outline" onClick={() => toast.success("Billing updated.")}>
+              <Button size="sm" variant="outline" onClick={() => setEditBillingOpen(true)}>
                 <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Billing
               </Button>
             </div>
+
+            <Section title="Current Billing">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-3 py-1">
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Rent Amount</p>
+                  <p className="text-sm font-semibold text-gray-900">{fmtCurrency(effectiveRent)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Payment Frequency</p>
+                  <p className="text-sm font-semibold text-gray-900">{effectivePaymentFrequency}</p>
+                </div>
+                {effectiveServiceCharge > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Service Charge</p>
+                    <p className="text-sm font-semibold text-gray-900">{fmtCurrency(effectiveServiceCharge)}</p>
+                  </div>
+                )}
+              </div>
+            </Section>
 
             <Section title="Invoices">
               {tenancy.invoices.map((inv) => (
@@ -712,6 +777,16 @@ function TenancyDetailScreen({
         )}
 
       </div>
+
+      <EditTenancyModal
+        isOpen={editBillingOpen}
+        onClose={() => setEditBillingOpen(false)}
+        onConfirm={handleSaveBilling}
+        mode="current"
+        currentRentAmount={effectiveRent}
+        currentServiceCharge={effectiveServiceCharge}
+        currentPaymentFrequency={effectivePaymentFrequency}
+      />
     </div>
   );
 }
