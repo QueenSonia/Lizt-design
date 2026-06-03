@@ -530,12 +530,21 @@ function TenancyDetailScreen({
 
             {/* Billing + Payment Plans (merged) */}
             <div className="pt-8 border-t border-gray-100">
-              <div className="flex items-baseline gap-1.5 mb-2">
-                <p className="text-xl font-bold text-gray-900">Billing</p>
-                <div className="flex items-center gap-1 text-xs text-gray-400">
-                  <span>·</span>
-                  <button type="button" onClick={() => setEditBillingOpen(true)} className="font-medium text-[#FF5000] hover:underline transition-colors">Edit</button>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-baseline gap-1.5">
+                  <p className="text-xl font-bold text-gray-900">Billing</p>
+                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <span>·</span>
+                    <button type="button" onClick={() => setEditBillingOpen(true)} className="font-medium text-[#FF5000] hover:underline transition-colors">Edit</button>
+                  </div>
                 </div>
+                <Button
+                  size="sm"
+                  className="bg-[#FF5000] hover:bg-[#e04600] text-white shrink-0"
+                  onClick={() => { resetInvoiceModal(); setShowInvoiceModal(true); }}
+                >
+                  <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
+                </Button>
               </div>
 
               <p className="text-sm text-gray-900 mb-2">
@@ -581,16 +590,6 @@ function TenancyDetailScreen({
                   </div>
                 </div>
               )}
-
-              <div className="mb-4">
-                <Button
-                  size="sm"
-                  className="bg-[#FF5000] hover:bg-[#e04600] text-white"
-                  onClick={() => { resetInvoiceModal(); setShowInvoiceModal(true); }}
-                >
-                  <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
-                </Button>
-              </div>
 
               <div className="mb-6" />
 
