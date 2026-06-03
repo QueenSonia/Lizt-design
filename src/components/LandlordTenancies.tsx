@@ -380,7 +380,7 @@ function TenancyDetailScreen({
 
         {/* ── Overview ── */}
         {activeTab === "overview" && (
-          <div className="bg-white rounded-xl shadow-sm p-6 max-w-xl">
+          <div className="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
             {/* Tenant block */}
             <div className="flex items-start gap-4 mb-[21px] pb-[21px] border-b border-gray-100">
               <div className="w-12 h-12 rounded-full bg-[#FFF3EB] flex items-center justify-center shrink-0">
@@ -397,7 +397,7 @@ function TenancyDetailScreen({
             </div>
 
             {/* Tenancy info grid */}
-            <div className="mb-5 grid grid-cols-2 gap-x-8 gap-y-3">
+            <div className="mb-5 grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-3">
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">Tenancy Type</p>
                 <p className="text-sm text-gray-900 font-medium">{tenancy.rentFrequency === "year" ? "Annually" : "Monthly"}</p>
@@ -421,7 +421,7 @@ function TenancyDetailScreen({
             )}
 
             {/* Charges grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 my-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-5 my-8">
               <div>
                 <div className="grid grid-cols-[auto_auto] items-baseline gap-x-3 w-fit">
                   <span className="text-sm text-gray-600">Rent</span>
