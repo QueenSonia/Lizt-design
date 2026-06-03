@@ -357,34 +357,6 @@ function TenancyDetailScreen({
         </div>
       </div>
 
-      {/* Hero */}
-      <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 shrink-0">
-        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Tenant</p>
-            <button className="text-sm font-medium text-[#FF5000] hover:underline">{tenancy.tenantName}</button>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Property</p>
-            <button className="text-sm font-medium text-[#FF5000] hover:underline">{tenancy.propertyName}</button>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Type</p>
-            <p className="text-sm text-gray-900">{tenancy.tenancyType}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Period</p>
-            <p className="text-sm text-gray-900">{fmtDate(tenancy.startDate)} – {fmtDate(tenancy.endDate)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Outstanding</p>
-            <p className={`text-sm font-semibold ${tenancy.outstandingBalance > 0 ? "text-red-600" : "text-green-600"}`}>
-              {tenancy.outstandingBalance > 0 ? fmtCurrency(tenancy.outstandingBalance) : "Nil"}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Tab bar */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 shrink-0 overflow-x-auto">
         <div className="flex gap-0">
