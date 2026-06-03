@@ -493,13 +493,19 @@ function TenancyDetailScreen({
 
             {/* Billing + Payment Plans (merged) */}
             <div className="pt-8 border-t border-gray-100">
-              <div className="flex items-baseline gap-1.5 mb-6">
+              <div className="flex items-baseline gap-1.5 mb-2">
                 <p className="text-xl font-bold text-gray-900">Billing</p>
                 <div className="flex items-center gap-1 text-xs text-gray-400">
                   <span>·</span>
                   <button type="button" onClick={() => setEditBillingOpen(true)} className="font-medium text-[#FF5000] hover:underline transition-colors">Edit</button>
                 </div>
               </div>
+
+              <p className="text-sm text-gray-900 mb-6">
+                The tenant is expected to pay{" "}
+                <span className="font-semibold">{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
+                {" "}by {fmtDate(tenancy.endDate)}.
+              </p>
 
               {/* Payment Plans sub-link */}
               <div className="mb-6">
@@ -527,12 +533,6 @@ function TenancyDetailScreen({
               </div>
 
               <hr className="border-0 border-t border-gray-100 mb-6" />
-
-              <p className="text-sm text-gray-900 mb-6">
-                The tenant is expected to pay{" "}
-                <span className="font-semibold">{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
-                {" "}by {fmtDate(tenancy.endDate)}.
-              </p>
 
               <div className="sm:max-w-[340px] flex flex-col gap-5">
                 <div>
