@@ -354,12 +354,6 @@ function TenancyDetailScreen({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">Tenancy Details</p>
         </div>
-        {tenancy.outstandingBalance > 0 && (
-          <div className="shrink-0 text-right">
-            <p className="text-xs text-gray-400">Outstanding Balance</p>
-            <p className="text-sm font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
-          </div>
-        )}
       </div>
 
       {/* Tab bar */}
@@ -400,6 +394,12 @@ function TenancyDetailScreen({
                   <span>{tenancy.propertyName}</span>
                 </button>
               </div>
+              {tenancy.outstandingBalance > 0 && (
+                <div className="shrink-0 text-right">
+                  <p className="text-xs text-gray-400 mb-0.5">Outstanding Balance</p>
+                  <p className="text-base font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
+                </div>
+              )}
             </div>
 
             {/* Tenancy info grid */}
