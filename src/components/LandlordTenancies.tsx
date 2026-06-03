@@ -352,8 +352,7 @@ function TenancyDetailScreen({
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{tenancy.tenantName}</p>
-          <p className="text-xs text-gray-400 truncate">{tenancy.propertyName}</p>
+          <p className="text-sm font-semibold text-gray-900 truncate">Tenancy Details</p>
         </div>
       </div>
 
@@ -392,9 +391,10 @@ function TenancyDetailScreen({
                   <span>{tenancy.tenantName}</span>
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                 </button>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span>{tenancy.tenantPhone}</span>
-                </div>
+                <button className="flex items-center gap-1 text-[#FF5000] text-sm hover:underline transition-all cursor-pointer text-left">
+                  <span>{tenancy.propertyName}</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </button>
               </div>
             </div>
 
