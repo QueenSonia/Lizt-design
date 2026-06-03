@@ -355,10 +355,6 @@ function TenancyDetailScreen({
           <p className="text-sm font-semibold text-gray-900 truncate">{tenancy.tenantName}</p>
           <p className="text-xs text-gray-400 truncate">{tenancy.propertyName}</p>
         </div>
-        <span className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${s.bg} ${s.text}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-          {s.label}
-        </span>
       </div>
 
       {/* Hero */}
