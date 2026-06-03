@@ -12,6 +12,7 @@ import { Button } from "./ui/button";
 import LandlordTopNav from "./LandlordTopNav";
 import { toast } from "sonner";
 import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
+import { useRouter } from "next/navigation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -353,6 +354,7 @@ function TenancyDetailScreen({
   onBack: () => void;
   isMobile?: boolean;
 }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [msgInput, setMsgInput] = useState("");
   const [editBillingOpen, setEditBillingOpen] = useState(false);
@@ -492,7 +494,19 @@ function TenancyDetailScreen({
             {/* Payment plans link */}
             <button
               type="button"
-              onClick={() => toast.success("Payment Plans — coming soon.")}
+              onClick={() => {
+                const charges = [
+                  { name: "Rent", amount: effectiveRent },
+                  ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
+                  { name: "Legal Fee", amount: 30000 },
+                ];
+                const params = new URLSearchParams({
+                  property: tenancy.propertyName,
+                  tenant: tenancy.tenantId,
+                  charges: JSON.stringify(charges),
+                });
+                router.push(`/landlord/payment-plans?${params.toString()}`);
+              }}
               className="flex items-center gap-1 mb-4 text-left group cursor-pointer"
             >
               <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">Payment Plans</span>
