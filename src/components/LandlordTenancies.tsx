@@ -505,12 +505,12 @@ function TenancyDetailScreen({
                 <p className="text-xl font-bold text-gray-900">Billing</p>
                 <div className="flex items-center gap-1 text-xs text-gray-400">
                   <span>·</span>
-                  <button type="button" onClick={() => toast.success("Edit billing — coming soon.")} className="font-medium text-[#FF5000] hover:underline transition-colors">Edit</button>
+                  <button type="button" onClick={() => setEditBillingOpen(true)} className="font-medium text-[#FF5000] hover:underline transition-colors">Edit</button>
                 </div>
               </div>
               <p className="text-sm text-gray-900 mb-2">
                 The tenant is expected to pay{" "}
-                <span className="font-semibold">{fmtCurrency(tenancy.rentAmount + 50000)}</span>
+                <span className="font-semibold">{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
                 {" "}by {fmtDate(tenancy.endDate)}.
               </p>
 
