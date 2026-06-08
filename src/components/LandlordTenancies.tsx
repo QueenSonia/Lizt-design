@@ -22,6 +22,8 @@ import { Button } from "./ui/button";
 import LandlordTopNav from "./LandlordTopNav";
 import { toast } from "sonner";
 import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
+import { EndTenancyModal } from "./EndTenancyModal";
+import { RenewTenancyScreen, type RenewTenancyData } from "./RenewTenancyScreen";
 import { useRouter } from "next/navigation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -369,6 +371,9 @@ function TenancyDetailScreen({
   const [msgInput, setMsgInput] = useState("");
   const [editBillingOpen, setEditBillingOpen] = useState(false);
   const [showBillingBreakdown, setShowBillingBreakdown] = useState(false);
+  const [showEndTenancyModal, setShowEndTenancyModal] = useState(false);
+  const [showRenewTenancyModal, setShowRenewTenancyModal] = useState(false);
+  const [showEditTenancyModal, setShowEditTenancyModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceStep, setInvoiceStep] = useState<"form" | "preview">("form");
   const [invoiceForm, setInvoiceForm] = useState<{
@@ -498,14 +503,14 @@ function TenancyDetailScreen({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48 bg-white border-gray-200 shadow-lg">
-                    <DropdownMenuItem onClick={() => toast.success("Renewal flow — coming soon.")} className="gap-2 cursor-pointer text-gray-700">
+                    <DropdownMenuItem onClick={() => setShowRenewTenancyModal(true)} className="gap-2 cursor-pointer text-gray-700">
                       <RefreshCw className="w-4 h-4 text-gray-400" /> Renew Tenancy
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.success("Edit tenancy — coming soon.")} className="gap-2 cursor-pointer text-gray-700">
+                    <DropdownMenuItem onClick={() => setShowEditTenancyModal(true)} className="gap-2 cursor-pointer text-gray-700">
                       <Edit className="w-4 h-4 text-gray-400" /> Edit Tenancy
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => toast.success("Tenancy ended.")} className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                    <DropdownMenuItem onClick={() => setShowEndTenancyModal(true)} className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
                       <AlertCircle className="w-4 h-4" /> End Tenancy
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -644,6 +649,50 @@ function TenancyDetailScreen({
 
 
       </div>
+
+      {/* End Tenancy Modal */}
+      <EndTenancyModal
+        isOpen={showEndTenancyModal}
+        onClose={() => setShowEndTenancyModal(false)}
+        onConfirm={() => { setShowEndTenancyModal(false); toast.success("Tenancy ended."); }}
+        tenantName={tenancy.tenantName}
+        propertyName={tenancy.propertyName}
+      />
+
+      {/* Renew Tenancy Screen */}
+      {showRenewTenancyModal && (
+        <RenewTenancyScreen
+          onClose={() => setShowRenewTenancyModal(false)}
+          onConfirm={() => { setShowRenewTenancyModal(false); toast.success("Tenancy renewed successfully."); }}
+          tenantName={tenancy.tenantName}
+          propertyName={tenancy.propertyName}
+          propertyAddress={tenancy.propertyAddress}
+          landlordName="Olatunji Oginni"
+          currentExpiryDate={tenancy.endDate}
+          currentRentAmount={effectiveRent}
+          currentPaymentFrequency={effectivePaymentFrequency}
+          currentServiceCharge={effectiveServiceCharge}
+        />
+      )}
+
+      {/* Edit Tenancy Modal (current period) */}
+      <EditTenancyModal
+        isOpen={showEditTenancyModal}
+        onClose={() => setShowEditTenancyModal(false)}
+        onConfirm={(data) => {
+          setBillingOverride(tenancy.id, {
+            rentAmount: data.rentAmount,
+            serviceCharge: data.serviceCharge,
+            paymentFrequency: data.paymentFrequency,
+          });
+          setShowEditTenancyModal(false);
+          toast.success("Tenancy updated.");
+        }}
+        mode="current"
+        currentRentAmount={effectiveRent}
+        currentServiceCharge={effectiveServiceCharge}
+        currentPaymentFrequency={effectivePaymentFrequency}
+      />
 
       {/* Generate Invoice Modal */}
       <Dialog
