@@ -485,12 +485,6 @@ function TenancyDetailScreen({
                 </button>
               </div>
               <div className="flex items-start gap-4 shrink-0">
-                {tenancy.outstandingBalance > 0 && (
-                  <div className="text-right">
-                    <p className="text-xs text-gray-400 mb-0.5">Outstanding Balance</p>
-                    <p className="text-base font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
-                  </div>
-                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Tenancy actions">
@@ -566,6 +560,13 @@ function TenancyDetailScreen({
                   <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
                 </Button>
               </div>
+
+              {tenancy.outstandingBalance > 0 && (
+                <div className="mb-3">
+                  <span className="text-xs text-gray-400">Outstanding Balance: </span>
+                  <span className="text-sm font-semibold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</span>
+                </div>
+              )}
 
               <p className="text-sm text-gray-900 mb-2">
                 The tenant is expected to pay{" "}
