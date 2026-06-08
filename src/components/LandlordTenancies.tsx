@@ -350,7 +350,7 @@ function TenancyListScreen({
 
 // ── Tenancy Detail ────────────────────────────────────────────────────────────
 
-type DetailTab = "overview" | "documents" | "whatsapp" | "history" | "actions";
+type DetailTab = "overview" | "actions";
 
 function TenancyDetailScreen({
   tenancy,
@@ -422,9 +422,6 @@ function TenancyDetailScreen({
   const tabs: { id: DetailTab; label: string }[] = [
     { id: "overview", label: "Overview" },
 
-    { id: "documents", label: "Documents" },
-    { id: "whatsapp", label: "WhatsApp" },
-    { id: "history", label: "History" },
     { id: "actions", label: "Actions" },
   ];
 
@@ -624,154 +621,6 @@ function TenancyDetailScreen({
 
         {/* ── Billing ── */}
         {/* ── Documents ── */}
-        {activeTab === "documents" && (
-          <div className="space-y-5 max-w-xl">
-            <div className="flex gap-2">
-              <Button size="sm" className="bg-[#FF5000] hover:bg-[#e04600] text-white" onClick={() => toast.success("Upload dialog would open here.")}>
-                <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload Document
-              </Button>
-            </div>
-
-            {[
-              { heading: "Lease Agreements", type: "lease" as const },
-              { heading: "Receipts", type: "receipt" as const },
-              { heading: "Other Documents", type: "other" as const },
-            ].map(({ heading, type }) => {
-              const docs = tenancy.documents.filter((d) => d.type === type);
-              if (docs.length === 0) return null;
-              return (
-                <Section key={type} title={heading}>
-                  {docs.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                      <div className="flex items-center gap-2">
-                        <Paperclip className="w-4 h-4 text-gray-400 shrink-0" />
-                        <div>
-                          <p className="text-sm text-gray-900">{doc.name}</p>
-                          <p className="text-xs text-gray-400">{fmtDate(doc.date)}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => toast.success(`Downloading ${doc.name}…`)}
-                        className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </Section>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── WhatsApp ── */}
-        {activeTab === "whatsapp" && (
-          <div className="space-y-4 max-w-xl">
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" className="bg-[#25D366] hover:bg-[#1ebe57] text-white" onClick={() => handleAction("Message sent")}>
-                <MessageSquare className="w-3.5 h-3.5 mr-1.5" /> Send Message
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleAction("Invoice sent")}>
-                <FileText className="w-3.5 h-3.5 mr-1.5" /> Send Invoice
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleAction("Receipt sent")}>
-                <Receipt className="w-3.5 h-3.5 mr-1.5" /> Send Receipt
-              </Button>
-            </div>
-
-            <Section title="Message History">
-              <div className="space-y-3 py-1">
-                {tenancy.whatsappHistory.map((msg) => {
-                  const isSent = msg.direction === "sent";
-                  return (
-                    <div key={msg.id} className={`flex flex-col gap-1 ${isSent ? "items-end" : "items-start"}`}>
-                      <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                        isSent ? "bg-[#FF5000] text-white rounded-br-sm" : "bg-gray-100 text-gray-900 rounded-bl-sm"
-                      }`}>
-                        {msg.body}
-                      </div>
-                      <div className={`flex items-center gap-1.5 ${isSent ? "flex-row-reverse" : ""}`}>
-                        <span className="text-[10px] text-gray-400 font-medium">{isSent ? "You" : tenancy.tenantName}</span>
-                        <span className="text-[10px] text-gray-300">·</span>
-                        <span className="text-[10px] text-gray-400">{fmtTimestamp(msg.timestamp)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Section>
-
-            {/* Quick message input */}
-            <div className="flex items-end gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
-              <textarea
-                rows={1}
-                value={msgInput}
-                onChange={(e) => setMsgInput(e.target.value)}
-                placeholder="Type a message…"
-                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
-                style={{ maxHeight: 100, overflowY: "auto", lineHeight: "1.5" }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (!msgInput.trim()) return;
-                  toast.success("Message sent via WhatsApp.");
-                  setMsgInput("");
-                }}
-                disabled={!msgInput.trim()}
-                className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
-              >
-                <Send className="w-3.5 h-3.5 text-white" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── History ── */}
-        {activeTab === "history" && (
-          <div className="space-y-5 max-w-xl">
-            <Section title="Rent History">
-              {tenancy.paymentHistory.filter((p) => p.type === "rent").map((p) => (
-                <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                  <div>
-                    <p className="text-sm text-gray-900">{p.label}</p>
-                    <p className="text-xs text-gray-400">{fmtDate(p.date)} · {p.method}</p>
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900 shrink-0 ml-4">{fmtCurrency(p.amount)}</p>
-                </div>
-              ))}
-            </Section>
-
-            <Section title="Billing History">
-              {tenancy.invoices.map((inv) => (
-                <div key={inv.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                  <div>
-                    <p className="text-sm text-gray-900">{inv.ref}</p>
-                    <p className="text-xs text-gray-500">{inv.description}</p>
-                    <p className="text-xs text-gray-400">{fmtDate(inv.date)}</p>
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900 shrink-0 ml-4">{fmtCurrency(inv.amount)}</p>
-                </div>
-              ))}
-            </Section>
-
-            <Section title="Tenancy Updates">
-              <div className="space-y-2 py-1">
-                {[
-                  { label: "Tenancy started", date: tenancy.startDate },
-                  tenancy.status === "ended" ? { label: "Tenancy ended", date: tenancy.endDate } : null,
-                ].filter(Boolean).map((ev: any) => (
-                  <div key={ev.label} className="flex items-center gap-3 py-1.5">
-                    <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
-                    <p className="text-sm text-gray-700">{ev.label}</p>
-                    <p className="text-xs text-gray-400 ml-auto">{fmtDate(ev.date)}</p>
-                  </div>
-                ))}
-              </div>
-            </Section>
-          </div>
-        )}
-
         {/* ── Actions ── */}
         {activeTab === "actions" && (
           <div className="space-y-3 max-w-sm">
