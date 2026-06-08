@@ -13,6 +13,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "./ui/select";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -350,7 +353,7 @@ function TenancyListScreen({
 
 // ── Tenancy Detail ────────────────────────────────────────────────────────────
 
-type DetailTab = "overview" | "actions";
+type DetailTab = "overview";
 
 function TenancyDetailScreen({
   tenancy,
@@ -422,7 +425,6 @@ function TenancyDetailScreen({
   const tabs: { id: DetailTab; label: string }[] = [
     { id: "overview", label: "Overview" },
 
-    { id: "actions", label: "Actions" },
   ];
 
   const handleAction = (label: string) => {
@@ -482,12 +484,33 @@ function TenancyDetailScreen({
                   <span>{tenancy.propertyName}</span>
                 </button>
               </div>
-              {tenancy.outstandingBalance > 0 && (
-                <div className="shrink-0 text-right">
-                  <p className="text-xs text-gray-400 mb-0.5">Outstanding Balance</p>
-                  <p className="text-base font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
-                </div>
-              )}
+              <div className="flex items-start gap-4 shrink-0">
+                {tenancy.outstandingBalance > 0 && (
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400 mb-0.5">Outstanding Balance</p>
+                    <p className="text-base font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
+                  </div>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Tenancy actions">
+                      <MoreHorizontal className="w-5 h-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-white border-gray-200 shadow-lg">
+                    <DropdownMenuItem onClick={() => toast.success("Renewal flow — coming soon.")} className="gap-2 cursor-pointer text-gray-700">
+                      <RefreshCw className="w-4 h-4 text-gray-400" /> Renew Tenancy
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast.success("Edit tenancy — coming soon.")} className="gap-2 cursor-pointer text-gray-700">
+                      <Edit className="w-4 h-4 text-gray-400" /> Edit Tenancy
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => toast.success("Tenancy ended.")} className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                      <AlertCircle className="w-4 h-4" /> End Tenancy
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
             {/* Tenancy info grid */}
@@ -619,34 +642,6 @@ function TenancyDetailScreen({
           </div>
         )}
 
-        {/* ── Billing ── */}
-        {/* ── Documents ── */}
-        {/* ── Actions ── */}
-        {activeTab === "actions" && (
-          <div className="space-y-3 max-w-sm">
-            <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-4">Tenancy Actions</p>
-            <ActionButton
-              icon={<RefreshCw className="w-4 h-4" />}
-              label="Renew Tenancy"
-              description="Extend or create a new term for this tenancy."
-              onClick={() => toast.success("Renewal flow — coming soon.")}
-              variant="primary"
-            />
-            <ActionButton
-              icon={<Edit className="w-4 h-4" />}
-              label="Edit Tenancy"
-              description="Update rent amount, dates, or tenant details."
-              onClick={() => toast.success("Edit tenancy — coming soon.")}
-            />
-            <ActionButton
-              icon={<AlertCircle className="w-4 h-4" />}
-              label="End Tenancy"
-              description="Mark this tenancy as ended and notify the tenant."
-              onClick={() => toast.success("Tenancy ended.")}
-              variant="danger"
-            />
-          </div>
-        )}
 
       </div>
 
