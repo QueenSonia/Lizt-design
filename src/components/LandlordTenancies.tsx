@@ -483,6 +483,12 @@ function TenancyDetailScreen({
                 <button className="flex items-center gap-1 text-gray-900 text-sm underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left">
                   <span>{tenancy.propertyName}</span>
                 </button>
+                {tenancy.outstandingBalance > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-400">Outstanding Balance</p>
+                    <p className="text-base font-bold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</p>
+                  </div>
+                )}
               </div>
               <div className="flex items-start gap-4 shrink-0">
                 <DropdownMenu>
@@ -560,13 +566,6 @@ function TenancyDetailScreen({
                   <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
                 </Button>
               </div>
-
-              {tenancy.outstandingBalance > 0 && (
-                <div className="mb-3">
-                  <span className="text-xs text-gray-400">Outstanding Balance: </span>
-                  <span className="text-sm font-semibold text-red-500">{fmtCurrency(tenancy.outstandingBalance)}</span>
-                </div>
-              )}
 
               <p className="text-sm text-gray-900 mb-2">
                 The tenant is expected to pay{" "}
