@@ -350,7 +350,7 @@ function TenancyListScreen({
 
 // ── Tenancy Detail ────────────────────────────────────────────────────────────
 
-type DetailTab = "overview" | "billing" | "documents" | "whatsapp" | "history" | "actions";
+type DetailTab = "overview" | "documents" | "whatsapp" | "history" | "actions";
 
 function TenancyDetailScreen({
   tenancy,
@@ -421,7 +421,7 @@ function TenancyDetailScreen({
 
   const tabs: { id: DetailTab; label: string }[] = [
     { id: "overview", label: "Overview" },
-    { id: "billing", label: "Billing" },
+
     { id: "documents", label: "Documents" },
     { id: "whatsapp", label: "WhatsApp" },
     { id: "history", label: "History" },
@@ -623,71 +623,6 @@ function TenancyDetailScreen({
         )}
 
         {/* ── Billing ── */}
-        {activeTab === "billing" && (
-          <div className="space-y-5 max-w-xl">
-            <div className="flex gap-2">
-              <Button size="sm" className="bg-[#FF5000] hover:bg-[#e04600] text-white" onClick={() => toast.success("Invoice generated.")}>
-                <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditBillingOpen(true)}>
-                <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit Billing
-              </Button>
-            </div>
-
-            <Section title="Current Billing">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-3 py-1">
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Rent Amount</p>
-                  <p className="text-sm font-semibold text-gray-900">{fmtCurrency(effectiveRent)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Payment Frequency</p>
-                  <p className="text-sm font-semibold text-gray-900">{effectivePaymentFrequency}</p>
-                </div>
-                {effectiveServiceCharge > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Service Charge</p>
-                    <p className="text-sm font-semibold text-gray-900">{fmtCurrency(effectiveServiceCharge)}</p>
-                  </div>
-                )}
-              </div>
-            </Section>
-
-            <Section title="Invoices">
-              {tenancy.invoices.map((inv) => (
-                <div key={inv.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{inv.ref}</p>
-                    <p className="text-xs text-gray-500">{inv.description}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{fmtDate(inv.date)}</p>
-                  </div>
-                  <div className="text-right shrink-0 ml-4">
-                    <p className="text-sm font-semibold text-gray-900">{fmtCurrency(inv.amount)}</p>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      inv.status === "paid" ? "bg-green-100 text-green-700" :
-                      inv.status === "overdue" ? "bg-red-100 text-red-700" :
-                      "bg-amber-100 text-amber-700"
-                    }`}>
-                      {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </Section>
-
-            <Section title="Payment Plans">
-              <p className="text-sm text-gray-500 py-1">No active payment plans.</p>
-              <Button size="sm" variant="outline" className="mt-2" onClick={() => toast.success("Payment plan feature coming soon.")}>
-                Add Payment Plan
-              </Button>
-            </Section>
-
-            <Section title="Fees">
-              <p className="text-sm text-gray-500 py-1">No additional fees added.</p>
-            </Section>
-          </div>
-        )}
-
         {/* ── Documents ── */}
         {activeTab === "documents" && (
           <div className="space-y-5 max-w-xl">
