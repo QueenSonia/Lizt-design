@@ -25,6 +25,7 @@ import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
 import { EndTenancyModal } from "./EndTenancyModal";
 import { RenewTenancyScreen, type RenewTenancyData } from "./RenewTenancyScreen";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -367,6 +368,8 @@ function TenancyDetailScreen({
   isMobile?: boolean;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const userRole = user?.role ?? "landlord";
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [msgInput, setMsgInput] = useState("");
   const [editBillingOpen, setEditBillingOpen] = useState(false);
@@ -482,7 +485,10 @@ function TenancyDetailScreen({
                 <User className="w-6 h-6 text-[#FF5000]" />
               </div>
               <div className="flex-1">
-                <button className="flex items-center gap-1 text-gray-900 font-semibold mb-1.5 underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left">
+                <button
+                  onClick={() => router.push(`/${userRole}/kyc-application-detail/${tenancy.tenantId}`)}
+                  className="flex items-center gap-1 text-gray-900 font-semibold mb-1.5 underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left"
+                >
                   <span>{tenancy.tenantName}</span>
                 </button>
                 <button className="flex items-center gap-1 text-gray-900 text-sm underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left">
