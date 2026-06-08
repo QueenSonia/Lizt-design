@@ -618,22 +618,6 @@ function TenancyDetailScreen({
                 </button>
               </div>
 
-              <hr className="border-0 border-t border-gray-100 mb-6" />
-
-              <div className="max-w-lg flex flex-col gap-5">
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">{fmtCurrency(effectiveRent + 50000)}</p>
-                  <p className="text-sm text-gray-500 mt-1">Next invoice is due {fmtDate(tenancy.endDate)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => toast.success("View All Invoices — coming soon.")}
-                  className="w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  View all invoices
-                </button>
-              </div>
             </div>
           </div>
         )}
