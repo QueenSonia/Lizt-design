@@ -491,7 +491,10 @@ function TenancyDetailScreen({
                 >
                   <span>{tenancy.tenantName}</span>
                 </button>
-                <button className="flex items-center gap-1 text-gray-900 text-sm underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left">
+                <button
+                  onClick={() => router.push(`/${userRole}/property-detail/${tenancy.propertyId}`)}
+                  className="flex items-center gap-1 text-gray-900 text-sm underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all cursor-pointer text-left"
+                >
                   <span>{tenancy.propertyName}</span>
                 </button>
                 {tenancy.outstandingBalance > 0 && (
