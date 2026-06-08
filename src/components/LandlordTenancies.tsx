@@ -1074,10 +1074,11 @@ function TenancyDetailScreen({
         isOpen={editBillingOpen}
         onClose={() => setEditBillingOpen(false)}
         onConfirm={handleSaveBilling}
-        mode="current"
+        mode="next-period"
         currentRentAmount={effectiveRent}
         currentServiceCharge={effectiveServiceCharge}
         currentPaymentFrequency={effectivePaymentFrequency}
+        currentExpiryDate={tenancy.endDate}
       />
     </div>
   );
