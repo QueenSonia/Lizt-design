@@ -128,8 +128,8 @@ export function LandlordSidebar({
       title: "Main",
       items: [
         { id: "dashboard", label: "Live Feed", icon: MessageSquare },
-        { id: "properties", label: "Properties", icon: Building },
         { id: "tenancies", label: "Tenancies", icon: KeyRound },
+        { id: "properties", label: "Properties", icon: Building },
         { id: "tenants", label: "Tenants", icon: Users },
         { id: "kyc", label: "Tenant Applicants", icon: FileCheck },
         { id: "facility", label: "Facility", icon: Wrench },
