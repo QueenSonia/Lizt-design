@@ -276,14 +276,6 @@ function ExpiryLabel({ endDate }: { endDate: string }) {
   return null;
 }
 
-function SortChevrons({ active, dir }: { active: boolean; dir: SortDir }) {
-  return (
-    <span className="inline-flex flex-col ml-1 leading-none">
-      <svg className={`w-2.5 h-2.5 ${active && dir === "asc" ? "text-[#FF5000]" : "text-gray-300"}`} viewBox="0 0 10 6" fill="currentColor"><path d="M5 0l5 6H0z"/></svg>
-      <svg className={`w-2.5 h-2.5 ${active && dir === "desc" ? "text-[#FF5000]" : "text-gray-300"}`} viewBox="0 0 10 6" fill="currentColor"><path d="M5 6L0 0h10z"/></svg>
-    </span>
-  );
-}
 
 function TenancyListScreen({
   onSelect,
@@ -360,28 +352,23 @@ function TenancyListScreen({
                   <tr>
                     <th className="text-left px-6 py-3">
                       <button onClick={() => handleSort("tenant")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Tenant <SortChevrons active={sortCol === "tenant"} dir={sortDir} />
-                      </button>
+                        Tenant                      </button>
                     </th>
                     <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("property")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Property <SortChevrons active={sortCol === "property"} dir={sortDir} />
-                      </button>
+                        Property                      </button>
                     </th>
                     <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("rent")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Rent <SortChevrons active={sortCol === "rent"} dir={sortDir} />
-                      </button>
+                        Rent                      </button>
                     </th>
                     <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("outstanding")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Outstanding <SortChevrons active={sortCol === "outstanding"} dir={sortDir} />
-                      </button>
+                        Outstanding                      </button>
                     </th>
                     <th className="text-left px-4 py-3 pr-6">
                       <button onClick={() => handleSort("endDate")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        End Date <SortChevrons active={sortCol === "endDate"} dir={sortDir} />
-                      </button>
+                        End Date                      </button>
                     </th>
                   </tr>
                 </thead>
