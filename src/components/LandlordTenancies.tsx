@@ -262,6 +262,29 @@ function useBillingOverride(tenancyId: string) {
 
 // ── Tenancy List ──────────────────────────────────────────────────────────────
 
+type SortColumn = "rent" | "outstanding" | "endDate" | null;
+type SortDir = "asc" | "desc";
+
+function daysUntilExpiry(endDate: string): number {
+  return Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
+}
+
+function ExpiryLabel({ endDate }: { endDate: string }) {
+  const days = daysUntilExpiry(endDate);
+  if (days <= 0) return <span className="text-xs text-red-500 ml-1">· Expired</span>;
+  if (days <= 60) return <span className="text-xs text-amber-500 ml-1">· Expires in {days}d</span>;
+  return null;
+}
+
+function SortChevrons({ active, dir }: { active: boolean; dir: SortDir }) {
+  return (
+    <span className="inline-flex flex-col ml-1 leading-none">
+      <svg className={`w-2.5 h-2.5 ${active && dir === "asc" ? "text-[#FF5000]" : "text-gray-300"}`} viewBox="0 0 10 6" fill="currentColor"><path d="M5 0l5 6H0z"/></svg>
+      <svg className={`w-2.5 h-2.5 ${active && dir === "desc" ? "text-[#FF5000]" : "text-gray-300"}`} viewBox="0 0 10 6" fill="currentColor"><path d="M5 6L0 0h10z"/></svg>
+    </span>
+  );
+}
+
 function TenancyListScreen({
   onSelect,
   onMenuClick,
@@ -271,83 +294,161 @@ function TenancyListScreen({
   onMenuClick?: () => void;
   isMobile?: boolean;
 }) {
-  const [search, setSearch] = useState("");
+  const router = useRouter();
+  const { user } = useAuth();
+  const userRole = user?.role ?? "landlord";
 
-  const filtered = useMemo(() => {
-    return MOCK_TENANCIES.filter((t) => {
+  const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState<SortColumn>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = (col: SortColumn) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    const base = MOCK_TENANCIES.filter((t) => {
       if (t.status === "ended") return false;
       const q = search.toLowerCase();
-      return (
-        !q ||
-        t.tenantName.toLowerCase().includes(q) ||
-        t.propertyName.toLowerCase().includes(q)
-      );
+      return !q || t.tenantName.toLowerCase().includes(q) || t.propertyName.toLowerCase().includes(q);
     });
-  }, [search]);
+    if (!sortCol) return base;
+    return [...base].sort((a, b) => {
+      let diff = 0;
+      if (sortCol === "rent") diff = a.rentAmount - b.rentAmount;
+      if (sortCol === "outstanding") diff = a.outstandingBalance - b.outstandingBalance;
+      if (sortCol === "endDate") diff = new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+      return sortDir === "asc" ? diff : -diff;
+    });
+  }, [search, sortCol, sortDir]);
 
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
-      <LandlordTopNav
-        title="Tenancies"
-        onMenuClick={onMenuClick}
-        isMobile={isMobile}
-      />
+      <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
-        {/* Search */}
-        <div className="relative mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* Search bar */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tenant or property…"
-            className="pl-10 bg-white"
+            className="pl-10 bg-gray-50 border-0 focus:bg-white focus:ring-1 focus:ring-orange-200"
           />
         </div>
+      </div>
 
-        {/* List */}
-        {filtered.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+      <div className="flex-1 overflow-y-auto">
+        {sorted.length === 0 ? (
+          <div className="p-12 text-center">
             <p className="text-gray-500 text-sm">No active tenancies found.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filtered.map((tenancy) => (
-              <div
-                key={tenancy.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => onSelect(tenancy)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(tenancy); } }}
-                className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
-              >
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <p className="text-base font-semibold text-gray-900 leading-snug">{tenancy.tenantName}</p>
-                    <p className="text-sm text-gray-500 mt-0.5">{tenancy.propertyName}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
-                </div>
+          <>
+            {/* ── Desktop table ── */}
+            <div className="hidden sm:block">
+              <table className="w-full text-sm">
+                <thead className="bg-white border-b border-gray-200 sticky top-0 z-10">
+                  <tr>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tenant</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Property</th>
+                    <th className="text-left px-4 py-3">
+                      <button onClick={() => handleSort("rent")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                        Rent <SortChevrons active={sortCol === "rent"} dir={sortDir} />
+                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3">
+                      <button onClick={() => handleSort("outstanding")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                        Outstanding <SortChevrons active={sortCol === "outstanding"} dir={sortDir} />
+                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3 pr-6">
+                      <button onClick={() => handleSort("endDate")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                        End Date <SortChevrons active={sortCol === "endDate"} dir={sortDir} />
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sorted.map((t) => (
+                    <tr
+                      key={t.id}
+                      onClick={() => onSelect(t)}
+                      className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); router.push(`/${userRole}/kyc-application-detail/${t.tenantId}`); }}
+                          className="font-medium text-gray-900 hover:text-[#FF5000] hover:underline transition-colors text-left"
+                        >
+                          {t.tenantName}
+                        </button>
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); router.push(`/${userRole}/property-detail/${t.propertyId}`); }}
+                          className="text-gray-600 hover:text-[#FF5000] hover:underline transition-colors text-left"
+                        >
+                          {t.propertyName}
+                        </button>
+                      </td>
+                      <td className="px-4 py-4 text-gray-900 tabular-nums">{fmtCurrency(t.rentAmount)}</td>
+                      <td className="px-4 py-4 tabular-nums">
+                        {t.outstandingBalance > 0
+                          ? <span className="text-red-600 font-medium">{fmtCurrency(t.outstandingBalance)}</span>
+                          : <span className="text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-4 pr-6 text-gray-900 whitespace-nowrap">
+                        {fmtDate(t.endDate)}
+                        <ExpiryLabel endDate={t.endDate} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-                <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Rent</p>
-                    <p className="text-gray-900 font-medium">{fmtCurrency(tenancy.rentAmount)}<span className="text-gray-400 font-normal">/{tenancy.rentFrequency}</span></p>
+            {/* ── Mobile cards ── */}
+            <div className="sm:hidden divide-y divide-gray-100">
+              {sorted.map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => onSelect(t)}
+                  className="bg-white px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <p className="font-medium text-gray-900">{t.tenantName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{t.propertyName}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Outstanding</p>
-                    <p className={tenancy.outstandingBalance > 0 ? "text-red-600 font-medium" : "text-gray-500"}>
-                      {tenancy.outstandingBalance > 0 ? fmtCurrency(tenancy.outstandingBalance) : "None"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Ends</p>
-                    <p className="text-gray-900">{fmtDate(tenancy.endDate)}</p>
+                  <div className="grid grid-cols-3 gap-x-3 text-xs">
+                    <div>
+                      <p className="text-gray-400 mb-0.5">Rent</p>
+                      <p className="text-gray-900 font-medium">{fmtCurrency(t.rentAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-0.5">Outstanding</p>
+                      <p className={t.outstandingBalance > 0 ? "text-red-600 font-medium" : "text-gray-400"}>
+                        {t.outstandingBalance > 0 ? fmtCurrency(t.outstandingBalance) : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-0.5">Ends</p>
+                      <p className="text-gray-900">{fmtDate(t.endDate)}<ExpiryLabel endDate={t.endDate} /></p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
