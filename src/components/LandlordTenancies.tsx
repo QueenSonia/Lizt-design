@@ -262,7 +262,7 @@ function useBillingOverride(tenancyId: string) {
 
 // ── Tenancy List ──────────────────────────────────────────────────────────────
 
-type SortColumn = "rent" | "outstanding" | "endDate" | null;
+type SortColumn = "tenant" | "property" | "rent" | "outstanding" | "endDate" | null;
 type SortDir = "asc" | "desc";
 
 function daysUntilExpiry(endDate: string): number {
@@ -320,6 +320,8 @@ function TenancyListScreen({
     if (!sortCol) return base;
     return [...base].sort((a, b) => {
       let diff = 0;
+      if (sortCol === "tenant") diff = a.tenantName.localeCompare(b.tenantName);
+      if (sortCol === "property") diff = a.propertyName.localeCompare(b.propertyName);
       if (sortCol === "rent") diff = a.rentAmount - b.rentAmount;
       if (sortCol === "outstanding") diff = a.outstandingBalance - b.outstandingBalance;
       if (sortCol === "endDate") diff = new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
@@ -356,8 +358,16 @@ function TenancyListScreen({
               <table className="w-full text-sm">
                 <thead className="bg-white border-b border-gray-200 sticky top-0 z-10">
                   <tr>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tenant</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Property</th>
+                    <th className="text-left px-6 py-3">
+                      <button onClick={() => handleSort("tenant")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                        Tenant <SortChevrons active={sortCol === "tenant"} dir={sortDir} />
+                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3">
+                      <button onClick={() => handleSort("property")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                        Property <SortChevrons active={sortCol === "property"} dir={sortDir} />
+                      </button>
+                    </th>
                     <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("rent")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
                         Rent <SortChevrons active={sortCol === "rent"} dir={sortDir} />
