@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ChevronRight, FileText, X, Download } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { ReceiptViewModal, ReceiptData } from "./ReceiptViewModal";
 
 type InvoiceStatus = "upcoming" | "paid" | "overdue";
 
@@ -214,8 +215,22 @@ function InvoiceDrawer({
   onClose: () => void;
 }) {
   const [showPreview, setShowPreview] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
   const lineTotal = invoice.lines.reduce((s, l) => s + l.amount, 0);
   const displayTotal = invoice.total ?? lineTotal;
+
+  const receiptData: ReceiptData = {
+    receiptNumber: `RCPT-${invoice.id.replace("inv-", "").padStart(4, "0")}`,
+    receiptDate: formatDate(invoice.dueDate),
+    paymentReference: `REF-${invoice.id.toUpperCase()}`,
+    tenantName,
+    tenantEmail: "",
+    propertyName,
+    invoiceNumber: invoice.id.toUpperCase(),
+    amountPaid: displayTotal,
+    paymentMethod: "Bank Transfer",
+    notes: "Thank you for your payment.",
+  };
 
   return (
     <>
@@ -302,6 +317,16 @@ function InvoiceDrawer({
               <FileText className="w-4 h-4 mr-2" />
               View Invoice
             </Button>
+            {invoice.status === "paid" && (
+              <Button
+                variant="outline"
+                className="w-full border-gray-200 text-gray-700 hover:bg-gray-50"
+                onClick={() => setShowReceipt(true)}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                View Receipt
+              </Button>
+            )}
             {invoice.status !== "paid" && (
               <Button className="w-full bg-[#FF5000] hover:bg-[#e04600] text-white">
                 Mark as Paid
@@ -317,6 +342,14 @@ function InvoiceDrawer({
           propertyName={propertyName}
           tenantName={tenantName}
           onClose={() => setShowPreview(false)}
+        />
+      )}
+
+      {showReceipt && (
+        <ReceiptViewModal
+          isOpen={showReceipt}
+          onClose={() => setShowReceipt(false)}
+          data={receiptData}
         />
       )}
     </>
