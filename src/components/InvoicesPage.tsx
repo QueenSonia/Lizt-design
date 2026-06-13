@@ -592,15 +592,10 @@ function OverviewTab({ propertyName, tenantName }: { propertyName: string; tenan
   return (
     <div className="space-y-6 py-6 max-w-2xl">
 
+      <p className="text-xs text-gray-400 -mt-2 mb-2">Applies to rent payments only</p>
+
       {/* Header card — toggle + send now */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-gray-900">Rent Reminder Settings</p>
-            <p className="text-xs text-gray-400 mt-0.5">Applies to rent payments only</p>
-          </div>
-        </div>
-
         {/* Toggle */}
         <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
           <div>
@@ -761,8 +756,8 @@ export default function InvoicesPage() {
   const searchParams = useSearchParams();
   const propertyName = searchParams.get("property") || "";
   const tenantName = searchParams.get("tenant") || "";
-  const defaultTab = (searchParams.get("tab") as "overview" | "invoices") || "invoices";
-  const [activeTab, setActiveTab] = useState<"overview" | "invoices">(defaultTab);
+  const defaultTab = (searchParams.get("tab") as "reminders" | "invoices") || "invoices";
+  const [activeTab, setActiveTab] = useState<"reminders" | "invoices">(defaultTab);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -784,7 +779,7 @@ export default function InvoicesPage() {
 
       <div className="max-w-5xl px-4 sm:px-6 py-4">
         <div className="flex gap-1 border-b border-gray-200 mb-2">
-          {(["overview", "invoices"] as const).map(tab => (
+          {(["reminders", "invoices"] as const).map(tab => (
             <button
               key={tab}
               type="button"
@@ -795,7 +790,7 @@ export default function InvoicesPage() {
                   : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
-              {tab}
+              {tab === "reminders" ? "Rent Reminder Settings" : "Invoices"}
             </button>
           ))}
         </div>
