@@ -1,6 +1,7 @@
 /* eslint-disable */
 "use client";
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Search, ChevronRight, X, Phone, MessageSquare, FileText,
   Download, Upload, RefreshCw, Edit, AlertCircle, CheckCircle,
@@ -339,7 +340,8 @@ function TenancyListScreen({
   const openFilter = () => {
     if (filterBtnRef.current) {
       const rect = filterBtnRef.current.getBoundingClientRect();
-      setFilterPos({ top: rect.bottom + 8, left: rect.left });
+      // Anchor dropdown below button, right-aligned to button's right edge
+      setFilterPos({ top: rect.bottom + 8, left: Math.max(8, rect.right - 288) });
     }
     setDraftFilters(filters);
     setFilterOpen(true);
@@ -396,7 +398,7 @@ function TenancyListScreen({
       <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
       {/* Search + Filter bar */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 space-y-3 overflow-visible relative z-20">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 space-y-3">
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -427,11 +429,12 @@ function TenancyListScreen({
               )}
             </button>
 
-            {/* Filter dropdown — positioned relative to button */}
-            {filterOpen && (
+            {/* Filter dropdown — rendered via portal to escape overflow:hidden containers */}
+            {filterOpen && typeof document !== "undefined" && createPortal(
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                <div className="fixed inset-0 z-[90]" onClick={() => setFilterOpen(false)} />
+                <div className="fixed z-[100] w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+                  style={{ top: filterPos.top, left: filterPos.left }}>
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <p className="text-sm font-semibold text-gray-900">Filters</p>
                     <button onClick={() => setFilterOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
@@ -473,7 +476,8 @@ function TenancyListScreen({
                     <button onClick={applyFilters} className="px-3 py-1.5 text-xs font-medium text-white bg-[#FF5000] rounded-lg hover:bg-[#e04600] transition-colors">Apply</button>
                   </div>
                 </div>
-              </>
+              </>,
+              document.body
             )}
           </div>
         </div>
