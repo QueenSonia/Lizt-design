@@ -396,7 +396,7 @@ function TenancyListScreen({
       <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
       {/* Search + Filter bar */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 space-y-3">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 space-y-3 overflow-visible relative z-20">
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -407,24 +407,75 @@ function TenancyListScreen({
               className="pl-10 bg-gray-50 border-0 focus:bg-white focus:ring-1 focus:ring-orange-200"
             />
           </div>
-          <button
-            ref={filterBtnRef}
-            type="button"
-            onClick={openFilter}
-            className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-              activeFilterCount(filters) > 0
-                ? "border-[#FF5000] text-[#FF5000] bg-[#FFF3EB]"
-                : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
-            }`}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filter
-            {activeFilterCount(filters) > 0 && (
-              <span className="ml-0.5 w-4 h-4 rounded-full bg-[#FF5000] text-white text-[10px] font-bold flex items-center justify-center">
-                {activeFilterCount(filters)}
-              </span>
+          <div className="relative">
+            <button
+              ref={filterBtnRef}
+              type="button"
+              onClick={openFilter}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                activeFilterCount(filters) > 0
+                  ? "border-[#FF5000] text-[#FF5000] bg-[#FFF3EB]"
+                  : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filter
+              {activeFilterCount(filters) > 0 && (
+                <span className="ml-0.5 w-4 h-4 rounded-full bg-[#FF5000] text-white text-[10px] font-bold flex items-center justify-center">
+                  {activeFilterCount(filters)}
+                </span>
+              )}
+            </button>
+
+            {/* Filter dropdown — positioned relative to button */}
+            {filterOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 z-50 w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-900">Filters</p>
+                    <button onClick={() => setFilterOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                  </div>
+
+                  <div className="px-4 py-4 space-y-5">
+                    {/* Outstanding Balance */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Outstanding Balance</p>
+                      <div className="flex flex-wrap gap-2">
+                        <FilterBtn label="Has Outstanding" active={draftFilters.outstanding === "has"} onClick={() => setDraftFilters(f => ({ ...f, outstanding: f.outstanding === "has" ? null : "has" }))} />
+                        <FilterBtn label="No Outstanding" active={draftFilters.outstanding === "none"} onClick={() => setDraftFilters(f => ({ ...f, outstanding: f.outstanding === "none" ? null : "none" }))} />
+                      </div>
+                    </div>
+
+                    {/* Rent Range */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Rent Range</p>
+                      <div className="flex flex-wrap gap-2">
+                        <FilterBtn label="Under ₦1m" active={draftFilters.rentRange === "under1m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "under1m" ? null : "under1m" }))} />
+                        <FilterBtn label="₦1m – ₦2m" active={draftFilters.rentRange === "1m-2m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "1m-2m" ? null : "1m-2m" }))} />
+                        <FilterBtn label="Above ₦2m" active={draftFilters.rentRange === "over2m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "over2m" ? null : "over2m" }))} />
+                      </div>
+                    </div>
+
+                    {/* Expiry */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tenancy End Date</p>
+                      <div className="flex flex-wrap gap-2">
+                        {([30, 60, 90] as const).map(d => (
+                          <FilterBtn key={d} label={`Expiring in ${d}d`} active={draftFilters.expiry === d} onClick={() => setDraftFilters(f => ({ ...f, expiry: f.expiry === d ? null : d }))} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-3 border-t border-gray-100 flex gap-2 justify-end">
+                    <button onClick={() => setDraftFilters(EMPTY_FILTERS)} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Reset</button>
+                    <button onClick={applyFilters} className="px-3 py-1.5 text-xs font-medium text-white bg-[#FF5000] rounded-lg hover:bg-[#e04600] transition-colors">Apply</button>
+                  </div>
+                </div>
+              </>
             )}
-          </button>
+          </div>
         </div>
 
         {/* Active filter chips */}
@@ -444,55 +495,6 @@ function TenancyListScreen({
           </div>
         )}
       </div>
-
-      {/* Filter dropdown panel */}
-      {filterOpen && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} />
-          <div className="fixed z-40 w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden" style={{ top: filterPos.top, left: filterPos.left }}>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-900">Filters</p>
-              <button onClick={() => setFilterOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-            </div>
-
-            <div className="px-4 py-4 space-y-5">
-              {/* Outstanding Balance */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Outstanding Balance</p>
-                <div className="flex flex-wrap gap-2">
-                  <FilterBtn label="Has Outstanding" active={draftFilters.outstanding === "has"} onClick={() => setDraftFilters(f => ({ ...f, outstanding: f.outstanding === "has" ? null : "has" }))} />
-                  <FilterBtn label="No Outstanding" active={draftFilters.outstanding === "none"} onClick={() => setDraftFilters(f => ({ ...f, outstanding: f.outstanding === "none" ? null : "none" }))} />
-                </div>
-              </div>
-
-              {/* Rent Range */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Rent Range</p>
-                <div className="flex flex-wrap gap-2">
-                  <FilterBtn label="Under ₦1m" active={draftFilters.rentRange === "under1m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "under1m" ? null : "under1m" }))} />
-                  <FilterBtn label="₦1m – ₦2m" active={draftFilters.rentRange === "1m-2m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "1m-2m" ? null : "1m-2m" }))} />
-                  <FilterBtn label="Above ₦2m" active={draftFilters.rentRange === "over2m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "over2m" ? null : "over2m" }))} />
-                </div>
-              </div>
-
-              {/* Expiry */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tenancy End Date</p>
-                <div className="flex flex-wrap gap-2">
-                  {([30, 60, 90] as const).map(d => (
-                    <FilterBtn key={d} label={`Expiring in ${d} Days`} active={draftFilters.expiry === d} onClick={() => setDraftFilters(f => ({ ...f, expiry: f.expiry === d ? null : d }))} />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-4 py-3 border-t border-gray-100 flex gap-2 justify-end">
-              <button onClick={() => { setDraftFilters(EMPTY_FILTERS); }} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Reset</button>
-              <button onClick={applyFilters} className="px-3 py-1.5 text-xs font-medium text-white bg-[#FF5000] rounded-lg hover:bg-[#e04600] transition-colors">Apply Filters</button>
-            </div>
-          </div>
-        </>
-      )}
 
       <div className="flex-1 overflow-y-auto">
         {sorted.length === 0 ? (
