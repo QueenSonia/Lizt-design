@@ -5,7 +5,7 @@ import {
   Search, ChevronRight, X, Phone, MessageSquare, FileText,
   Download, Upload, RefreshCw, Edit, AlertCircle, CheckCircle,
   Clock, Calendar, DollarSign, Building, User, Send,
-  ChevronLeft, MoreHorizontal, Paperclip, Receipt, Info, Plus, Trash2,
+  ChevronLeft, MoreHorizontal, Paperclip, Receipt, Info, Plus, Trash2, SlidersHorizontal,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -264,6 +264,34 @@ function useBillingOverride(tenancyId: string) {
 
 type SortColumn = "tenant" | "property" | "rent" | "outstanding" | "endDate" | null;
 type SortDir = "asc" | "desc";
+type OutstandingFilter = "has" | "none" | null;
+type RentRangeFilter = "under1m" | "1m-2m" | "over2m" | null;
+type ExpiryFilter = 30 | 60 | 90 | null;
+
+interface TenancyFilters {
+  outstanding: OutstandingFilter;
+  rentRange: RentRangeFilter;
+  expiry: ExpiryFilter;
+}
+
+const EMPTY_FILTERS: TenancyFilters = { outstanding: null, rentRange: null, expiry: null };
+
+function activeFilterCount(f: TenancyFilters) {
+  return [f.outstanding, f.rentRange, f.expiry].filter(Boolean).length;
+}
+
+function filterChips(f: TenancyFilters): { key: keyof TenancyFilters; label: string }[] {
+  const chips: { key: keyof TenancyFilters; label: string }[] = [];
+  if (f.outstanding === "has") chips.push({ key: "outstanding", label: "Has Outstanding Balance" });
+  if (f.outstanding === "none") chips.push({ key: "outstanding", label: "No Outstanding Balance" });
+  if (f.rentRange === "under1m") chips.push({ key: "rentRange", label: "Under ₦1,000,000" });
+  if (f.rentRange === "1m-2m") chips.push({ key: "rentRange", label: "₦1m – ₦2m" });
+  if (f.rentRange === "over2m") chips.push({ key: "rentRange", label: "Above ₦2,000,000" });
+  if (f.expiry === 30) chips.push({ key: "expiry", label: "Expiring in 30 Days" });
+  if (f.expiry === 60) chips.push({ key: "expiry", label: "Expiring in 60 Days" });
+  if (f.expiry === 90) chips.push({ key: "expiry", label: "Expiring in 90 Days" });
+  return chips;
+}
 
 function daysUntilExpiry(endDate: string): number {
   return Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
@@ -291,6 +319,9 @@ function TenancyListScreen({
   const userRole = user?.role ?? "landlord";
 
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<TenancyFilters>(EMPTY_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<TenancyFilters>(EMPTY_FILTERS);
   const [sortCol, setSortCol] = useState<SortColumn>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -303,11 +334,27 @@ function TenancyListScreen({
     }
   };
 
+  const openFilter = () => { setDraftFilters(filters); setFilterOpen(true); };
+  const applyFilters = () => { setFilters(draftFilters); setFilterOpen(false); };
+  const clearFilters = () => { setFilters(EMPTY_FILTERS); setFilterOpen(false); };
+  const removeChip = (key: keyof TenancyFilters) => setFilters(prev => ({ ...prev, [key]: null }));
+  const chips = filterChips(filters);
+
   const sorted = useMemo(() => {
     const base = MOCK_TENANCIES.filter((t) => {
       if (t.status === "ended") return false;
       const q = search.toLowerCase();
-      return !q || t.tenantName.toLowerCase().includes(q) || t.propertyName.toLowerCase().includes(q);
+      if (q && !t.tenantName.toLowerCase().includes(q) && !t.propertyName.toLowerCase().includes(q)) return false;
+      if (filters.outstanding === "has" && t.outstandingBalance <= 0) return false;
+      if (filters.outstanding === "none" && t.outstandingBalance > 0) return false;
+      if (filters.rentRange === "under1m" && t.rentAmount >= 1_000_000) return false;
+      if (filters.rentRange === "1m-2m" && (t.rentAmount < 1_000_000 || t.rentAmount > 2_000_000)) return false;
+      if (filters.rentRange === "over2m" && t.rentAmount <= 2_000_000) return false;
+      if (filters.expiry) {
+        const days = daysUntilExpiry(t.endDate);
+        if (days < 0 || days > filters.expiry) return false;
+      }
+      return true;
     });
     if (!sortCol) return base;
     return [...base].sort((a, b) => {
@@ -319,29 +366,129 @@ function TenancyListScreen({
       if (sortCol === "endDate") diff = new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
       return sortDir === "asc" ? diff : -diff;
     });
-  }, [search, sortCol, sortDir]);
+  }, [search, filters, sortCol, sortDir]);
+
+  function FilterBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+          active ? "border-[#FF5000] bg-[#FFF3EB] text-[#FF5000]" : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
       <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
-      {/* Search bar */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tenant or property…"
-            className="pl-10 bg-gray-50 border-0 focus:bg-white focus:ring-1 focus:ring-orange-200"
-          />
+      {/* Search + Filter bar */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search tenant or property…"
+              className="pl-10 bg-gray-50 border-0 focus:bg-white focus:ring-1 focus:ring-orange-200"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={openFilter}
+            className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+              activeFilterCount(filters) > 0
+                ? "border-[#FF5000] text-[#FF5000] bg-[#FFF3EB]"
+                : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filter
+            {activeFilterCount(filters) > 0 && (
+              <span className="ml-0.5 w-4 h-4 rounded-full bg-[#FF5000] text-white text-[10px] font-bold flex items-center justify-center">
+                {activeFilterCount(filters)}
+              </span>
+            )}
+          </button>
         </div>
+
+        {/* Active filter chips */}
+        {chips.length > 0 && (
+          <div className="flex flex-wrap gap-2 items-center">
+            {chips.map(({ key, label }) => (
+              <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-700 font-medium">
+                {label}
+                <button onClick={() => removeChip(key)} className="text-gray-400 hover:text-gray-600 ml-0.5">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            <button onClick={clearFilters} className="text-xs text-[#FF5000] hover:underline font-medium ml-1">
+              Clear All
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Filter dropdown panel */}
+      {filterOpen && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} />
+          <div className="absolute left-4 sm:left-6 top-auto z-40 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden" style={{ top: "auto" }}>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-900">Filters</p>
+              <button onClick={() => setFilterOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+            </div>
+
+            <div className="px-4 py-4 space-y-5">
+              {/* Outstanding Balance */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Outstanding Balance</p>
+                <div className="flex flex-wrap gap-2">
+                  <FilterBtn label="Has Outstanding" active={draftFilters.outstanding === "has"} onClick={() => setDraftFilters(f => ({ ...f, outstanding: f.outstanding === "has" ? null : "has" }))} />
+                  <FilterBtn label="No Outstanding" active={draftFilters.outstanding === "none"} onClick={() => setDraftFilters(f => ({ ...f, outstanding: f.outstanding === "none" ? null : "none" }))} />
+                </div>
+              </div>
+
+              {/* Rent Range */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Rent Range</p>
+                <div className="flex flex-wrap gap-2">
+                  <FilterBtn label="Under ₦1m" active={draftFilters.rentRange === "under1m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "under1m" ? null : "under1m" }))} />
+                  <FilterBtn label="₦1m – ₦2m" active={draftFilters.rentRange === "1m-2m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "1m-2m" ? null : "1m-2m" }))} />
+                  <FilterBtn label="Above ₦2m" active={draftFilters.rentRange === "over2m"} onClick={() => setDraftFilters(f => ({ ...f, rentRange: f.rentRange === "over2m" ? null : "over2m" }))} />
+                </div>
+              </div>
+
+              {/* Expiry */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tenancy End Date</p>
+                <div className="flex flex-wrap gap-2">
+                  {([30, 60, 90] as const).map(d => (
+                    <FilterBtn key={d} label={`Expiring in ${d} Days`} active={draftFilters.expiry === d} onClick={() => setDraftFilters(f => ({ ...f, expiry: f.expiry === d ? null : d }))} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 py-3 border-t border-gray-100 flex gap-2 justify-end">
+              <button onClick={() => { setDraftFilters(EMPTY_FILTERS); }} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Reset</button>
+              <button onClick={applyFilters} className="px-3 py-1.5 text-xs font-medium text-white bg-[#FF5000] rounded-lg hover:bg-[#e04600] transition-colors">Apply Filters</button>
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         {sorted.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-gray-500 text-sm">No active tenancies found.</p>
+            <p className="text-gray-700 text-sm font-medium mb-1">No tenancies found</p>
+            <p className="text-gray-400 text-xs">Try adjusting your search or filters.</p>
           </div>
         ) : (
           <>
