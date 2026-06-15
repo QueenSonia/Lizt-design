@@ -398,10 +398,10 @@ function TenancyListScreen({
       <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
       <div className="flex flex-col flex-1 overflow-hidden pt-[73px] lg:pt-[81px]">
-      {/* Search + Filter bar */}
-      <div className="shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
+      {/* Search + Filter toolbar */}
+      <div className="shrink-0 px-4 sm:px-6 py-4">
+        <div className="flex items-center gap-2 w-fit">
+          <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
               value={search}
