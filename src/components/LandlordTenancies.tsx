@@ -398,15 +398,15 @@ function TenancyListScreen({
       <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
       {/* Search + Filter bar — fixed below top nav */}
-      <div className="fixed top-[73px] lg:top-[81px] right-0 left-0 lg:left-72 z-10 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 space-y-3">
-        <div className="flex items-center gap-3">
+      <div className="fixed top-[73px] lg:top-[81px] right-0 left-0 lg:left-72 z-10 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 space-y-3">
+        <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by tenant or property"
-              className="pl-10 bg-gray-50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-orange-200 h-10"
+              className="pl-10 h-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-orange-200 text-sm"
             />
           </div>
           <div className="relative">
@@ -414,16 +414,17 @@ function TenancyListScreen({
               ref={filterBtnRef}
               type="button"
               onClick={openFilter}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+              title="Filter tenancies"
+              className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-sm font-medium transition-colors ${
                 activeFilterCount(filters) > 0
                   ? "border-[#FF5000] text-[#FF5000] bg-[#FFF3EB]"
-                  : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+                  : "border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-white"
               }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
-              Filter
+              <span className="hidden sm:inline">Filter</span>
               {activeFilterCount(filters) > 0 && (
-                <span className="ml-0.5 w-4 h-4 rounded-full bg-[#FF5000] text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="w-4 h-4 rounded-full bg-[#FF5000] text-white text-[10px] font-bold flex items-center justify-center">
                   {activeFilterCount(filters)}
                 </span>
               )}
@@ -500,7 +501,7 @@ function TenancyListScreen({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto pt-[89px]">
+      <div className="flex-1 overflow-y-auto pt-[84px]">
         {sorted.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-700 text-sm font-medium mb-1">No tenancies found</p>
