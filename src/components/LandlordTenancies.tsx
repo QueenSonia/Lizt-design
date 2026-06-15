@@ -502,17 +502,18 @@ function TenancyListScreen({
       </div>
 
       <div className="flex-1 overflow-y-auto pt-[84px]">
+        <div className="px-4 sm:px-6 py-5">
         {sorted.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
             <p className="text-gray-700 text-sm font-medium mb-1">No tenancies found</p>
             <p className="text-gray-400 text-xs">Try adjusting your search or filters.</p>
           </div>
         ) : (
           <>
             {/* ── Desktop table ── */}
-            <div className="hidden sm:block">
+            <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-white border-b border-gray-200 sticky top-0 z-10">
+                <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="text-left px-6 py-3">
                       <button onClick={() => handleSort("tenant")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
@@ -576,12 +577,12 @@ function TenancyListScreen({
             </div>
 
             {/* ── Mobile cards ── */}
-            <div className="sm:hidden divide-y divide-gray-100">
+            <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
               {sorted.map((t) => (
                 <div
                   key={t.id}
                   onClick={() => onSelect(t)}
-                  className="bg-white px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
@@ -611,6 +612,7 @@ function TenancyListScreen({
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );
