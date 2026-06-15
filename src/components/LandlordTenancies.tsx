@@ -409,7 +409,7 @@ function TenancyListScreen({
         </div>
 
         {/* Search + filter row */}
-        <div className="px-4 lg:px-8 pb-4 flex items-center gap-2">
+        <div className="px-4 lg:px-8 pb-5 flex items-center gap-2">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
@@ -511,8 +511,8 @@ function TenancyListScreen({
         )}
       </div>{/* end unified header */}
 
-      <div className="flex-1 overflow-y-auto lg:pt-[130px]">
-        <div className="px-4 sm:px-6 py-5">
+      <div className="flex-1 overflow-y-auto lg:pt-[134px]">
+        <div className="px-4 sm:px-6 pt-6 pb-5">
         {sorted.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
             <p className="text-gray-700 text-sm font-medium mb-1">No tenancies found</p>
