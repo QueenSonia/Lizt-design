@@ -1,6 +1,6 @@
 /* eslint-disable */
 "use client";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import {
   Search, ChevronRight, X, Phone, MessageSquare, FileText,
   Download, Upload, RefreshCw, Edit, AlertCircle, CheckCircle,
@@ -322,6 +322,8 @@ function TenancyListScreen({
   const [filters, setFilters] = useState<TenancyFilters>(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<TenancyFilters>(EMPTY_FILTERS);
+  const filterBtnRef = useRef<HTMLButtonElement>(null);
+  const [filterPos, setFilterPos] = useState({ top: 0, left: 0 });
   const [sortCol, setSortCol] = useState<SortColumn>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -334,7 +336,14 @@ function TenancyListScreen({
     }
   };
 
-  const openFilter = () => { setDraftFilters(filters); setFilterOpen(true); };
+  const openFilter = () => {
+    if (filterBtnRef.current) {
+      const rect = filterBtnRef.current.getBoundingClientRect();
+      setFilterPos({ top: rect.bottom + 8, left: rect.left });
+    }
+    setDraftFilters(filters);
+    setFilterOpen(true);
+  };
   const applyFilters = () => { setFilters(draftFilters); setFilterOpen(false); };
   const clearFilters = () => { setFilters(EMPTY_FILTERS); setFilterOpen(false); };
   const removeChip = (key: keyof TenancyFilters) => setFilters(prev => ({ ...prev, [key]: null }));
@@ -399,6 +408,7 @@ function TenancyListScreen({
             />
           </div>
           <button
+            ref={filterBtnRef}
             type="button"
             onClick={openFilter}
             className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
@@ -439,7 +449,7 @@ function TenancyListScreen({
       {filterOpen && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} />
-          <div className="absolute left-4 sm:left-6 top-auto z-40 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden" style={{ top: "auto" }}>
+          <div className="fixed z-40 w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden" style={{ top: filterPos.top, left: filterPos.left }}>
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <p className="text-sm font-semibold text-gray-900">Filters</p>
               <button onClick={() => setFilterOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
