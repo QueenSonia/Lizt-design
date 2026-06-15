@@ -397,8 +397,8 @@ function TenancyListScreen({
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
       <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
-      {/* Search + Filter bar */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 space-y-3">
+      {/* Search + Filter bar — fixed below top nav */}
+      <div className="fixed top-[73px] lg:top-[81px] right-0 left-0 lg:left-72 z-10 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 space-y-3">
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -500,7 +500,7 @@ function TenancyListScreen({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pt-[73px]">
         {sorted.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-700 text-sm font-medium mb-1">No tenancies found</p>
