@@ -397,8 +397,8 @@ function TenancyListScreen({
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
       <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
-      {/* Search + Filter bar — fixed below top nav */}
-      <div className="fixed top-[73px] lg:top-[81px] right-0 left-0 lg:left-72 z-10 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 space-y-3">
+      {/* Search + Filter bar — flows naturally below top nav */}
+      <div className="shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 space-y-3">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -501,7 +501,7 @@ function TenancyListScreen({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto pt-[84px]">
+      <div className="flex-1 overflow-y-auto">
         <div className="px-4 sm:px-6 py-5">
         {sorted.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
@@ -513,7 +513,7 @@ function TenancyListScreen({
             {/* ── Desktop table ── */}
             <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
                     <th className="text-left px-6 py-3">
                       <button onClick={() => handleSort("tenant")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
