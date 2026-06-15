@@ -397,7 +397,7 @@ function TenancyListScreen({
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
 
       {/* Unified header — title + search + filter */}
-      <div className="lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white border-b border-slate-200 shadow-sm">
+      <div className="lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white shadow-sm">
         {/* Title row */}
         <div className="px-4 lg:px-8 py-4 flex items-center gap-3">
           {isMobile && onMenuClick && (
@@ -408,8 +408,10 @@ function TenancyListScreen({
           <h1 className="text-lg font-semibold text-slate-900">Tenancies</h1>
         </div>
 
+        <hr className="border-slate-200" />
+
         {/* Search + filter row */}
-        <div className="px-4 lg:px-8 pb-5 flex items-center gap-2">
+        <div className="px-4 lg:px-8 py-4 flex items-center gap-2">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
