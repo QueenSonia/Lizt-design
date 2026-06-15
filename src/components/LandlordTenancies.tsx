@@ -397,7 +397,8 @@ function TenancyListScreen({
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
       <LandlordTopNav title="Tenancies" onMenuClick={onMenuClick} isMobile={isMobile} />
 
-      {/* Search + Filter bar — flows naturally below top nav */}
+      <div className="flex flex-col flex-1 overflow-hidden pt-[73px] lg:pt-[81px]">
+      {/* Search + Filter bar */}
       <div className="shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 space-y-3">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -613,6 +614,7 @@ function TenancyListScreen({
           </>
         )}
         </div>
+      </div>
       </div>
     </div>
   );
