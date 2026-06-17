@@ -217,8 +217,11 @@ function InvoiceDrawer({
 }) {
   const [showPreview, setShowPreview] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isPaid, setIsPaid] = useState(invoice.status === "paid");
   const lineTotal = invoice.lines.reduce((s, l) => s + l.amount, 0);
   const displayTotal = invoice.total ?? lineTotal;
+  const effectiveStatus = isPaid ? "paid" : invoice.status;
 
   const receiptData: ReceiptData = {
     receiptNumber: `RCPT-${invoice.id.replace("inv-", "").padStart(4, "0")}`,
@@ -253,8 +256,8 @@ function InvoiceDrawer({
               <div>
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-gray-900">{invoice.description}</p>
-                  <Badge className={`text-xs rounded-full px-2 py-0.5 font-medium ${STATUS_STYLES[invoice.status]}`}>
-                    {invoice.status === "upcoming" ? "Upcoming" : invoice.status === "paid" ? "Paid" : "Overdue"}
+                  <Badge className={`text-xs rounded-full px-2 py-0.5 font-medium ${STATUS_STYLES[effectiveStatus]}`}>
+                    {effectiveStatus === "upcoming" ? "Upcoming" : effectiveStatus === "paid" ? "Paid" : "Overdue"}
                   </Badge>
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">Invoice issued on {formatDate(invoice.dueDate)}</p>
@@ -280,7 +283,7 @@ function InvoiceDrawer({
             </div>
             <div>
               <p className="text-xs text-gray-400 mb-1">Status</p>
-              <p className="text-sm font-semibold text-gray-900 capitalize">{invoice.status}</p>
+              <p className="text-sm font-semibold text-gray-900 capitalize">{effectiveStatus}</p>
             </div>
           </div>
 
@@ -318,7 +321,7 @@ function InvoiceDrawer({
               <FileText className="w-4 h-4 mr-2" />
               View Invoice
             </Button>
-            {invoice.status === "paid" && (
+            {effectiveStatus === "paid" && (
               <Button
                 variant="outline"
                 className="w-full border-gray-200 text-gray-700 hover:bg-gray-50"
@@ -328,8 +331,11 @@ function InvoiceDrawer({
                 View Receipt
               </Button>
             )}
-            {invoice.status !== "paid" && (
-              <Button className="w-full bg-[#FF5000] hover:bg-[#e04600] text-white">
+            {effectiveStatus !== "paid" && (
+              <Button
+                className="w-full bg-[#FF5000] hover:bg-[#e04600] text-white"
+                onClick={() => setShowConfirm(true)}
+              >
                 Mark as Paid
               </Button>
             )}
@@ -352,6 +358,44 @@ function InvoiceDrawer({
           onClose={() => setShowReceipt(false)}
           data={receiptData}
         />
+      )}
+
+      {/* Mark as Paid confirmation modal */}
+      {showConfirm && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-[60]" onClick={() => setShowConfirm(false)} />
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+              <h2 className="text-base font-semibold text-gray-900 mb-2">Mark Invoice as Paid?</h2>
+              <p className="text-sm text-gray-500 mb-4">You are about to mark this invoice as paid. This action will:</p>
+              <ul className="text-sm text-gray-600 space-y-1.5 mb-6 pl-4 list-disc">
+                <li>Update the invoice status to Paid</li>
+                <li>Generate a payment receipt</li>
+                <li>Record the payment in the invoice history</li>
+              </ul>
+              <p className="text-sm text-gray-500 mb-6">Are you sure you want to continue?</p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 border-gray-200 text-gray-700"
+                  onClick={() => setShowConfirm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white"
+                  onClick={() => {
+                    setIsPaid(true);
+                    setShowConfirm(false);
+                    setShowReceipt(true);
+                  }}
+                >
+                  Confirm Payment
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </>
   );
