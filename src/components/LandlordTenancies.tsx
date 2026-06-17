@@ -647,10 +647,12 @@ type DetailTab = "overview";
 function TenancyDetailScreen({
   tenancy,
   onBack,
+  onOpenSettings,
   isMobile,
 }: {
   tenancy: Tenancy;
   onBack: () => void;
+  onOpenSettings: (t: Tenancy) => void;
   isMobile?: boolean;
 }) {
   const router = useRouter();
@@ -663,7 +665,6 @@ function TenancyDetailScreen({
   const [showEndTenancyModal, setShowEndTenancyModal] = useState(false);
   const [showRenewTenancyModal, setShowRenewTenancyModal] = useState(false);
   const [showEditTenancyModal, setShowEditTenancyModal] = useState(false);
-  const [showTenancySettings, setShowTenancySettings] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceStep, setInvoiceStep] = useState<"form" | "preview">("form");
   const [invoiceForm, setInvoiceForm] = useState<{
@@ -805,7 +806,7 @@ function TenancyDetailScreen({
                     <DropdownMenuItem onClick={() => setShowEditTenancyModal(true)} className="gap-2 cursor-pointer text-gray-700">
                       <Edit className="w-4 h-4 text-gray-400" /> Edit Tenancy
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowTenancySettings(true)} className="gap-2 cursor-pointer text-gray-700">
+                    <DropdownMenuItem onClick={() => onOpenSettings(tenancy)} className="gap-2 cursor-pointer text-gray-700">
                       <Settings className="w-4 h-4 text-gray-400" /> Tenancy Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -955,36 +956,6 @@ function TenancyDetailScreen({
 
 
       </div>
-
-      {/* Tenancy Settings — full-screen page */}
-      {showTenancySettings && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[#F8F7F4] overflow-hidden">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center gap-3 shrink-0">
-            <button
-              onClick={() => setShowTenancySettings(false)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Tenancy Settings</p>
-              <p className="text-xs text-gray-400 mt-0.5">{tenancy.tenantName} · {tenancy.propertyName}</p>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="px-4 sm:px-6 py-6">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-5">Rent Reminders</p>
-              <TenancyReminderSettings
-                propertyName={tenancy.propertyName}
-                tenantName={tenancy.tenantName}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* End Tenancy Modal */}
       <EndTenancyModal
@@ -1307,12 +1278,45 @@ interface LandlordTenanciesProps {
 
 export default function LandlordTenancies({ onMenuClick, isMobile }: LandlordTenanciesProps) {
   const [selected, setSelected] = useState<Tenancy | null>(null);
+  const [settingsTenancy, setSettingsTenancy] = useState<Tenancy | null>(null);
+
+  if (settingsTenancy) {
+    return (
+      <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => setSettingsTenancy(null)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Tenancy Settings</p>
+            <p className="text-xs text-gray-400 mt-0.5">{settingsTenancy.tenantName} · {settingsTenancy.propertyName}</p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+          <div className="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-5">Rent Reminders</p>
+            <TenancyReminderSettings
+              propertyName={settingsTenancy.propertyName}
+              tenantName={settingsTenancy.tenantName}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (selected) {
     return (
       <TenancyDetailScreen
         tenancy={selected}
         onBack={() => setSelected(null)}
+        onOpenSettings={(t) => setSettingsTenancy(t)}
         isMobile={isMobile}
       />
     );
