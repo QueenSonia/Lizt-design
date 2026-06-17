@@ -868,47 +868,22 @@ function TenancyDetailScreen({
 
               <p className="text-sm text-gray-900 mb-2">
                 The tenant is expected to pay{" "}
-                <span className="font-semibold">{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
-                {" "}
                 <button
                   type="button"
-                  onClick={() => setShowBillingBreakdown(v => !v)}
-                  className="inline-flex items-center ml-0.5 text-gray-400 hover:text-gray-600 transition-colors align-middle"
-                  aria-label="View billing breakdown"
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      property: tenancy.propertyName,
+                      tenant: tenancy.tenantName,
+                      tab: "invoices",
+                    });
+                    router.push(`/landlord/invoices?${params.toString()}`);
+                  }}
+                  className="font-semibold text-gray-900 underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all"
                 >
-                  <Info className="w-4 h-4" />
+                  {fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}
                 </button>
                 {" "}by {fmtDate(tenancy.endDate)}.
               </p>
-
-              {showBillingBreakdown && (
-                <div className="mb-4 max-w-lg">
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm space-y-2">
-                    <div className="flex justify-between text-gray-700">
-                      <span>Rent</span>
-                      <span className="font-medium">{fmtCurrency(effectiveRent)}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-700">
-                      <span>Service Charge</span>
-                      <span className="font-medium">₦50,000</span>
-                    </div>
-                    <div className="flex justify-between text-gray-700">
-                      <span>Legal Fee</span>
-                      <span className="font-medium">₦30,000</span>
-                    </div>
-                    {effectiveServiceCharge > 0 && (
-                      <div className="flex justify-between text-gray-700">
-                        <span>Additional Service Charge</span>
-                        <span className="font-medium">{fmtCurrency(effectiveServiceCharge)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1.5">
-                      <span>Total</span>
-                      <span>{fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <button
                 type="button"
