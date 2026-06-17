@@ -639,7 +639,7 @@ function OverviewTab({ propertyName, tenantName }: { propertyName: string; tenan
   }
 
   return (
-    <div className="space-y-6 py-6 max-w-2xl">
+    <div className="space-y-6 pb-6">
 
       {/* Header card — toggle + send now */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

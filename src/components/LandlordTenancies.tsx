@@ -974,12 +974,14 @@ function TenancyDetailScreen({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-w-2xl w-full mx-auto">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Rent Reminders</p>
-            <TenancyReminderSettings
-              propertyName={tenancy.propertyName}
-              tenantName={tenancy.tenantName}
-            />
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-4 sm:px-6 py-6">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-5">Rent Reminders</p>
+              <TenancyReminderSettings
+                propertyName={tenancy.propertyName}
+                tenantName={tenancy.tenantName}
+              />
+            </div>
           </div>
         </div>
       )}
