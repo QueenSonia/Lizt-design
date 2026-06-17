@@ -956,31 +956,32 @@ function TenancyDetailScreen({
 
       </div>
 
-      {/* Tenancy Settings slide-over */}
+      {/* Tenancy Settings — full-screen page */}
       {showTenancySettings && (
-        <>
-          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setShowTenancySettings(false)} />
-          <div className="fixed top-0 right-0 h-full w-full sm:w-[480px] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
-              <div>
-                <p className="text-base font-semibold text-gray-900">Tenancy Settings</p>
-                <p className="text-xs text-gray-400 mt-0.5">{tenancy.tenantName} · {tenancy.propertyName}</p>
-              </div>
-              <button onClick={() => setShowTenancySettings(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6">
-              <div className="pt-2 pb-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-4 pb-2">Rent Reminders</p>
-              </div>
-              <TenancyReminderSettings
-                propertyName={tenancy.propertyName}
-                tenantName={tenancy.tenantName}
-              />
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#F8F7F4] overflow-hidden">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => setShowTenancySettings(false)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Tenancy Settings</p>
+              <p className="text-xs text-gray-400 mt-0.5">{tenancy.tenantName} · {tenancy.propertyName}</p>
             </div>
           </div>
-        </>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-w-2xl w-full mx-auto">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Rent Reminders</p>
+            <TenancyReminderSettings
+              propertyName={tenancy.propertyName}
+              tenantName={tenancy.tenantName}
+            />
+          </div>
+        </div>
       )}
 
       {/* End Tenancy Modal */}
