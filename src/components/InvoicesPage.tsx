@@ -601,17 +601,22 @@ function OverviewTab({ propertyName, tenantName }: { propertyName: string; tenan
   ]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addingNew, setAddingNew] = useState(false);
-  const [previewRuleId, setPreviewRuleId] = useState<string>("r2");
+  type MsgType = "renewal" | "pre-expiry" | "post-expiry";
+  const [previewMsgType, setPreviewMsgType] = useState<MsgType>("renewal");
 
-  const previewRule = rules.find(r => r.id === previewRuleId) ?? rules[0];
+  const MSG_TYPE_LABELS: Record<MsgType, string> = {
+    "renewal": "Renewal Reminder",
+    "pre-expiry": "Pre-Expiry Reminder",
+    "post-expiry": "Post-Expiry Reminder",
+  };
 
-  const previewText = previewRule
-    ? previewRule.dir === "on"
-      ? `Hi ${tenantName || "there"}, your rent for ${propertyName || "your property"} is due today. Please ensure payment is made. Thank you.`
-      : previewRule.dir === "before"
-      ? `Hi ${tenantName || "there"}, this is a reminder that your rent for ${propertyName || "your property"} is due in ${previewRule.days} day${previewRule.days !== 1 ? "s" : ""}. Please ensure payment is made on time. Thank you.`
-      : `Hi ${tenantName || "there"}, your rent for ${propertyName || "your property"} was due ${previewRule.days} day${previewRule.days !== 1 ? "s" : ""} ago. Please make payment as soon as possible.`
-    : "";
+  const MSG_PREVIEWS: Record<MsgType, string> = {
+    "renewal": `Hi ${tenantName || "{{1}}"},\n\nThis is a friendly reminder that your tenancy for ${propertyName || "{{2}}"} {{3}}.\n\nYour landlord has provided an offer for a new tenancy period. Please tap on the link to review.`,
+    "pre-expiry": `Hi ${tenantName || "{{1}}"},\n\nThis is a friendly reminder that your next {{2}} rent for ${propertyName || "{{3}}"} {{4}}.\n\nAmount due: {{5}}\n\nPlease use the link below to view your invoice and complete your payment.`,
+    "post-expiry": `Hello ${tenantName || "{{1}}"},\n\nThis is a reminder that we haven't received your payment of {{2}} for the tenancy period of {{3}} for ${propertyName || "{{4}}"}, which was due {{5}}.\n\nWe'd like you to maintain a good payment history and relationship with us.\n\nPlease tap on the link below to view your invoice and make payment.`,
+  };
+
+  const previewText = MSG_PREVIEWS[previewMsgType];
 
   const upcomingReminders = rules
     .map(r => ({ rule: r, date: scheduleDate(r, RENT_DUE) }))
@@ -727,19 +732,19 @@ function OverviewTab({ propertyName, tenantName }: { propertyName: string; tenan
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <p className="text-sm font-semibold text-gray-900">Message Preview</p>
-          {rules.length > 0 && (
-            <select
-              value={previewRuleId}
-              onChange={e => setPreviewRuleId(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#FF5000] text-gray-600"
-            >
-              {rules.map(r => <option key={r.id} value={r.id}>{offsetLabel(r)}</option>)}
-            </select>
-          )}
+          <select
+            value={previewMsgType}
+            onChange={e => setPreviewMsgType(e.target.value as MsgType)}
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#FF5000] text-gray-600"
+          >
+            {(Object.entries(MSG_TYPE_LABELS) as [MsgType, string][]).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
         </div>
         <div className="px-5 py-4">
           <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm">
-            <p className="text-sm text-gray-800 leading-relaxed">{previewText}</p>
+            <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">{previewText}</p>
             <p className="text-xs text-gray-400 text-right mt-1">via WhatsApp</p>
           </div>
         </div>
