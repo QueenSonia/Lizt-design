@@ -803,9 +803,6 @@ export default function InvoicesPage() {
   const searchParams = useSearchParams();
   const propertyName = searchParams.get("property") || "";
   const tenantName = searchParams.get("tenant") || "";
-  const defaultTab = (searchParams.get("tab") as "reminders" | "invoices") || "invoices";
-  const [activeTab, setActiveTab] = useState<"reminders" | "invoices">(defaultTab);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -818,36 +815,18 @@ export default function InvoicesPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-base font-semibold text-gray-900">Billing</h1>
+            <h1 className="text-base font-semibold text-gray-900">Invoices</h1>
             {propertyName && <p className="text-xs text-gray-400 leading-none mt-0.5">{propertyName}</p>}
           </div>
         </div>
       </div>
 
       <div className="max-w-5xl px-4 sm:px-6 py-4">
-        <div className="flex gap-1 border-b border-gray-200 mb-2">
-          {(["reminders", "invoices"] as const).map(tab => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
-                activeTab === tab
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              {tab === "reminders" ? "Rent Reminder Settings" : "Invoices"}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === "invoices" ? (
-          <InvoicesTab propertyName={propertyName} tenantName={tenantName} />
-        ) : (
-          <OverviewTab propertyName={propertyName} tenantName={tenantName} />
-        )}
+        <InvoicesTab propertyName={propertyName} tenantName={tenantName} />
       </div>
     </div>
   );
 }
+
+// ── Tenancy Settings (Rent Reminders) — used from Tenancy Detail ──────────────
+export { OverviewTab as TenancyReminderSettings };

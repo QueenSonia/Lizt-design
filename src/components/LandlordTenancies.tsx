@@ -6,7 +6,7 @@ import {
   Search, ChevronRight, X, Phone, MessageSquare, FileText,
   Download, Upload, RefreshCw, Edit, AlertCircle, CheckCircle,
   Clock, Calendar, DollarSign, Building, User, Send,
-  ChevronLeft, MoreHorizontal, Paperclip, Receipt, Info, Plus, Trash2, SlidersHorizontal,
+  ChevronLeft, MoreHorizontal, Paperclip, Receipt, Info, Plus, Trash2, SlidersHorizontal, Settings,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
 import { EndTenancyModal } from "./EndTenancyModal";
 import { RenewTenancyScreen, type RenewTenancyData } from "./RenewTenancyScreen";
+import { TenancyReminderSettings } from "./InvoicesPage";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -662,6 +663,7 @@ function TenancyDetailScreen({
   const [showEndTenancyModal, setShowEndTenancyModal] = useState(false);
   const [showRenewTenancyModal, setShowRenewTenancyModal] = useState(false);
   const [showEditTenancyModal, setShowEditTenancyModal] = useState(false);
+  const [showTenancySettings, setShowTenancySettings] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceStep, setInvoiceStep] = useState<"form" | "preview">("form");
   const [invoiceForm, setInvoiceForm] = useState<{
@@ -802,6 +804,9 @@ function TenancyDetailScreen({
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowEditTenancyModal(true)} className="gap-2 cursor-pointer text-gray-700">
                       <Edit className="w-4 h-4 text-gray-400" /> Edit Tenancy
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowTenancySettings(true)} className="gap-2 cursor-pointer text-gray-700">
+                      <Settings className="w-4 h-4 text-gray-400" /> Tenancy Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => setShowEndTenancyModal(true)} className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
@@ -950,6 +955,33 @@ function TenancyDetailScreen({
 
 
       </div>
+
+      {/* Tenancy Settings slide-over */}
+      {showTenancySettings && (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setShowTenancySettings(false)} />
+          <div className="fixed top-0 right-0 h-full w-full sm:w-[480px] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
+              <div>
+                <p className="text-base font-semibold text-gray-900">Tenancy Settings</p>
+                <p className="text-xs text-gray-400 mt-0.5">{tenancy.tenantName} · {tenancy.propertyName}</p>
+              </div>
+              <button onClick={() => setShowTenancySettings(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6">
+              <div className="pt-2 pb-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-4 pb-2">Rent Reminders</p>
+              </div>
+              <TenancyReminderSettings
+                propertyName={tenancy.propertyName}
+                tenantName={tenancy.tenantName}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* End Tenancy Modal */}
       <EndTenancyModal
