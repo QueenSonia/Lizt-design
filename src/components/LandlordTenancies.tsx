@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
 import { EndTenancyModal } from "./EndTenancyModal";
 import { RenewTenancyScreen, type RenewTenancyData } from "./RenewTenancyScreen";
-import { TenancyReminderSettings } from "./InvoicesPage";
+import { TenancyReminderSettings, InvoiceDrawer, MOCK_INVOICES, type Invoice } from "./InvoicesPage";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -663,6 +663,8 @@ function TenancyDetailScreen({
   const [editBillingOpen, setEditBillingOpen] = useState(false);
   const [showBillingBreakdown, setShowBillingBreakdown] = useState(false);
   const [showEndTenancyModal, setShowEndTenancyModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const upcomingInvoice = MOCK_INVOICES.find(i => i.status === "upcoming") ?? MOCK_INVOICES[0];
   const [showRenewTenancyModal, setShowRenewTenancyModal] = useState(false);
   const [showEditTenancyModal, setShowEditTenancyModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -870,14 +872,7 @@ function TenancyDetailScreen({
                 The tenant is expected to pay{" "}
                 <button
                   type="button"
-                  onClick={() => {
-                    const params = new URLSearchParams({
-                      property: tenancy.propertyName,
-                      tenant: tenancy.tenantName,
-                      tab: "invoices",
-                    });
-                    router.push(`/landlord/invoices?${params.toString()}`);
-                  }}
+                  onClick={() => setSelectedInvoice(upcomingInvoice)}
                   className="font-semibold text-gray-900 underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all"
                 >
                   {fmtCurrency(effectiveRent + (effectiveServiceCharge ?? 0))}
@@ -931,6 +926,16 @@ function TenancyDetailScreen({
 
 
       </div>
+
+      {/* Invoice Detail Drawer */}
+      {selectedInvoice && (
+        <InvoiceDrawer
+          invoice={selectedInvoice}
+          propertyName={tenancy.propertyName}
+          tenantName={tenancy.tenantName}
+          onClose={() => setSelectedInvoice(null)}
+        />
+      )}
 
       {/* End Tenancy Modal */}
       <EndTenancyModal

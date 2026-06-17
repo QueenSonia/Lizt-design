@@ -16,7 +16,7 @@ interface InvoiceLine {
   amount: number;
 }
 
-interface Invoice {
+export interface Invoice {
   id: string;
   dueDate: string;
   description: string;
@@ -26,7 +26,7 @@ interface Invoice {
   periodEnd: string;
 }
 
-const MOCK_INVOICES: Invoice[] = [
+export const MOCK_INVOICES: Invoice[] = [
   {
     id: "inv-001", dueDate: "2026-05-17", description: "Rent Invoice", status: "upcoming", total: null,
     lines: [{ name: "Rent", amount: 1800000 }, { name: "Service Charge", amount: 250000 }],
@@ -204,7 +204,7 @@ function InvoicePreviewModal({
 
 // ── Invoice Drawer ────────────────────────────────────────────────────────────
 
-function InvoiceDrawer({
+export function InvoiceDrawer({
   invoice,
   propertyName,
   tenantName,
