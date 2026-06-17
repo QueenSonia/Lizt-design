@@ -636,8 +636,6 @@ function OverviewTab({ propertyName, tenantName }: { propertyName: string; tenan
   return (
     <div className="space-y-6 py-6 max-w-2xl">
 
-      <p className="text-xs text-gray-400 -mt-2 mb-2">Applies to rent payments only</p>
-
       {/* Header card — toggle + send now */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {/* Toggle */}
