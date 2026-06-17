@@ -847,16 +847,10 @@ function TenancyDetailScreen({
               </div>
             </div>
 
-            {/* Billing + Payment Plans (merged) */}
+            {/* Next Invoice */}
             <div className="pt-8 border-t border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-baseline gap-1.5">
-                  <p className="text-xl font-bold text-gray-900">Billing</p>
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
-                    <span>·</span>
-                    <button type="button" onClick={() => setEditBillingOpen(true)} className="font-medium text-[#FF5000] hover:underline transition-colors">Edit</button>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xl font-bold text-gray-900">Next Invoice</p>
                 <Button
                   size="sm"
                   className="bg-[#FF5000] hover:bg-[#e04600] text-white shrink-0"
@@ -910,57 +904,46 @@ function TenancyDetailScreen({
                 </div>
               )}
 
-              <div className="mb-6" />
+              <button
+                type="button"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    property: tenancy.propertyName,
+                    tenant: tenancy.tenantName,
+                    tab: "invoices",
+                  });
+                  router.push(`/landlord/invoices?${params.toString()}`);
+                }}
+                className="flex items-center gap-1 text-left group cursor-pointer mb-8"
+              >
+                <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">View All Invoices</span>
+                <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
 
-              {/* Payment Plans sub-link */}
-              <div className="mb-6">
-                <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide font-medium">Payment Plans</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const charges = [
-                      { name: "Rent", amount: effectiveRent },
-                      ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
-                      { name: "Legal Fee", amount: 30000 },
-                    ];
-                    const params = new URLSearchParams({
-                      property: tenancy.propertyName,
-                      tenant: tenancy.tenantId,
-                      charges: JSON.stringify(charges),
-                    });
-                    router.push(`/landlord/payment-plans?${params.toString()}`);
-                  }}
-                  className="flex items-center gap-1 text-left group cursor-pointer"
-                >
-                  <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">View Payment Plans</span>
-                  <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                </button>
-              </div>
-
-              {/* Next Invoice Amount + View All Invoices */}
-              <hr className="border-0 border-t border-gray-200 my-5" />
-              <div className="sm:max-w-[340px] flex flex-col gap-4">
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">Next Invoice Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">₦600,000</p>
-                  <p className="text-sm text-gray-500 mt-1">Next invoice is due {fmtDate(tenancy.endDate)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const params = new URLSearchParams({
-                      property: tenancy.propertyName,
-                      tenant: tenancy.tenantName,
-                      tab: "invoices",
-                    });
-                    router.push(`/landlord/invoices?${params.toString()}`);
-                  }}
-                  className="w-full border border-gray-200 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  View all invoices
-                </button>
-              </div>
-
+            {/* Payment Plans */}
+            <div className="pt-8 border-t border-gray-100">
+              <p className="text-xl font-bold text-gray-900 mb-3">Payment Plans</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const charges = [
+                    { name: "Rent", amount: effectiveRent },
+                    ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
+                    { name: "Legal Fee", amount: 30000 },
+                  ];
+                  const params = new URLSearchParams({
+                    property: tenancy.propertyName,
+                    tenant: tenancy.tenantId,
+                    charges: JSON.stringify(charges),
+                  });
+                  router.push(`/landlord/payment-plans?${params.toString()}`);
+                }}
+                className="flex items-center gap-1 text-left group cursor-pointer"
+              >
+                <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">View Payment Plans</span>
+                <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
             </div>
           </div>
         )}
