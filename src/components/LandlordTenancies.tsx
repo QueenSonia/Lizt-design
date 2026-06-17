@@ -263,7 +263,7 @@ function useBillingOverride(tenancyId: string) {
 
 // ── Tenancy List ──────────────────────────────────────────────────────────────
 
-type SortColumn = "tenant" | "property" | "rent" | "outstanding" | "endDate" | null;
+type SortColumn = "tenant" | "property" | "rent" | "outstanding" | "endDate" | "daysLeft" | null;
 type SortDir = "asc" | "desc";
 type OutstandingFilter = "has" | "none" | null;
 type RentRangeFilter = "under1m" | "1m-2m" | "over2m" | null;
@@ -298,11 +298,12 @@ function daysUntilExpiry(endDate: string): number {
   return Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
 }
 
-function ExpiryLabel({ endDate }: { endDate: string }) {
+function DaysLeftCell({ endDate }: { endDate: string }) {
   const days = daysUntilExpiry(endDate);
-  if (days <= 0) return <span className="text-xs text-red-500 ml-1">· Expired</span>;
-  if (days <= 60) return <span className="text-xs text-amber-500 ml-1">· Expires in {days}d</span>;
-  return null;
+  if (days <= 0) return <span className="text-red-500 font-medium">Expired</span>;
+  if (days <= 7) return <span className="text-red-500">{days} Days</span>;
+  if (days <= 30) return <span className="text-amber-500">{days} Days</span>;
+  return <span className="text-gray-700">{days} Days</span>;
 }
 
 
@@ -375,6 +376,7 @@ function TenancyListScreen({
       if (sortCol === "rent") diff = a.rentAmount - b.rentAmount;
       if (sortCol === "outstanding") diff = a.outstandingBalance - b.outstandingBalance;
       if (sortCol === "endDate") diff = new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+      if (sortCol === "daysLeft") diff = daysUntilExpiry(a.endDate) - daysUntilExpiry(b.endDate);
       return sortDir === "asc" ? diff : -diff;
     });
   }, [search, filters, sortCol, sortDir]);
@@ -543,9 +545,14 @@ function TenancyListScreen({
                       <button onClick={() => handleSort("outstanding")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
                         Outstanding                      </button>
                     </th>
-                    <th className="text-left px-4 py-3 pr-6">
+                    <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("endDate")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
                         End Date                      </button>
+                    </th>
+                    <th className="text-left px-4 py-3 pr-6">
+                      <button onClick={() => handleSort("daysLeft")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                        Days Left
+                      </button>
                     </th>
                   </tr>
                 </thead>
@@ -578,9 +585,11 @@ function TenancyListScreen({
                           ? <span className="text-red-600 font-medium">{fmtCurrency(t.outstandingBalance)}</span>
                           : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-4 pr-6 text-gray-900 whitespace-nowrap">
+                      <td className="px-4 py-4 text-gray-900 whitespace-nowrap">
                         {fmtDate(t.endDate)}
-                        <ExpiryLabel endDate={t.endDate} />
+                      </td>
+                      <td className="px-4 py-4 pr-6 text-sm whitespace-nowrap">
+                        <DaysLeftCell endDate={t.endDate} />
                       </td>
                     </tr>
                   ))}
@@ -615,8 +624,8 @@ function TenancyListScreen({
                       </p>
                     </div>
                     <div>
-                      <p className="text-gray-400 mb-0.5">Ends</p>
-                      <p className="text-gray-900">{fmtDate(t.endDate)}<ExpiryLabel endDate={t.endDate} /></p>
+                      <p className="text-gray-400 mb-0.5">Days Left</p>
+                      <DaysLeftCell endDate={t.endDate} />
                     </div>
                   </div>
                 </div>
