@@ -408,7 +408,7 @@ function TenancyListScreen({
           <h1 className="text-lg font-semibold text-slate-900">Tenancies</h1>
         </div>
 
-        <hr className="border-slate-200" />
+        <div className="border-t border-gray-200 mx-4 lg:mx-8" />
 
         {/* Search + filter row */}
         <div className="px-4 lg:px-8 py-4 flex items-center gap-2">
