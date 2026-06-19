@@ -386,48 +386,27 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
               <p className="text-gray-400 text-xs mt-1">Click Send Broadcast to create your first message.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Recipients</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date Sent</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="w-8 pr-4" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {broadcasts.map(b => (
-                    <tr
-                      key={b.id}
-                      onClick={() => setSelected(b)}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900">{b.title}</p>
-                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{b.body}</p>
-                      </td>
-                      <td className="px-4 py-4 text-gray-700">
-                        <p className="font-medium">{b.recipientCount}</p>
-                        <p className="text-xs text-gray-400">{b.recipientLabel}</p>
-                      </td>
-                      <td className="px-4 py-4 text-gray-700 whitespace-nowrap">
-                        <p>{fmtDate(b.sentAt)}</p>
-                        <p className="text-xs text-gray-400">{fmtTime(b.sentAt)}</p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className={`text-xs font-medium capitalize ${b.status === "sent" ? "text-green-600" : "text-red-500"}`}>
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="pr-4 text-right">
-                        <ChevronRight className="w-4 h-4 text-gray-400 inline" />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {broadcasts.map(b => (
+                <div
+                  key={b.id}
+                  onClick={() => setSelected(b)}
+                  className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">{b.title}</p>
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
+                  </div>
+                  <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-3">{b.body}</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                    <span>Recipients: {b.recipientLabel} ({b.recipientCount})</span>
+                    <span>Sent: {fmtDate(b.sentAt)} · {fmtTime(b.sentAt)}</span>
+                    <span className={`font-medium capitalize ${b.status === "sent" ? "text-green-600" : "text-red-500"}`}>
+                      {b.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
