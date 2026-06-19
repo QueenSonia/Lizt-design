@@ -13,6 +13,7 @@ import {
   Wrench,
   FileCheck,
   KeyRound,
+  Megaphone,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -132,6 +133,7 @@ export function LandlordSidebar({
         { id: "properties", label: "Properties", icon: Building },
         { id: "tenants", label: "Tenants", icon: Users },
         { id: "kyc", label: "Tenant Applicants", icon: FileCheck },
+        { id: "communications", label: "Communications", icon: Megaphone },
         { id: "facility", label: "Facility", icon: Wrench },
       ],
     },
