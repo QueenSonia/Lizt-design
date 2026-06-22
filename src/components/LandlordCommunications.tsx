@@ -380,35 +380,38 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
           </div>
 
           {/* History */}
-          {broadcasts.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
-              <p className="text-gray-500 text-sm">No broadcasts sent yet.</p>
-              <p className="text-gray-400 text-xs mt-1">Click Send Broadcast to create your first message.</p>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <p className="text-sm font-semibold text-gray-900">Broadcast History</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {broadcasts.map(b => (
-                <div
-                  key={b.id}
-                  onClick={() => setSelected(b)}
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <p className="text-sm font-semibold text-gray-900 leading-snug">{b.title}</p>
-                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
+
+            {broadcasts.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <p className="text-gray-500 text-sm">No broadcasts sent yet.</p>
+                <p className="text-gray-400 text-xs mt-1">Click Send Broadcast to create your first message.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {broadcasts.map(b => (
+                  <div
+                    key={b.id}
+                    onClick={() => setSelected(b)}
+                    className="px-6 py-5 cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <p className="text-sm font-semibold text-gray-900 leading-snug">{b.title}</p>
+                      <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
+                    </div>
+                    <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-3">{b.body}</p>
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-gray-400">
+                      <span>Recipients: {b.recipientLabel} ({b.recipientCount})</span>
+                      <span>Sent: {fmtDate(b.sentAt)} · {fmtTime(b.sentAt)}</span>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-3">{b.body}</p>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
-                    <span>Recipients: {b.recipientLabel} ({b.recipientCount})</span>
-                    <span>Sent: {fmtDate(b.sentAt)} · {fmtTime(b.sentAt)}</span>
-                    <span className={`font-medium capitalize ${b.status === "sent" ? "text-green-600" : "text-red-500"}`}>
-                      {b.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
