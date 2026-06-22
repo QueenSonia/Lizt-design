@@ -365,26 +365,27 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-[73px] lg:pt-[81px]">
         <div className="py-6">
-          {/* Header row */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-base font-semibold text-gray-900">Broadcast Messages</p>
-              <p className="text-sm text-gray-400 mt-0.5">Send announcements to all or selected tenants</p>
-            </div>
-            <Button
-              className="bg-[#FF5000] hover:bg-[#e04600] text-white"
-              onClick={() => setShowCompose(true)}
-            >
-              <Send className="w-4 h-4 mr-1.5" /> Send Broadcast
-            </Button>
-          </div>
-
-          {/* History */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <p className="text-sm font-semibold text-gray-900">Broadcast History</p>
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-base font-semibold text-gray-900">Broadcast Messages</p>
+                <p className="text-sm text-gray-400 mt-0.5">Send announcements to all or selected tenants</p>
+              </div>
+              <Button
+                className="bg-[#FF5000] hover:bg-[#e04600] text-white shrink-0"
+                onClick={() => setShowCompose(true)}
+              >
+                <Send className="w-4 h-4 mr-1.5" /> Send Broadcast
+              </Button>
             </div>
 
+            {/* Broadcast History label */}
+            <div className="px-6 pt-5 pb-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Broadcast History</p>
+            </div>
+
+            {/* List */}
             {broadcasts.length === 0 ? (
               <div className="px-6 py-12 text-center">
                 <p className="text-gray-500 text-sm">No broadcasts sent yet.</p>
