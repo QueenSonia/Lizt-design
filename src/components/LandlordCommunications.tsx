@@ -188,7 +188,7 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
                   {([
                     { id: "all", label: "All Tenants", icon: <Users className="w-4 h-4" /> },
                     { id: "properties", label: "By Property", icon: <Building className="w-4 h-4" /> },
-                    { id: "individuals", label: "Individual", icon: <User className="w-4 h-4" /> },
+                    { id: "individuals", label: "Tenants", icon: <User className="w-4 h-4" /> },
                   ] as { id: RecipientMode; label: string; icon: React.ReactNode }[]).map(opt => (
                     <button
                       key={opt.id}
