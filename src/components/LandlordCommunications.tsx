@@ -380,11 +380,6 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
               </Button>
             </div>
 
-            {/* Broadcast History label */}
-            <div className="px-6 pt-5 pb-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Broadcast History</p>
-            </div>
-
             {/* List */}
             {broadcasts.length === 0 ? (
               <div className="px-6 py-12 text-center">
