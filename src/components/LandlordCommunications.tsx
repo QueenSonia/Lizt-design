@@ -135,8 +135,13 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
     ? `${selectedProps.length} Propert${selectedProps.length !== 1 ? "ies" : "y"}`
     : `${selectedTenants.length} Tenant${selectedTenants.length !== 1 ? "s" : ""}`;
 
+  const MAX_BODY = 500;
   const canProceedRecipients = mode === "all" || (mode === "properties" && selectedProps.length > 0) || (mode === "individuals" && selectedTenants.length > 0);
-  const canProceedCompose = title.trim().length > 0 && body.trim().length > 0;
+  const canProceedCompose = title.trim().length > 0 && body.trim().length > 0 && body.length <= MAX_BODY;
+  const previewTenantName = mode === "individuals" && selectedTenants.length === 1
+    ? MOCK_TENANTS.find(t => t.id === selectedTenants[0])?.name ?? "Tenant"
+    : "Tenant";
+  const collapsedBody = body.replace(/\n+/g, " ").trim();
 
   const filteredTenants = MOCK_TENANTS.filter(t =>
     !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.property.toLowerCase().includes(search.toLowerCase())
@@ -273,15 +278,24 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
                   <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Maintenance Notice" className="h-9 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Message Body <span className="text-red-500">*</span></label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Announcement Message <span className="text-red-500">*</span></label>
                   <textarea
                     value={body}
                     onChange={e => setBody(e.target.value)}
                     rows={6}
-                    placeholder="Type your message here…"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF5000] resize-none"
+                    placeholder="Type your announcement here…"
+                    className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 resize-none ${
+                      body.length > MAX_BODY ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-[#FF5000]"
+                    }`}
                   />
-                  <p className="text-xs text-gray-400 mt-1 text-right">{body.length} characters</p>
+                  <div className="flex items-start justify-between mt-1 gap-2">
+                    <p className={`text-xs ${body.length > MAX_BODY ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                      {body.length > MAX_BODY ? "Announcement message exceeds the 500-character limit." : "Your message will be inserted into the WhatsApp announcement template. Multiple paragraphs will be delivered as a single line."}
+                    </p>
+                    <p className={`text-xs shrink-0 tabular-nums ${body.length > MAX_BODY ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                      {body.length} / {MAX_BODY}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -302,9 +316,17 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
 
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Message Preview</p>
-                  <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-3">
-                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{body}</p>
-                    <p className="text-xs text-gray-400 text-right mt-1">via WhatsApp</p>
+                  <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-4 space-y-2">
+                    <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">ANNOUNCEMENT</p>
+                    <p className="text-sm text-gray-800 leading-relaxed">
+                      Hi {previewTenantName},
+                    </p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{collapsedBody || <span className="italic text-gray-400">Your message will appear here.</span>}</p>
+                    <p className="text-sm text-gray-600 italic">Reply to this if you have any questions.</p>
+                    <div className="pt-1">
+                      <span className="inline-block border border-green-600 text-green-700 text-xs font-medium rounded px-3 py-1">Reply</span>
+                    </div>
+                    <p className="text-xs text-gray-400 text-right pt-1">via WhatsApp</p>
                   </div>
                 </div>
               </div>
