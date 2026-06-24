@@ -72,35 +72,38 @@ function fmtTime(iso: string) {
 function BroadcastDetail({ broadcast, onClose }: { broadcast: Broadcast; onClose: () => void }) {
   return (
     <>
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-      <div className="fixed top-0 right-0 h-full w-full sm:w-[440px] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-gray-900">{broadcast.title}</p>
-            <p className="text-xs text-gray-400 mt-1">{broadcast.recipientLabel} · {fmtDate(broadcast.sentAt)} at {fmtTime(broadcast.sentAt)}</p>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0 mt-0.5">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-xl p-4">
-              <p className="text-xs text-gray-400 mb-1">Recipients</p>
-              <p className="text-lg font-bold text-gray-900">{broadcast.recipientCount}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-4">
-              <p className="text-xs text-gray-400 mb-1">Status</p>
-              <p className="text-sm font-semibold text-green-600 capitalize">{broadcast.status}</p>
-            </div>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+            <p className="text-base font-semibold text-gray-900">Broadcast Details</p>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Message</p>
-            <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-3">
+          {/* Body */}
+          <div className="px-6 py-5 space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Recipients</p>
+                <p className="text-sm font-semibold text-gray-900">{broadcast.recipientCount} · {broadcast.recipientLabel}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Sent</p>
+                <p className="text-sm font-semibold text-gray-900">{fmtDate(broadcast.sentAt)} · {fmtTime(broadcast.sentAt)}</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Message</p>
               <p className="text-sm text-gray-800 leading-relaxed">{broadcast.body}</p>
-              <p className="text-xs text-gray-400 text-right mt-1">via WhatsApp</p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Channel</p>
+              <p className="text-sm font-semibold text-gray-900">WhatsApp</p>
             </div>
           </div>
         </div>
