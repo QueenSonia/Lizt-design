@@ -600,6 +600,11 @@ export default function LandlordLiveFeed({
                                               </p>
                                             ),
                                           )}
+                                        {activity.landlord && (
+                                          <p className="text-xs text-slate-400">
+                                            Landlord: <span className="font-medium text-slate-500">{activity.landlord}</span>
+                                          </p>
+                                        )}
                                       </>
                                     ) : (
                                       <>
@@ -609,17 +614,17 @@ export default function LandlordLiveFeed({
                                         <p className="text-slate-600 text-sm leading-relaxed group-hover:text-slate-700 transition-colors duration-300">
                                           {activity.title}
                                         </p>
+                                        {activity.landlord && (
+                                          <p className="text-xs text-slate-400">
+                                            Landlord: <span className="font-medium text-slate-500">{activity.landlord}</span>
+                                          </p>
+                                        )}
                                       </>
                                     )}
                                   </div>
                                 </div>
 
-                                <div className="flex items-center space-x-4 flex-wrap gap-y-1">
-                                  {activity.landlord && (
-                                    <span className="text-xs text-slate-400 group-hover:text-slate-500 transition-colors duration-300">
-                                      Landlord: <span className="font-medium text-slate-500">{activity.landlord}</span>
-                                    </span>
-                                  )}
+                                <div className="flex items-center space-x-4">
                                   <div className="flex items-center space-x-2">
                                     <Clock className="w-3 h-3 text-slate-400 group-hover:text-slate-500 transition-colors duration-300" />
                                     <span className="text-xs text-slate-500 font-medium group-hover:text-slate-600 transition-colors duration-300">
