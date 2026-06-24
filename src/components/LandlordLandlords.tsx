@@ -615,6 +615,14 @@ function LandlordDetailScreen({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
 
+        {/* Page header */}
+        <div className="px-1 pb-2">
+          <h1 className="text-xl font-bold text-gray-900">{landlord.name}</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {landlord.properties} {landlord.properties === 1 ? "Property" : "Properties"} &bull; {landlord.activeTenancies} Active {landlord.activeTenancies === 1 ? "Tenancy" : "Tenancies"}
+          </p>
+        </div>
+
         {/* Landlord Information */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60">
