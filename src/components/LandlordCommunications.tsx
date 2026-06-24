@@ -101,10 +101,6 @@ function BroadcastDetail({ broadcast, onClose }: { broadcast: Broadcast; onClose
               <p className="text-sm text-gray-800 leading-relaxed">{broadcast.body}</p>
             </div>
 
-            <div>
-              <p className="text-xs text-gray-400 mb-1">Channel</p>
-              <p className="text-sm font-semibold text-gray-900">WhatsApp</p>
-            </div>
           </div>
         </div>
       </div>
