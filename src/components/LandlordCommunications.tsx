@@ -338,7 +338,6 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
                 Back
               </Button>
             )}
-            <Button variant="outline" className="border-gray-200 text-gray-700" onClick={onClose}>Cancel</Button>
             <Button
               className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white"
               disabled={step === "recipients" ? !canProceedRecipients : step === "compose" ? !canProceedCompose : false}
