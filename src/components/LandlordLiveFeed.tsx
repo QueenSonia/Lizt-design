@@ -578,47 +578,34 @@ export default function LandlordLiveFeed({
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="space-y-1">
-                                    {activity.type ===
-                                      NotificationType.SERVICE_REQUEST ? (
+                                    {activity.type === NotificationType.SERVICE_REQUEST ? (
                                       <>
-                                        {activity.description
-                                          .split("\n")
-                                          .map((line, index) =>
-                                            index === 0 ? (
-                                              <div
-                                                key={index}
-                                                className="text-base font-semibold text-slate-900 group-hover:text-orange-700 transition-colors duration-300"
-                                              >
-                                                {line}
-                                              </div>
-                                            ) : (
-                                              <p
-                                                key={index}
-                                                className="text-slate-600 text-sm leading-relaxed group-hover:text-slate-700 transition-colors duration-300"
-                                              >
-                                                {line}
-                                              </p>
-                                            ),
-                                          )}
-                                        {activity.landlord && (
-                                          <p className="text-xs text-slate-400">
-                                            Landlord: <span className="font-medium text-slate-500">{activity.landlord}</span>
+                                        <div className="text-base font-semibold text-slate-900 group-hover:text-orange-700 transition-colors duration-300">
+                                          {activity.description.split("\n")[0]}
+                                        </div>
+                                        <p className="text-xs text-slate-500">
+                                          Property: <span className="font-medium">{activity.property}</span>
+                                        </p>
+                                        <p className="text-xs text-slate-400">
+                                          Landlord: <span className="font-medium text-slate-500">{activity.landlord ?? "—"}</span>
+                                        </p>
+                                        {activity.description.split("\n").slice(1).map((line, i) => (
+                                          <p key={i} className="text-slate-600 text-sm leading-relaxed group-hover:text-slate-700 transition-colors duration-300">
+                                            {line}
                                           </p>
-                                        )}
+                                        ))}
                                       </>
                                     ) : (
                                       <>
                                         <div className="text-base font-semibold text-slate-900 group-hover:text-orange-700 transition-colors duration-300">
                                           {activity.description}
                                         </div>
-                                        <p className="text-slate-600 text-sm leading-relaxed group-hover:text-slate-700 transition-colors duration-300">
-                                          {activity.title}
+                                        <p className="text-xs text-slate-500">
+                                          Property: <span className="font-medium">{activity.property}</span>
                                         </p>
-                                        {activity.landlord && (
-                                          <p className="text-xs text-slate-400">
-                                            Landlord: <span className="font-medium text-slate-500">{activity.landlord}</span>
-                                          </p>
-                                        )}
+                                        <p className="text-xs text-slate-400">
+                                          Landlord: <span className="font-medium text-slate-500">{activity.landlord ?? "—"}</span>
+                                        </p>
                                       </>
                                     )}
                                   </div>
