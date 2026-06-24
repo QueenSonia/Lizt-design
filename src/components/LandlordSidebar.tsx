@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   Users,
   Building,
+  Building2,
   Search,
   LogOut,
   MessageSquare,
@@ -129,6 +130,7 @@ export function LandlordSidebar({
       title: "Main",
       items: [
         { id: "dashboard", label: "Live Feed", icon: MessageSquare },
+        { id: "landlords", label: "Landlords", icon: Building2 },
         { id: "tenancies", label: "Tenancies", icon: KeyRound },
         { id: "properties", label: "Properties", icon: Building },
         { id: "tenants", label: "Tenants", icon: Users },
