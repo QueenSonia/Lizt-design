@@ -631,34 +631,7 @@ function LandlordDetailScreen({
           </div>
         </div>
 
-        {/* Portfolio Summary */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Portfolio Summary</p>
-          </div>
-          <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center p-3 rounded-lg bg-gray-50">
-              <p className="text-2xl font-bold text-gray-900">{landlord.properties}</p>
-              <p className="text-xs text-gray-500 mt-1">Total Properties</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-gray-50">
-              <p className="text-2xl font-bold text-gray-900">{landlord.activeTenancies}</p>
-              <p className="text-xs text-gray-500 mt-1">Active Tenancies</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-gray-50">
-              <p className="text-2xl font-bold text-gray-900">{landlord.occupancyRate}%</p>
-              <p className="text-xs text-gray-500 mt-1">Occupancy Rate</p>
-            </div>
-            <div className={`text-center p-3 rounded-lg ${landlord.outstandingBalance > 0 ? "bg-red-50" : "bg-green-50"}`}>
-              <p className={`text-lg font-bold ${landlord.outstandingBalance > 0 ? "text-red-600" : "text-green-600"}`}>
-                {landlord.outstandingBalance > 0 ? fmtCurrency(landlord.outstandingBalance) : "₦0"}
-              </p>
-              <p className={`text-xs mt-1 ${landlord.outstandingBalance > 0 ? "text-red-400" : "text-green-500"}`}>
-                Outstanding
-              </p>
-            </div>
-          </div>
-        </div>
+
 
         {/* Properties */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
