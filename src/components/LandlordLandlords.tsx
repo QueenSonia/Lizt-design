@@ -477,8 +477,8 @@ function LandlordListScreen({
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto lg:pt-[121px]">
-        <div className="px-4 sm:px-6 pt-6 pb-5">
+      <div className="flex-1 overflow-y-auto lg:pt-[109px]">
+        <div className="px-4 sm:px-6 pt-4 pb-5">
           {filtered.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
               <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-3" />
@@ -487,25 +487,6 @@ function LandlordListScreen({
             </div>
           ) : (
             <>
-              {/* Summary chips */}
-              <div className="flex flex-wrap gap-3 mb-5">
-                <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-100 px-4 py-2.5 shadow-sm">
-                  <Users className="w-4 h-4 text-[#FF5000]" />
-                  <span className="text-sm font-semibold text-slate-900">{filtered.length}</span>
-                  <span className="text-xs text-slate-500">Landlord{filtered.length !== 1 ? "s" : ""}</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-100 px-4 py-2.5 shadow-sm">
-                  <Home className="w-4 h-4 text-[#FF5000]" />
-                  <span className="text-sm font-semibold text-slate-900">{filtered.reduce((s, l) => s + l.properties, 0)}</span>
-                  <span className="text-xs text-slate-500">Properties</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-100 px-4 py-2.5 shadow-sm">
-                  <Activity className="w-4 h-4 text-[#FF5000]" />
-                  <span className="text-sm font-semibold text-slate-900">{filtered.reduce((s, l) => s + l.activeTenancies, 0)}</span>
-                  <span className="text-xs text-slate-500">Active Tenancies</span>
-                </div>
-              </div>
-
               {/* Desktop table */}
               <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
