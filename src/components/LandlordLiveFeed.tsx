@@ -53,6 +53,22 @@ interface Activity {
   package: string;
   tenantId?: string;
   section: "overview" | "history" | "documents" | "chat";
+  landlord?: string;
+}
+
+// Mock landlord lookup — maps property names to landlord names for PM context
+const LANDLORD_BY_PROPERTY: Record<string, string> = {
+  "Lekki Phase 1 Duplex": "Michael Adeyemi",
+  "Ikoyi 2-Bed Apartment": "Funke Balogun",
+  "Victoria Island Studio": "Emeka Okonkwo",
+  "Greenfield Towers – Unit 4B": "Adaeze Nwosu",
+};
+
+function getLandlordForProperty(propertyName: string): string | undefined {
+  // Exact match first, then partial
+  if (LANDLORD_BY_PROPERTY[propertyName]) return LANDLORD_BY_PROPERTY[propertyName];
+  const key = Object.keys(LANDLORD_BY_PROPERTY).find(k => propertyName?.toLowerCase().includes(k.toLowerCase()));
+  return key ? LANDLORD_BY_PROPERTY[key] : undefined;
 }
 
 interface ActivitySection {
@@ -98,6 +114,7 @@ export function mapNotificationToActivities(
     package: "base",
     tenantId: notification.tenant_id ? notification.tenant_id : undefined,
     section: getActivitySection(notification.type),
+    landlord: getLandlordForProperty(notification.property?.name || ""),
   }));
 }
 
@@ -423,7 +440,7 @@ export default function LandlordLiveFeed({
     <>
       <LandlordTopNav
         title="Live Feed"
-        subtitle="Real-time activity across your properties"
+        subtitle="Real-time activity across all managed properties"
         onAddProperty={handleAddProperty}
         onAddTenant={handleAddTenant}
         onMenuClick={onMenuClick}
@@ -597,7 +614,12 @@ export default function LandlordLiveFeed({
                                   </div>
                                 </div>
 
-                                <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-4 flex-wrap gap-y-1">
+                                  {activity.landlord && (
+                                    <span className="text-xs text-slate-400 group-hover:text-slate-500 transition-colors duration-300">
+                                      Landlord: <span className="font-medium text-slate-500">{activity.landlord}</span>
+                                    </span>
+                                  )}
                                   <div className="flex items-center space-x-2">
                                     <Clock className="w-3 h-3 text-slate-400 group-hover:text-slate-500 transition-colors duration-300" />
                                     <span className="text-xs text-slate-500 font-medium group-hover:text-slate-600 transition-colors duration-300">
