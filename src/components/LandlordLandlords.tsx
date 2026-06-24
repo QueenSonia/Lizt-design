@@ -609,7 +609,6 @@ function LandlordDetailScreen({
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">{landlord.name}</p>
-          <p className="text-xs text-gray-400 truncate capitalize">{landlord.type} Landlord</p>
         </div>
       </div>
 
@@ -621,44 +620,27 @@ function LandlordDetailScreen({
           <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Landlord Information</p>
           </div>
-          <div className="px-5 py-4">
-            {/* Name + type badge */}
-            <div className="flex items-start gap-4 mb-5">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
-                landlord.type === "corporate" ? "bg-blue-50" : "bg-orange-50"
-              }`}>
-                {landlord.type === "corporate"
-                  ? <Building2 className="w-6 h-6 text-blue-600" />
-                  : <Users className="w-6 h-6 text-[#FF5000]" />
-                }
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">{landlord.name}</h2>
+          <div className="px-5 py-4 space-y-3">
+            <div className="flex items-start justify-between gap-4 py-2 border-b border-gray-50">
+              <span className="text-xs text-gray-400 shrink-0 mt-0.5 min-w-[80px]">Name</span>
+              <div className="text-sm text-gray-900 text-right">
+                <span>{landlord.name}</span>
                 {landlord.type === "corporate" && landlord.contactName && (
-                  <p className="text-sm text-gray-500 mt-0.5">Contact: {landlord.contactName}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Contact: {landlord.contactName}</p>
                 )}
-                <span className={`inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  landlord.type === "corporate" ? "bg-blue-50 text-blue-700" : "bg-orange-50 text-orange-700"
-                }`}>
-                  {landlord.type === "corporate" ? "Corporate" : "Individual"}
-                </span>
               </div>
             </div>
-
-            {/* Contact details */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
-                  <Mail className="w-3.5 h-3.5 text-gray-500" />
-                </div>
-                <span className="text-sm text-gray-700">{landlord.email}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
-                  <Phone className="w-3.5 h-3.5 text-gray-500" />
-                </div>
-                <span className="text-sm text-gray-700">{landlord.phone}</span>
-              </div>
+            <div className="flex items-center justify-between gap-4 py-2 border-b border-gray-50">
+              <span className="text-xs text-gray-400 shrink-0 min-w-[80px]">Type</span>
+              <span className="text-sm text-gray-900 capitalize">{landlord.type === "corporate" ? "Corporate" : "Individual"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-2 border-b border-gray-50">
+              <span className="text-xs text-gray-400 shrink-0 min-w-[80px]">Email</span>
+              <span className="text-sm text-gray-900">{landlord.email}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-2">
+              <span className="text-xs text-gray-400 shrink-0 min-w-[80px]">Phone</span>
+              <span className="text-sm text-gray-900">{landlord.phone}</span>
             </div>
           </div>
         </div>
