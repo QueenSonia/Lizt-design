@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 import { useState, useMemo } from "react";
-import { Send, ChevronRight, X, Plus, Users, Building, User, Check, Search } from "lucide-react";
+import { Send, X, Plus, Users, Building, User, Check, Search } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import LandlordTopNav from "./LandlordTopNav";
@@ -67,46 +67,6 @@ function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Broadcast Detail ──────────────────────────────────────────────────────────
-
-function BroadcastDetail({ broadcast, onClose }: { broadcast: Broadcast; onClose: () => void }) {
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-            <p className="text-base font-semibold text-gray-900">Broadcast Details</p>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="px-6 py-5 space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Recipients</p>
-                <p className="text-sm font-semibold text-gray-900">{broadcast.recipientCount} · {broadcast.recipientLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Sent</p>
-                <p className="text-sm font-semibold text-gray-900">{fmtDate(broadcast.sentAt)} · {fmtTime(broadcast.sentAt)}</p>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Message</p>
-              <p className="text-sm text-gray-800 leading-relaxed">{broadcast.body}</p>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
 
 // ── Compose Modal ─────────────────────────────────────────────────────────────
 
@@ -365,7 +325,6 @@ interface Props {
 export default function LandlordCommunications({ onMenuClick, isMobile }: Props) {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>(SEED_BROADCASTS);
   const [showCompose, setShowCompose] = useState(false);
-  const [selected, setSelected] = useState<Broadcast | null>(null);
 
   function handleSent(b: Broadcast) {
     setBroadcasts(prev => [b, ...prev]);
@@ -406,14 +365,9 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
             ) : (
               <div className="divide-y divide-gray-100">
                 {broadcasts.map(b => (
-                  <div
-                    key={b.id}
-                    onClick={() => setSelected(b)}
-                    className="px-6 py-5 cursor-pointer hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-2">
+                  <div key={b.id} className="px-6 py-5">
+                    <div className="mb-2">
                       <p className="text-sm font-semibold text-gray-900 leading-snug">{b.title}</p>
-                      <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
                     </div>
                     <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mb-3">{b.body}</p>
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-gray-400">
@@ -429,7 +383,6 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
       </div>
 
       {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onSent={handleSent} />}
-      {selected && <BroadcastDetail broadcast={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
