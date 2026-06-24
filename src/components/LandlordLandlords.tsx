@@ -494,31 +494,31 @@ function LandlordListScreen({
                       <th className="text-left px-6 py-3">
                         <button
                           onClick={() => handleSort("name")}
-                          className={`flex items-center text-xs font-semibold uppercase tracking-wide transition-colors ${
+                          className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
                             sortCol === "name" ? "text-[#FF5000]" : "text-gray-500 hover:text-[#FF5000]"
                           }`}
                         >
-                          Landlord <SortIcon col="name" />
+                          Landlord
                         </button>
                       </th>
                       <th className="text-left px-4 py-3">
                         <button
                           onClick={() => handleSort("properties")}
-                          className={`flex items-center text-xs font-semibold uppercase tracking-wide transition-colors ${
+                          className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
                             sortCol === "properties" ? "text-[#FF5000]" : "text-gray-500 hover:text-[#FF5000]"
                           }`}
                         >
-                          Properties <SortIcon col="properties" />
+                          Properties
                         </button>
                       </th>
                       <th className="text-left px-4 py-3 pr-6">
                         <button
                           onClick={() => handleSort("tenancies")}
-                          className={`flex items-center text-xs font-semibold uppercase tracking-wide transition-colors ${
+                          className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
                             sortCol === "tenancies" ? "text-[#FF5000]" : "text-gray-500 hover:text-[#FF5000]"
                           }`}
                         >
-                          Active Tenancies <SortIcon col="tenancies" />
+                          Active Tenancies
                         </button>
                       </th>
                     </tr>
