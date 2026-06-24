@@ -114,7 +114,7 @@ export function mapNotificationToActivities(
     package: "base",
     tenantId: notification.tenant_id ? notification.tenant_id : undefined,
     section: getActivitySection(notification.type),
-    landlord: getLandlordForProperty(notification.property?.name || ""),
+    landlord: notification.landlord ?? getLandlordForProperty(notification.property?.name || ""),
   }));
 }
 

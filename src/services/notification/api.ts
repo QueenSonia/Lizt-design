@@ -10,6 +10,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     property_id: "prop-1",
     user_id: "user-1",
     tenant_id: "kyc-001",
+    landlord: "Michael Adeyemi",
     property: {
       id: "prop-1",
       name: "Lekki Heights",
@@ -26,6 +27,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     property_id: "prop-2",
     user_id: "user-2",
     tenant_id: "kyc-002",
+    landlord: "Funke Balogun",
     property: {
       id: "prop-2",
       name: "Ikoyi Residences",
@@ -43,6 +45,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     property_id: "prop-2",
     user_id: "user-3",
     tenant_id: "kyc-003",
+    landlord: "Funke Balogun",
     property: {
       id: "prop-2",
       name: "Ikoyi Residences",
@@ -59,6 +62,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     property_id: "prop-1",
     user_id: "user-4",
     tenant_id: "kyc-005",
+    landlord: "Michael Adeyemi",
     property: {
       id: "prop-1",
       name: "Lekki Heights",
@@ -75,6 +79,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     property_id: "prop-3",
     user_id: "user-5",
     tenant_id: "kyc-004",
+    landlord: "Emeka Okonkwo",
     property: {
       id: "prop-3",
       name: "Victoria Garden City",
@@ -91,6 +96,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     property_id: "prop-3",
     user_id: "user-6",
     tenant_id: "kyc-005",
+    landlord: "Emeka Okonkwo",
     property: {
       id: "prop-3",
       name: "Victoria Garden City",

@@ -59,4 +59,5 @@ export interface Notification {
   property?: PropertySummary;
   serviceRequest?: ServiceRequestSummary | null;
   tenant_id?: string;
+  landlord?: string;
 }
