@@ -119,7 +119,6 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
   const [mode, setMode] = useState<RecipientMode>("all");
   const [selectedProps, setSelectedProps] = useState<string[]>([]);
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
-  const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [search, setSearch] = useState("");
 
@@ -137,7 +136,7 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
 
   const MAX_BODY = 500;
   const canProceedRecipients = mode === "all" || (mode === "properties" && selectedProps.length > 0) || (mode === "individuals" && selectedTenants.length > 0);
-  const canProceedCompose = title.trim().length > 0 && body.trim().length > 0 && body.length <= MAX_BODY;
+  const canProceedCompose = body.trim().length > 0 && body.length <= MAX_BODY;
   const previewTenantName = mode === "individuals" && selectedTenants.length === 1
     ? MOCK_TENANTS.find(t => t.id === selectedTenants[0])?.name ?? "Tenant"
     : "Tenant";
@@ -153,7 +152,7 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
   function handleSend() {
     const broadcast: Broadcast = {
       id: `bc-${Date.now()}`,
-      title,
+      title: collapsedBody.slice(0, 60) + (collapsedBody.length > 60 ? "…" : ""),
       body,
       recipientType: mode,
       recipientCount,
@@ -177,7 +176,7 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
             <div>
               <p className="text-base font-semibold text-gray-900">Send Broadcast</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                {step === "recipients" ? "Step 1: Select recipients" : step === "compose" ? "Step 2: Compose message" : "Step 3: Preview & send"}
+                {step === "recipients" ? "Step 1: Select recipients" : step === "compose" ? "Step 2: Write announcement" : "Step 3: Confirm & send"}
               </p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
@@ -270,37 +269,43 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
               </div>
             )}
 
-            {/* Step 2: Compose */}
+            {/* Step 2: Compose — template with editable section */}
             {step === "compose" && (
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Message Title <span className="text-red-500">*</span></label>
-                  <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Maintenance Notice" className="h-9 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Announcement Message <span className="text-red-500">*</span></label>
+                {/* WhatsApp template with inline textarea */}
+                <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-4 space-y-2.5">
+                  <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">ANNOUNCEMENT</p>
+                  <p className="text-sm text-gray-800">Hi {previewTenantName},</p>
                   <textarea
                     value={body}
                     onChange={e => setBody(e.target.value)}
-                    rows={6}
+                    rows={5}
                     placeholder="Type your announcement here…"
-                    className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 resize-none ${
-                      body.length > MAX_BODY ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-[#FF5000]"
+                    autoFocus
+                    className={`w-full bg-white/70 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 resize-none placeholder:text-gray-400 ${
+                      body.length > MAX_BODY ? "ring-2 ring-red-400" : "focus:ring-[#FF5000]/40"
                     }`}
                   />
-                  <div className="flex items-start justify-between mt-1 gap-2">
-                    <p className={`text-xs ${body.length > MAX_BODY ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                      {body.length > MAX_BODY ? "Announcement message exceeds the 500-character limit." : "Your message will be inserted into the WhatsApp announcement template. Multiple paragraphs will be delivered as a single line."}
-                    </p>
-                    <p className={`text-xs shrink-0 tabular-nums ${body.length > MAX_BODY ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                      {body.length} / {MAX_BODY}
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-600 italic">Reply to this if you have any questions.</p>
+                  <span className="inline-block border border-gray-400 text-gray-500 text-xs font-medium rounded px-3 py-1">Reply</span>
+                  <p className="text-xs text-gray-400 text-right">via WhatsApp</p>
+                </div>
+
+                {/* Counter + helper */}
+                <div className="flex items-start justify-between gap-2">
+                  <p className={`text-xs ${body.length > MAX_BODY ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                    {body.length > MAX_BODY
+                      ? "Announcement message exceeds the 500-character limit."
+                      : "Only the highlighted message section is editable. Messages are delivered using the approved WhatsApp announcement template."}
+                  </p>
+                  <p className={`text-xs shrink-0 tabular-nums ${body.length > MAX_BODY ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                    {body.length} / {MAX_BODY}
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Preview */}
+            {/* Step 3: Confirm */}
             {step === "preview" && (
               <div className="space-y-5">
                 <div className="bg-gray-50 rounded-xl p-4 space-y-2">
@@ -308,25 +313,17 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
                     <span className="text-gray-500">Recipients</span>
                     <span className="font-medium text-gray-900">{recipientLabel} ({recipientCount})</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Title</span>
-                    <span className="font-medium text-gray-900 text-right max-w-[200px]">{title}</span>
-                  </div>
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Message Preview</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Final Message</p>
                   <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-4 space-y-2">
-                    <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">ANNOUNCEMENT</p>
-                    <p className="text-sm text-gray-800 leading-relaxed">
-                      Hi {previewTenantName},
-                    </p>
-                    <p className="text-sm text-gray-800 leading-relaxed">{collapsedBody || <span className="italic text-gray-400">Your message will appear here.</span>}</p>
+                    <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">ANNOUNCEMENT</p>
+                    <p className="text-sm text-gray-800">Hi {previewTenantName},</p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{collapsedBody}</p>
                     <p className="text-sm text-gray-600 italic">Reply to this if you have any questions.</p>
-                    <div className="pt-1">
-                      <span className="inline-block border border-green-600 text-green-700 text-xs font-medium rounded px-3 py-1">Reply</span>
-                    </div>
-                    <p className="text-xs text-gray-400 text-right pt-1">via WhatsApp</p>
+                    <span className="inline-block border border-gray-400 text-gray-500 text-xs font-medium rounded px-3 py-1">Reply</span>
+                    <p className="text-xs text-gray-400 text-right">via WhatsApp</p>
                   </div>
                 </div>
               </div>
