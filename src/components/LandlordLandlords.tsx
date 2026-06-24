@@ -531,22 +531,10 @@ function LandlordListScreen({
                         className="bg-white hover:bg-gray-50 cursor-pointer transition-colors group"
                       >
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                              l.type === "corporate" ? "bg-blue-50" : "bg-orange-50"
-                            }`}>
-                              {l.type === "corporate"
-                                ? <Building2 className="w-4 h-4 text-blue-600" />
-                                : <Users className="w-4 h-4 text-[#FF5000]" />
-                              }
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors">{l.name}</p>
-                              {l.type === "corporate" && l.contactName && (
-                                <p className="text-xs text-gray-400 mt-0.5">Contact: {l.contactName}</p>
-                              )}
-                            </div>
-                          </div>
+                          <p className="font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors">{l.name}</p>
+                          {l.type === "corporate" && l.contactName && (
+                            <p className="text-xs text-gray-400 mt-0.5">Contact: {l.contactName}</p>
+                          )}
                         </td>
                         <td className="px-4 py-4 text-gray-900 tabular-nums font-medium">{l.properties}</td>
                         <td className="px-4 py-4 pr-6 text-gray-900 tabular-nums font-medium">{l.activeTenancies}</td>
@@ -565,21 +553,11 @@ function LandlordListScreen({
                     className="px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                          l.type === "corporate" ? "bg-blue-50" : "bg-orange-50"
-                        }`}>
-                          {l.type === "corporate"
-                            ? <Building2 className="w-4 h-4 text-blue-600" />
-                            : <Users className="w-4 h-4 text-[#FF5000]" />
-                          }
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{l.name}</p>
-                          {l.type === "corporate" && l.contactName && (
-                            <p className="text-xs text-gray-400">Contact: {l.contactName}</p>
-                          )}
-                        </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{l.name}</p>
+                        {l.type === "corporate" && l.contactName && (
+                          <p className="text-xs text-gray-400 mt-0.5">Contact: {l.contactName}</p>
+                        )}
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-1" />
                     </div>
