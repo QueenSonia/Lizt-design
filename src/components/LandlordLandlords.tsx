@@ -617,8 +617,7 @@ function LandlordDetailScreen({
 
         {/* Page header */}
         <div className="px-1 pb-2">
-          <h1 className="text-xl font-bold text-gray-900">{landlord.name}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500">
             {landlord.properties} {landlord.properties === 1 ? "Property" : "Properties"} &bull; {landlord.activeTenancies} Active {landlord.activeTenancies === 1 ? "Tenancy" : "Tenancies"}
           </p>
         </div>
