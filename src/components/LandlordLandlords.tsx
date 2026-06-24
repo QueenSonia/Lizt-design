@@ -477,7 +477,7 @@ function LandlordListScreen({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto lg:pt-[109px]">
-        <div className="px-4 sm:px-6 pt-4 pb-5">
+        <div className="px-4 sm:px-6 pt-8 pb-5">
           {filtered.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
               <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-3" />
