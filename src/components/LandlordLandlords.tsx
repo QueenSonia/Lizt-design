@@ -366,7 +366,7 @@ function AddLandlordModal({ open, onClose, onAdded }: AddLandlordModalProps) {
 
 // ── Landlord List Screen ──────────────────────────────────────────────────────
 
-type SortCol = "name" | "properties" | "tenancies" | "outstanding" | null;
+type SortCol = "name" | "properties" | "tenancies" | null;
 type SortDir = "asc" | "desc";
 
 function LandlordListScreen({
@@ -418,7 +418,6 @@ function LandlordListScreen({
       if (sortCol === "name") diff = a.name.localeCompare(b.name);
       if (sortCol === "properties") diff = a.properties - b.properties;
       if (sortCol === "tenancies") diff = a.activeTenancies - b.activeTenancies;
-      if (sortCol === "outstanding") diff = a.outstandingBalance - b.outstandingBalance;
       return sortDir === "asc" ? diff : -diff;
     });
   }, [landlords, search, sortCol, sortDir]);
@@ -503,9 +502,6 @@ function LandlordListScreen({
                         </button>
                       </th>
                       <th className="text-left px-4 py-3">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</span>
-                      </th>
-                      <th className="text-left px-4 py-3">
                         <button
                           onClick={() => handleSort("properties")}
                           className={`flex items-center text-xs font-semibold uppercase tracking-wide transition-colors ${
@@ -515,7 +511,7 @@ function LandlordListScreen({
                           Properties <SortIcon col="properties" />
                         </button>
                       </th>
-                      <th className="text-left px-4 py-3">
+                      <th className="text-left px-4 py-3 pr-6">
                         <button
                           onClick={() => handleSort("tenancies")}
                           className={`flex items-center text-xs font-semibold uppercase tracking-wide transition-colors ${
@@ -523,16 +519,6 @@ function LandlordListScreen({
                           }`}
                         >
                           Active Tenancies <SortIcon col="tenancies" />
-                        </button>
-                      </th>
-                      <th className="text-right px-4 py-3 pr-6">
-                        <button
-                          onClick={() => handleSort("outstanding")}
-                          className={`flex items-center justify-end ml-auto text-xs font-semibold uppercase tracking-wide transition-colors ${
-                            sortCol === "outstanding" ? "text-[#FF5000]" : "text-gray-500 hover:text-[#FF5000]"
-                          }`}
-                        >
-                          Outstanding Balance <SortIcon col="outstanding" />
                         </button>
                       </th>
                     </tr>
@@ -562,23 +548,8 @@ function LandlordListScreen({
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            l.type === "corporate"
-                              ? "bg-blue-50 text-blue-700"
-                              : "bg-orange-50 text-orange-700"
-                          }`}>
-                            {l.type === "corporate" ? "Corporate" : "Individual"}
-                          </span>
-                        </td>
                         <td className="px-4 py-4 text-gray-900 tabular-nums font-medium">{l.properties}</td>
-                        <td className="px-4 py-4 text-gray-900 tabular-nums font-medium">{l.activeTenancies}</td>
-                        <td className="px-4 py-4 pr-6 text-right tabular-nums">
-                          {l.outstandingBalance > 0
-                            ? <span className="font-semibold text-red-600">{fmtCurrency(l.outstandingBalance)}</span>
-                            : <span className="text-gray-400">—</span>
-                          }
-                        </td>
+                        <td className="px-4 py-4 pr-6 text-gray-900 tabular-nums font-medium">{l.activeTenancies}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -612,20 +583,14 @@ function LandlordListScreen({
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-1" />
                     </div>
-                    <div className="grid grid-cols-3 gap-x-3 text-xs">
+                    <div className="grid grid-cols-2 gap-x-3 text-xs">
                       <div>
                         <p className="text-gray-400 mb-0.5">Properties</p>
                         <p className="text-gray-900 font-medium">{l.properties}</p>
                       </div>
                       <div>
-                        <p className="text-gray-400 mb-0.5">Tenancies</p>
+                        <p className="text-gray-400 mb-0.5">Active Tenancies</p>
                         <p className="text-gray-900 font-medium">{l.activeTenancies}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 mb-0.5">Outstanding</p>
-                        <p className={l.outstandingBalance > 0 ? "text-red-600 font-medium" : "text-gray-400"}>
-                          {l.outstandingBalance > 0 ? fmtCurrency(l.outstandingBalance) : "—"}
-                        </p>
                       </div>
                     </div>
                   </div>
