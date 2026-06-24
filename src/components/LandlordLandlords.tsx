@@ -615,40 +615,19 @@ function LandlordDetailScreen({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
 
-        {/* Page header */}
-        <div className="px-1 pb-2">
-          <p className="text-sm text-gray-500">
-            {landlord.properties} {landlord.properties === 1 ? "Property" : "Properties"} &bull; {landlord.activeTenancies} Active {landlord.activeTenancies === 1 ? "Tenancy" : "Tenancies"}
-          </p>
-        </div>
-
-        {/* Landlord Information */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Landlord Information</p>
+        {/* Landlord profile card */}
+        <div className="bg-white rounded-xl shadow-sm px-5 py-5 flex items-start justify-between gap-6">
+          <div className="min-w-0">
+            <p className="text-base font-semibold text-gray-900">{landlord.name}</p>
+            {landlord.type === "corporate" && landlord.contactName && (
+              <p className="text-xs text-gray-400 mt-0.5">Contact: {landlord.contactName}</p>
+            )}
+            <p className="text-sm text-gray-500 mt-2">{landlord.email}</p>
+            <p className="text-sm text-gray-500 mt-1">{landlord.phone}</p>
           </div>
-          <div className="px-5 py-4 space-y-3">
-            <div className="flex items-start justify-between gap-4 py-2 border-b border-gray-50">
-              <span className="text-xs text-gray-400 shrink-0 mt-0.5 min-w-[80px]">Name</span>
-              <div className="text-sm text-gray-900 text-right">
-                <span>{landlord.name}</span>
-                {landlord.type === "corporate" && landlord.contactName && (
-                  <p className="text-xs text-gray-400 mt-0.5">Contact: {landlord.contactName}</p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-4 py-2 border-b border-gray-50">
-              <span className="text-xs text-gray-400 shrink-0 min-w-[80px]">Type</span>
-              <span className="text-sm text-gray-900 capitalize">{landlord.type === "corporate" ? "Corporate" : "Individual"}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4 py-2 border-b border-gray-50">
-              <span className="text-xs text-gray-400 shrink-0 min-w-[80px]">Email</span>
-              <span className="text-sm text-gray-900">{landlord.email}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4 py-2">
-              <span className="text-xs text-gray-400 shrink-0 min-w-[80px]">Phone</span>
-              <span className="text-sm text-gray-900">{landlord.phone}</span>
-            </div>
+          <div className="text-right shrink-0">
+            <p className="text-sm font-semibold text-gray-900">{landlord.properties} {landlord.properties === 1 ? "Property" : "Properties"}</p>
+            <p className="text-sm text-gray-500 mt-1">{landlord.activeTenancies} Active {landlord.activeTenancies === 1 ? "Tenancy" : "Tenancies"}</p>
           </div>
         </div>
 
