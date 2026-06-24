@@ -583,10 +583,9 @@ export default function LandlordLiveFeed({
                                         <div className="text-base font-semibold text-slate-900 group-hover:text-orange-700 transition-colors duration-300">
                                           {activity.description.split("\n")[0]}
                                         </div>
-                                        <p className="text-xs text-slate-500">
-                                          Property: <span className="font-medium">{activity.property}</span>
-                                        </p>
                                         <p className="text-xs text-slate-400">
+                                          Property: <span className="font-medium text-slate-500">{activity.property}</span>
+                                          <span className="mx-1.5">•</span>
                                           Landlord: <span className="font-medium text-slate-500">{activity.landlord ?? "—"}</span>
                                         </p>
                                         {activity.description.split("\n").slice(1).map((line, i) => (
@@ -600,10 +599,9 @@ export default function LandlordLiveFeed({
                                         <div className="text-base font-semibold text-slate-900 group-hover:text-orange-700 transition-colors duration-300">
                                           {activity.description}
                                         </div>
-                                        <p className="text-xs text-slate-500">
-                                          Property: <span className="font-medium">{activity.property}</span>
-                                        </p>
                                         <p className="text-xs text-slate-400">
+                                          Property: <span className="font-medium text-slate-500">{activity.property}</span>
+                                          <span className="mx-1.5">•</span>
                                           Landlord: <span className="font-medium text-slate-500">{activity.landlord ?? "—"}</span>
                                         </p>
                                       </>
