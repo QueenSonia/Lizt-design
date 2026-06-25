@@ -536,15 +536,15 @@ function TenancyListScreen({
                 <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
                     <th className="text-left px-6 py-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Landlord</span>
+                    </th>
+                    <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("tenant")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
                         Tenant                      </button>
                     </th>
                     <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("property")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
                         Property                      </button>
-                    </th>
-                    <th className="text-left px-4 py-3">
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Landlord</span>
                     </th>
                     <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("rent")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
@@ -572,7 +572,8 @@ function TenancyListScreen({
                       onClick={() => onSelect(t)}
                       className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-gray-600 text-sm">{t.landlordName}</td>
+                      <td className="px-4 py-4">
                         <button
                           onClick={(e) => { e.stopPropagation(); router.push(`/${userRole}/kyc-application-detail/${t.tenantId}`); }}
                           className="font-medium text-gray-900 hover:text-[#FF5000] hover:underline transition-colors text-left"
@@ -588,7 +589,6 @@ function TenancyListScreen({
                           {t.propertyName}
                         </button>
                       </td>
-                      <td className="px-4 py-4 text-gray-600 text-sm">{t.landlordName}</td>
                       <td className="px-4 py-4 text-gray-900 tabular-nums">{fmtCurrency(t.rentAmount)}</td>
                       <td className="px-4 py-4 tabular-nums">
                         {t.outstandingBalance > 0
