@@ -10,6 +10,7 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
+import { SetRentPriceRangeModal } from "./SetRentPriceRangeModal";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -403,10 +404,33 @@ function TenancyCard({
   router: ReturnType<typeof import("next/navigation").useRouter>;
 }) {
   const [marketingReady, setMarketingReady] = useState(t.isMarketingReady ?? false);
+  const [marketingPrice, setMarketingPrice] = useState<number | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const isVacant = !t.tenantName;
 
+  const handleToggle = (checked: boolean) => {
+    if (checked) {
+      setModalOpen(true);
+    } else {
+      setMarketingReady(false);
+      setMarketingPrice(null);
+      toast.success("Property removed from marketing");
+    }
+  };
+
+  const handleSave = (price: number) => {
+    setMarketingReady(true);
+    setMarketingPrice(price);
+    setModalOpen(false);
+    toast.success("Property is now ready for marketing");
+  };
+
+  const handleCancel = () => {
+    setModalOpen(false);
+  };
+
   return (
-    <div className="group">
+    <div>
       {/* Clickable top section */}
       <button
         onClick={() => router.push(`/${userRole}/property-detail/${t.propertyId}`)}
@@ -458,21 +482,28 @@ function TenancyCard({
             <Switch
               id={`marketing-${t.id}`}
               checked={marketingReady}
-              onCheckedChange={(checked) => {
-                setMarketingReady(checked);
-                toast.success(checked ? "Property marked as ready for marketing" : "Property removed from marketing");
-              }}
+              onCheckedChange={handleToggle}
               className="data-[state=checked]:bg-[#FF5000] cursor-pointer"
             />
-            <Label
-              htmlFor={`marketing-${t.id}`}
-              className="text-sm text-gray-600 cursor-pointer"
-            >
+            <Label htmlFor={`marketing-${t.id}`} className="text-sm text-gray-600 cursor-pointer">
               Ready for Marketing
             </Label>
           </div>
+          {marketingReady && marketingPrice && (
+            <p className="text-xs text-gray-500 mt-2 ml-[30px]">
+              {fmtCurrency(marketingPrice)} per year
+            </p>
+          )}
         </div>
       )}
+
+      <SetRentPriceRangeModal
+        isOpen={modalOpen}
+        onClose={handleCancel}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        propertyName={t.propertyName}
+      />
     </div>
   );
 }
