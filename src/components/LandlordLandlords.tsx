@@ -48,6 +48,7 @@ interface MockTenancy {
 
 interface MockTenant {
   id: string;
+  kycId: string;
   name: string;
   propertyName: string | null;
   phone: string;
@@ -79,9 +80,9 @@ const MOCK_LANDLORDS: MockLandlord[] = [
       { id: "tn-003", propertyId: "p-003", propertyName: "Victoria Island Studio", propertyAddress: "22 Ozumba Mbadiwe Ave, VI, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0 },
     ],
     tenantList: [
-      { id: "t-001", name: "James Okafor", propertyName: "Lekki Phase 1 Duplex", phone: "+234 803 214 5678" },
-      { id: "t-002", name: "Adaeze Nwosu", propertyName: "Ikoyi 2-Bed Apartment", phone: "+234 806 332 9910" },
-      { id: "t-013", name: "Mary Johnson", propertyName: null, phone: "+234 802 123 4567" },
+      { id: "t-001", kycId: "kyc-001", name: "James Okafor", propertyName: "Lekki Phase 1 Duplex", phone: "+234 803 214 5678" },
+      { id: "t-002", kycId: "kyc-002", name: "Adaeze Nwosu", propertyName: "Ikoyi 2-Bed Apartment", phone: "+234 806 332 9910" },
+      { id: "t-013", kycId: "kyc-013", name: "Mary Johnson", propertyName: null, phone: "+234 802 123 4567" },
     ],
     recentActivity: [],
   },
@@ -101,9 +102,9 @@ const MOCK_LANDLORDS: MockLandlord[] = [
       { id: "tn-006", propertyId: "p-005", propertyName: "Lekki Conservation Bungalow", propertyAddress: "7 Lekki Conservation Drive, Lagos", tenantName: "Emmanuel Etim", tenantId: "t-005", tenantPhone: "+234 812 554 7723", tenancyType: "Annual", rentAmount: 950000, nextRentDue: "2026-08-30", outstandingBalance: 0 },
     ],
     tenantList: [
-      { id: "t-003", name: "Chidi Okafor", propertyName: "Banana Island Terrace", phone: "+234 708 991 2244" },
-      { id: "t-004", name: "Amina Bello", propertyName: "Banana Island Terrace", phone: "+234 802 987 6543" },
-      { id: "t-005", name: "Emmanuel Etim", propertyName: "Lekki Conservation Bungalow", phone: "+234 812 554 7723" },
+      { id: "t-003", kycId: "kyc-003", name: "Chidi Okafor", propertyName: "Banana Island Terrace", phone: "+234 708 991 2244" },
+      { id: "t-004", kycId: "kyc-004", name: "Amina Bello", propertyName: "Banana Island Terrace", phone: "+234 802 987 6543" },
+      { id: "t-005", kycId: "kyc-005", name: "Emmanuel Etim", propertyName: "Lekki Conservation Bungalow", phone: "+234 812 554 7723" },
     ],
     recentActivity: [],
   },
@@ -122,8 +123,8 @@ const MOCK_LANDLORDS: MockLandlord[] = [
       { id: "tn-008", propertyId: "p-006", propertyName: "Surulere Mini Flat", propertyAddress: "12 Adeniran Ogunsanya St, Surulere, Lagos", tenantName: "Tunde Adebayo", tenantId: "t-007", tenantPhone: "+234 803 567 8901", tenancyType: "Monthly", rentAmount: 120000, nextRentDue: "2026-11-15", outstandingBalance: 0 },
     ],
     tenantList: [
-      { id: "t-006", name: "Ngozi Eze", propertyName: "Surulere Mini Flat", phone: "+234 815 443 2211" },
-      { id: "t-007", name: "Tunde Adebayo", propertyName: "Surulere Mini Flat", phone: "+234 803 567 8901" },
+      { id: "t-006", kycId: "kyc-006", name: "Ngozi Eze", propertyName: "Surulere Mini Flat", phone: "+234 815 443 2211" },
+      { id: "t-007", kycId: "kyc-007", name: "Tunde Adebayo", propertyName: "Surulere Mini Flat", phone: "+234 803 567 8901" },
     ],
     recentActivity: [],
   },
@@ -144,9 +145,9 @@ const MOCK_LANDLORDS: MockLandlord[] = [
       { id: "tn-011", propertyId: "p-009", propertyName: "Ajah Estate Block A", propertyAddress: "1 Abraham Adesanya Estate, Ajah, Lagos", tenantName: "Seun Williams", tenantId: "t-010", tenantPhone: "+234 812 778 9900", tenancyType: "Bi-Annual", rentAmount: 1200000, nextRentDue: "2026-10-15", outstandingBalance: 0 },
     ],
     tenantList: [
-      { id: "t-008", name: "Bola Fashola", propertyName: "Greenfield Towers", phone: "+234 803 111 2222" },
-      { id: "t-009", name: "Kemi Adesanya", propertyName: "Marina Commercial Hub", phone: "+234 706 334 5566" },
-      { id: "t-010", name: "Seun Williams", propertyName: "Ajah Estate Block A", phone: "+234 812 778 9900" },
+      { id: "t-008", kycId: "kyc-008", name: "Bola Fashola", propertyName: "Greenfield Towers", phone: "+234 803 111 2222" },
+      { id: "t-009", kycId: "kyc-009", name: "Kemi Adesanya", propertyName: "Marina Commercial Hub", phone: "+234 706 334 5566" },
+      { id: "t-010", kycId: "kyc-010", name: "Seun Williams", propertyName: "Ajah Estate Block A", phone: "+234 812 778 9900" },
     ],
     recentActivity: [],
   },
@@ -167,8 +168,8 @@ const MOCK_LANDLORDS: MockLandlord[] = [
       { id: "tn-014", propertyId: "p-011", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0 },
     ],
     tenantList: [
-      { id: "t-011", name: "Akin Martins", propertyName: "Prime Towers VI", phone: "+234 905 221 3344" },
-      { id: "t-012", name: "Ifeanyi Dike", propertyName: "Prime Gardens Lekki", phone: "+234 803 445 6677" },
+      { id: "t-011", kycId: "kyc-011", name: "Akin Martins", propertyName: "Prime Towers VI", phone: "+234 905 221 3344" },
+      { id: "t-012", kycId: "kyc-012", name: "Ifeanyi Dike", propertyName: "Prime Gardens Lekki", phone: "+234 803 445 6677" },
     ],
     recentActivity: [],
   },
@@ -729,7 +730,7 @@ function LandlordDetailScreen({
               {landlord.tenantList.map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => router.push(`/${userRole}/tenants`)}
+                  onClick={() => router.push(`/${userRole}/kyc-application-detail/${t.kycId}`)}
                   className="w-full flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
                 >
                   <div className="min-w-0">
