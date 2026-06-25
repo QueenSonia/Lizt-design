@@ -187,6 +187,22 @@ export default function LandlordPropertyDetail({
   const [paymentPlanScope, setPaymentPlanScope] = useState<PlanScope>("tenancy");
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
+  // Mock landlord lookup by property ID — used for display in the page header
+  const MOCK_PROPERTY_LANDLORDS: Record<string, { id: string; name: string }> = {
+    "p-001": { id: "ll-001", name: "Michael Adeyemi" },
+    "p-002": { id: "ll-001", name: "Michael Adeyemi" },
+    "p-003": { id: "ll-001", name: "Michael Adeyemi" },
+    "p-004": { id: "ll-002", name: "Sarah Johnson" },
+    "p-005": { id: "ll-002", name: "Sarah Johnson" },
+    "p-006": { id: "ll-003", name: "Funke Balogun" },
+    "p-007": { id: "ll-004", name: "Adeyemi Holdings Ltd" },
+    "p-008": { id: "ll-004", name: "Adeyemi Holdings Ltd" },
+    "p-009": { id: "ll-004", name: "Adeyemi Holdings Ltd" },
+    "p-010": { id: "ll-005", name: "Prime Estates Limited" },
+    "p-011": { id: "ll-005", name: "Prime Estates Limited" },
+  };
+  const mockLandlord = effectivePropertyId ? MOCK_PROPERTY_LANDLORDS[effectivePropertyId] : undefined;
+
   useEffect(() => {
     return subscribeToFMStore(() => fmTick((n) => n + 1));
   }, []);
@@ -1291,6 +1307,8 @@ export default function LandlordPropertyDetail({
       <LandlordTopNav
         title={propertyData?.name || ""}
         subtitle={propertyData?.address || ""}
+        landlordName={mockLandlord?.name}
+        onLandlordClick={mockLandlord ? () => router.push(`/${userRole}/landlords`) : undefined}
         onBack={handleBack}
         onAddProperty={handleAddProperty}
         onAddTenant={handleAddTenant}

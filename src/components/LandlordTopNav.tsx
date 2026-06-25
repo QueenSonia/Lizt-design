@@ -6,6 +6,8 @@ import { memo } from "react";
 interface LandlordTopNavProps {
   title: string;
   subtitle?: string;
+  landlordName?: string;
+  onLandlordClick?: () => void;
   onBack?: () => void;
   onAddNew?: () => void;
   showAddNew?: boolean;
@@ -25,6 +27,8 @@ interface LandlordTopNavProps {
 export const LandlordTopNav = memo(function LandlordTopNav({
   title,
   subtitle,
+  landlordName,
+  onLandlordClick,
   onBack,
   onAddProperty,
   onAddTenant,
@@ -80,6 +84,22 @@ export const LandlordTopNav = memo(function LandlordTopNav({
               {subtitle && (
                 <p className="text-xs lg:text-sm text-slate-600">
                   {subtitle}
+                </p>
+              )}
+              {landlordName && (
+                <p className="text-xs lg:text-sm text-slate-600 mt-0.5">
+                  Landlord:{" "}
+                  {onLandlordClick ? (
+                    <button
+                      type="button"
+                      onClick={onLandlordClick}
+                      className="text-slate-800 font-medium hover:text-[#FF5000] hover:underline underline-offset-2 transition-colors"
+                    >
+                      {landlordName}
+                    </button>
+                  ) : (
+                    <span className="text-slate-800 font-medium">{landlordName}</span>
+                  )}
                 </p>
               )}
             </div>
