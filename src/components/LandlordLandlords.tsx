@@ -738,6 +738,25 @@ function LandlordDetailScreen({
   const router = useRouter();
   const { user } = useAuth();
   const userRole = user?.role ?? "landlord";
+  const [search, setSearch] = useState("");
+
+  const q = search.toLowerCase().trim();
+
+  const filteredTenancies = q
+    ? landlord.tenancyList.filter(
+        (t) =>
+          t.propertyName.toLowerCase().includes(q) ||
+          (t.tenantName && t.tenantName.toLowerCase().includes(q))
+      )
+    : landlord.tenancyList;
+
+  const filteredTenants = q
+    ? landlord.tenantList.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          (t.propertyName && t.propertyName.toLowerCase().includes(q))
+      )
+    : landlord.tenantList;
 
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
@@ -751,6 +770,27 @@ function LandlordDetailScreen({
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900">Landlord Details</p>
+        </div>
+      </div>
+
+      {/* Search bar */}
+      <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-3 shrink-0">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tenancies or tenants..."
+            className="pl-10 h-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-orange-200 text-sm"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -781,14 +821,14 @@ function LandlordDetailScreen({
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenancies</p>
           </div>
 
-          {landlord.tenancyList.length === 0 ? (
+          {filteredTenancies.length === 0 ? (
             <div className="px-5 py-8 text-center">
               <Home className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No tenancies yet</p>
+              <p className="text-sm text-gray-400">{q ? "No tenancies match your search" : "No tenancies yet"}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
-              {landlord.tenancyList.map((t) => (
+              {filteredTenancies.map((t) => (
                 <TenancyCard
                   key={t.id}
                   tenancy={t}
@@ -806,14 +846,14 @@ function LandlordDetailScreen({
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenants</p>
           </div>
 
-          {landlord.tenantList.length === 0 ? (
+          {filteredTenants.length === 0 ? (
             <div className="px-5 py-8 text-center">
               <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No tenants yet</p>
+              <p className="text-sm text-gray-400">{q ? "No tenants match your search" : "No tenants yet"}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
-              {landlord.tenantList.map((t) => (
+              {filteredTenants.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => router.push(`/${userRole}/kyc-application-detail/${t.kycId}`)}
