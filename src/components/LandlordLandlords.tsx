@@ -654,9 +654,8 @@ function LandlordDetailScreen({
 
         {/* Tenancies */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60 flex items-center justify-between">
+          <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenancies</p>
-            <span className="text-xs text-gray-400">{landlord.tenancyList.length} Total</span>
           </div>
 
           {landlord.tenancyList.length === 0 ? (
