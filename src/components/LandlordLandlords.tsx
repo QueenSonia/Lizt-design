@@ -665,12 +665,12 @@ function LandlordDetailScreen({
               <p className="text-sm text-gray-400">No tenancies yet</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-200">
               {landlord.tenancyList.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => router.push(`/${userRole}/tenancies`)}
-                  className="w-full px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
+                  className="w-full px-5 py-5 hover:bg-gray-50 transition-colors text-left group"
                 >
                   {/* Property header */}
                   <div className="flex items-start justify-between gap-4 mb-3">
@@ -695,12 +695,6 @@ function LandlordDetailScreen({
                       <div>
                         <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Tenancy Type</p>
                         <p className="text-xs font-medium text-gray-800">{t.tenancyType ?? "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Outstanding</p>
-                        <p className={`text-xs font-medium ${t.outstandingBalance > 0 ? "text-red-600" : "text-gray-400"}`}>
-                          {t.outstandingBalance > 0 ? fmtCurrency(t.outstandingBalance) : "—"}
-                        </p>
                       </div>
                       {t.nextRentDue && (
                         <div>
