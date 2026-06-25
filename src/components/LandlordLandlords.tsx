@@ -627,7 +627,7 @@ function LandlordDetailScreen({
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{landlord.name}</p>
+          <p className="text-sm font-semibold text-gray-900">Landlord Details</p>
         </div>
       </div>
 
