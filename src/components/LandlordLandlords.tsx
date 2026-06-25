@@ -48,7 +48,7 @@ interface MockTenancy {
 interface MockTenant {
   id: string;
   name: string;
-  propertyName: string;
+  propertyName: string | null;
   phone: string;
 }
 
@@ -80,6 +80,7 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     tenantList: [
       { id: "t-001", name: "James Okafor", propertyName: "Lekki Phase 1 Duplex", phone: "+234 803 214 5678" },
       { id: "t-002", name: "Adaeze Nwosu", propertyName: "Ikoyi 2-Bed Apartment", phone: "+234 806 332 9910" },
+      { id: "t-013", name: "Mary Johnson", propertyName: null, phone: "+234 802 123 4567" },
     ],
     recentActivity: [],
   },
@@ -732,7 +733,7 @@ function LandlordDetailScreen({
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors">{t.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{t.propertyName}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{t.propertyName ?? "No Property Assigned"}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{t.phone}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0" />
