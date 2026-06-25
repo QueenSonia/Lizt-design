@@ -39,6 +39,8 @@ interface MockTenancy {
   tenantName: string | null;
   tenantId: string | null;
   tenantPhone: string | null;
+  tenancyType: string | null;
+  rentAmount: number | null;
   nextRentDue: string | null;
   outstandingBalance: number;
 }
@@ -71,9 +73,9 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     outstandingBalance: 120000,
     occupancyRate: 83,
     tenancyList: [
-      { id: "tn-001", propertyName: "Lekki Phase 1 Duplex", propertyAddress: "14 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "James Okafor", tenantId: "t-001", tenantPhone: "+234 803 214 5678", nextRentDue: "2026-12-31", outstandingBalance: 120000 },
-      { id: "tn-002", propertyName: "Ikoyi 2-Bed Apartment", propertyAddress: "3 Cameron Road, Ikoyi, Lagos", tenantName: "Adaeze Nwosu", tenantId: "t-002", tenantPhone: "+234 806 332 9910", nextRentDue: "2027-03-14", outstandingBalance: 0 },
-      { id: "tn-003", propertyName: "Victoria Island Studio", propertyAddress: "22 Ozumba Mbadiwe Ave, VI, Lagos", tenantName: null, tenantId: null, tenantPhone: null, nextRentDue: null, outstandingBalance: 0 },
+      { id: "tn-001", propertyName: "Lekki Phase 1 Duplex", propertyAddress: "14 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "James Okafor", tenantId: "t-001", tenantPhone: "+234 803 214 5678", tenancyType: "Annual", rentAmount: 1800000, nextRentDue: "2026-12-31", outstandingBalance: 120000 },
+      { id: "tn-002", propertyName: "Ikoyi 2-Bed Apartment", propertyAddress: "3 Cameron Road, Ikoyi, Lagos", tenantName: "Adaeze Nwosu", tenantId: "t-002", tenantPhone: "+234 806 332 9910", tenancyType: "Annual", rentAmount: 2400000, nextRentDue: "2027-03-14", outstandingBalance: 0 },
+      { id: "tn-003", propertyName: "Victoria Island Studio", propertyAddress: "22 Ozumba Mbadiwe Ave, VI, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0 },
     ],
     tenantList: [
       { id: "t-001", name: "James Okafor", propertyName: "Lekki Phase 1 Duplex", phone: "+234 803 214 5678" },
@@ -92,9 +94,9 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     outstandingBalance: 0,
     occupancyRate: 100,
     tenancyList: [
-      { id: "tn-004", propertyName: "Banana Island Terrace", propertyAddress: "5 Banana Island Road, Ikoyi, Lagos", tenantName: "Chidi Okafor", tenantId: "t-003", tenantPhone: "+234 708 991 2244", nextRentDue: "2027-01-15", outstandingBalance: 0 },
-      { id: "tn-005", propertyName: "Banana Island Terrace", propertyAddress: "5 Banana Island Road, Ikoyi, Lagos", tenantName: "Amina Bello", tenantId: "t-004", tenantPhone: "+234 802 987 6543", nextRentDue: "2026-09-01", outstandingBalance: 0 },
-      { id: "tn-006", propertyName: "Lekki Conservation Bungalow", propertyAddress: "7 Lekki Conservation Drive, Lagos", tenantName: "Emmanuel Etim", tenantId: "t-005", tenantPhone: "+234 812 554 7723", nextRentDue: "2026-08-30", outstandingBalance: 0 },
+      { id: "tn-004", propertyName: "Banana Island Terrace", propertyAddress: "5 Banana Island Road, Ikoyi, Lagos", tenantName: "Chidi Okafor", tenantId: "t-003", tenantPhone: "+234 708 991 2244", tenancyType: "Annual", rentAmount: 3200000, nextRentDue: "2027-01-15", outstandingBalance: 0 },
+      { id: "tn-005", propertyName: "Banana Island Terrace", propertyAddress: "5 Banana Island Road, Ikoyi, Lagos", tenantName: "Amina Bello", tenantId: "t-004", tenantPhone: "+234 802 987 6543", tenancyType: "Bi-Annual", rentAmount: 1600000, nextRentDue: "2026-09-01", outstandingBalance: 0 },
+      { id: "tn-006", propertyName: "Lekki Conservation Bungalow", propertyAddress: "7 Lekki Conservation Drive, Lagos", tenantName: "Emmanuel Etim", tenantId: "t-005", tenantPhone: "+234 812 554 7723", tenancyType: "Annual", rentAmount: 950000, nextRentDue: "2026-08-30", outstandingBalance: 0 },
     ],
     tenantList: [
       { id: "t-003", name: "Chidi Okafor", propertyName: "Banana Island Terrace", phone: "+234 708 991 2244" },
@@ -114,8 +116,8 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     outstandingBalance: 45000,
     occupancyRate: 100,
     tenancyList: [
-      { id: "tn-007", propertyName: "Surulere Mini Flat", propertyAddress: "12 Adeniran Ogunsanya St, Surulere, Lagos", tenantName: "Ngozi Eze", tenantId: "t-006", tenantPhone: "+234 815 443 2211", nextRentDue: "2026-10-01", outstandingBalance: 45000 },
-      { id: "tn-008", propertyName: "Surulere Mini Flat", propertyAddress: "12 Adeniran Ogunsanya St, Surulere, Lagos", tenantName: "Tunde Adebayo", tenantId: "t-007", tenantPhone: "+234 803 567 8901", nextRentDue: "2026-11-15", outstandingBalance: 0 },
+      { id: "tn-007", propertyName: "Surulere Mini Flat", propertyAddress: "12 Adeniran Ogunsanya St, Surulere, Lagos", tenantName: "Ngozi Eze", tenantId: "t-006", tenantPhone: "+234 815 443 2211", tenancyType: "Quarterly", rentAmount: 300000, nextRentDue: "2026-10-01", outstandingBalance: 45000 },
+      { id: "tn-008", propertyName: "Surulere Mini Flat", propertyAddress: "12 Adeniran Ogunsanya St, Surulere, Lagos", tenantName: "Tunde Adebayo", tenantId: "t-007", tenantPhone: "+234 803 567 8901", tenancyType: "Monthly", rentAmount: 120000, nextRentDue: "2026-11-15", outstandingBalance: 0 },
     ],
     tenantList: [
       { id: "t-006", name: "Ngozi Eze", propertyName: "Surulere Mini Flat", phone: "+234 815 443 2211" },
@@ -135,9 +137,9 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     outstandingBalance: 850000,
     occupancyRate: 75,
     tenancyList: [
-      { id: "tn-009", propertyName: "Greenfield Towers", propertyAddress: "9 Walter Carrington Crescent, Lagos Island", tenantName: "Bola Fashola", tenantId: "t-008", tenantPhone: "+234 803 111 2222", nextRentDue: "2027-02-01", outstandingBalance: 200000 },
-      { id: "tn-010", propertyName: "Marina Commercial Hub", propertyAddress: "15 Marina St, Lagos Island", tenantName: "Kemi Adesanya", tenantId: "t-009", tenantPhone: "+234 706 334 5566", nextRentDue: "2026-12-01", outstandingBalance: 650000 },
-      { id: "tn-011", propertyName: "Ajah Estate Block A", propertyAddress: "1 Abraham Adesanya Estate, Ajah, Lagos", tenantName: "Seun Williams", tenantId: "t-010", tenantPhone: "+234 812 778 9900", nextRentDue: "2026-10-15", outstandingBalance: 0 },
+      { id: "tn-009", propertyName: "Greenfield Towers", propertyAddress: "9 Walter Carrington Crescent, Lagos Island", tenantName: "Bola Fashola", tenantId: "t-008", tenantPhone: "+234 803 111 2222", tenancyType: "Annual", rentAmount: 2800000, nextRentDue: "2027-02-01", outstandingBalance: 200000 },
+      { id: "tn-010", propertyName: "Marina Commercial Hub", propertyAddress: "15 Marina St, Lagos Island", tenantName: "Kemi Adesanya", tenantId: "t-009", tenantPhone: "+234 706 334 5566", tenancyType: "Annual", rentAmount: 5500000, nextRentDue: "2026-12-01", outstandingBalance: 650000 },
+      { id: "tn-011", propertyName: "Ajah Estate Block A", propertyAddress: "1 Abraham Adesanya Estate, Ajah, Lagos", tenantName: "Seun Williams", tenantId: "t-010", tenantPhone: "+234 812 778 9900", tenancyType: "Bi-Annual", rentAmount: 1200000, nextRentDue: "2026-10-15", outstandingBalance: 0 },
     ],
     tenantList: [
       { id: "t-008", name: "Bola Fashola", propertyName: "Greenfield Towers", phone: "+234 803 111 2222" },
@@ -158,9 +160,9 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     outstandingBalance: 200000,
     occupancyRate: 79,
     tenancyList: [
-      { id: "tn-012", propertyName: "Prime Towers VI", propertyAddress: "22 Adeola Odeku St, Victoria Island, Lagos", tenantName: "Akin Martins", tenantId: "t-011", tenantPhone: "+234 905 221 3344", nextRentDue: "2027-01-01", outstandingBalance: 200000 },
-      { id: "tn-013", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "Ifeanyi Dike", tenantId: "t-012", tenantPhone: "+234 803 445 6677", nextRentDue: "2026-11-30", outstandingBalance: 0 },
-      { id: "tn-014", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: null, tenantId: null, tenantPhone: null, nextRentDue: null, outstandingBalance: 0 },
+      { id: "tn-012", propertyName: "Prime Towers VI", propertyAddress: "22 Adeola Odeku St, Victoria Island, Lagos", tenantName: "Akin Martins", tenantId: "t-011", tenantPhone: "+234 905 221 3344", tenancyType: "Annual", rentAmount: 6000000, nextRentDue: "2027-01-01", outstandingBalance: 200000 },
+      { id: "tn-013", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "Ifeanyi Dike", tenantId: "t-012", tenantPhone: "+234 803 445 6677", tenancyType: "Annual", rentAmount: 1800000, nextRentDue: "2026-11-30", outstandingBalance: 0 },
+      { id: "tn-014", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0 },
     ],
     tenantList: [
       { id: "t-011", name: "Akin Martins", propertyName: "Prime Towers VI", phone: "+234 905 221 3344" },
@@ -676,6 +678,12 @@ function LandlordDetailScreen({
                     {t.tenantName ? (
                       <div className="mt-2 space-y-0.5">
                         <p className="text-xs text-gray-600">Tenant: {t.tenantName}</p>
+                        {t.tenancyType && (
+                          <p className="text-xs text-gray-500">Tenancy Type: {t.tenancyType}</p>
+                        )}
+                        {t.rentAmount !== null && (
+                          <p className="text-xs text-gray-500">Rent: {fmtCurrency(t.rentAmount)}</p>
+                        )}
                         {t.nextRentDue && (
                           <p className="text-xs text-gray-500">Next Rent Due: {fmtDate(t.nextRentDue)}</p>
                         )}
