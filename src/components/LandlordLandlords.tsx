@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { Switch } from "./ui/switch";
+import { Label } from "./ui/label";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -389,6 +391,92 @@ function AddLandlordModal({ open, onClose, onAdded }: AddLandlordModalProps) {
   );
 }
 
+// ── Tenancy Card ─────────────────────────────────────────────────────────────
+
+function TenancyCard({
+  tenancy: t,
+  userRole,
+  router,
+}: {
+  tenancy: MockTenancy;
+  userRole: string;
+  router: ReturnType<typeof import("next/navigation").useRouter>;
+}) {
+  const [marketingReady, setMarketingReady] = useState(t.isMarketingReady ?? false);
+  const isVacant = !t.tenantName;
+
+  return (
+    <div className="group">
+      {/* Clickable top section */}
+      <button
+        onClick={() => router.push(`/${userRole}/property-detail/${t.propertyId}`)}
+        className="w-full px-5 py-5 hover:bg-gray-50 transition-colors text-left group"
+      >
+        {/* Property header */}
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors truncate">{t.propertyName}</p>
+            <p className="text-xs text-gray-400 mt-0.5 truncate">{t.propertyAddress}</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0 mt-0.5" />
+        </div>
+
+        {/* Tenancy details — two-column grid or vacant */}
+        {!isVacant ? (
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2.5">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Tenant</p>
+              <p className="text-xs font-medium text-gray-800">{t.tenantName}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Rent</p>
+              <p className="text-xs font-medium text-gray-800">{t.rentAmount !== null ? fmtCurrency(t.rentAmount) : "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Tenancy Type</p>
+              <p className="text-xs font-medium text-gray-800">{t.tenancyType ?? "—"}</p>
+            </div>
+            {t.nextRentDue && (
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Next Rent Due</p>
+                <p className="text-xs font-medium text-gray-800">{fmtDate(t.nextRentDue)}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 italic">No Active Tenancy</p>
+        )}
+      </button>
+
+      {/* Ready for Marketing toggle — vacant properties only */}
+      {isVacant && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="px-5 pb-4 pt-2 border-t border-gray-100"
+        >
+          <div className="flex items-center gap-2">
+            <Switch
+              id={`marketing-${t.id}`}
+              checked={marketingReady}
+              onCheckedChange={(checked) => {
+                setMarketingReady(checked);
+                toast.success(checked ? "Property marked as ready for marketing" : "Property removed from marketing");
+              }}
+              className="data-[state=checked]:bg-[#FF5000] cursor-pointer"
+            />
+            <Label
+              htmlFor={`marketing-${t.id}`}
+              className="text-sm text-gray-600 cursor-pointer"
+            >
+              Ready for Marketing
+            </Label>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Landlord List Screen ──────────────────────────────────────────────────────
 
 type SortCol = "name" | "properties" | "tenancies" | null;
@@ -670,53 +758,12 @@ function LandlordDetailScreen({
           ) : (
             <div className="divide-y divide-gray-200">
               {landlord.tenancyList.map((t) => (
-                <button
+                <TenancyCard
                   key={t.id}
-                  onClick={() => router.push(`/${userRole}/property-detail/${t.propertyId}`)}
-                  className="w-full px-5 py-5 hover:bg-gray-50 transition-colors text-left group"
-                >
-                  {/* Property header */}
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors truncate">{t.propertyName}</p>
-                      <p className="text-xs text-gray-400 mt-0.5 truncate">{t.propertyAddress}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0 mt-0.5" />
-                  </div>
-
-                  {/* Tenancy details — two-column grid or vacant */}
-                  {t.tenantName ? (
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-2.5">
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Tenant</p>
-                        <p className="text-xs font-medium text-gray-800">{t.tenantName}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Rent</p>
-                        <p className="text-xs font-medium text-gray-800">{t.rentAmount !== null ? fmtCurrency(t.rentAmount) : "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Tenancy Type</p>
-                        <p className="text-xs font-medium text-gray-800">{t.tenancyType ?? "—"}</p>
-                      </div>
-                      {t.nextRentDue && (
-                        <div>
-                          <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Next Rent Due</p>
-                          <p className="text-xs font-medium text-gray-800">{fmtDate(t.nextRentDue)}</p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs text-gray-400 italic">No Active Tenancy</p>
-                      {t.isMarketingReady && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                          Ready for Marketing
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </button>
+                  tenancy={t}
+                  userRole={userRole}
+                  router={router}
+                />
               ))}
             </div>
           )}
