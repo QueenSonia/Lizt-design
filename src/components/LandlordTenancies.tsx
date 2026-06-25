@@ -37,6 +37,7 @@ interface Tenancy {
   tenantPhone: string;
   propertyName: string;
   propertyAddress: string;
+  landlordName: string;
   tenancyType: "Residential" | "Commercial";
   startDate: string;
   endDate: string;
@@ -93,6 +94,7 @@ const MOCK_TENANCIES: Tenancy[] = [
     tenantPhone: "+234 803 214 5678",
     propertyName: "Lekki Phase 1 Duplex",
     propertyAddress: "14 Admiralty Way, Lekki Phase 1, Lagos",
+    landlordName: "Michael Adeyemi",
     tenancyType: "Residential",
     startDate: "2025-01-01",
     endDate: "2026-12-31",
@@ -126,6 +128,7 @@ const MOCK_TENANCIES: Tenancy[] = [
     tenantPhone: "+234 806 332 9910",
     propertyName: "Ikoyi 2-Bed Apartment",
     propertyAddress: "3 Cameron Road, Ikoyi, Lagos",
+    landlordName: "Michael Adeyemi",
     tenancyType: "Residential",
     startDate: "2025-03-15",
     endDate: "2026-03-14",
@@ -154,6 +157,7 @@ const MOCK_TENANCIES: Tenancy[] = [
     tenantPhone: "+234 812 554 7723",
     propertyName: "Victoria Island Studio",
     propertyAddress: "22 Ozumba Mbadiwe Ave, Victoria Island, Lagos",
+    landlordName: "Sarah Johnson",
     tenancyType: "Residential",
     startDate: "2025-06-01",
     endDate: "2026-05-31",
@@ -184,6 +188,7 @@ const MOCK_TENANCIES: Tenancy[] = [
     tenantPhone: "+234 708 991 2244",
     propertyName: "Greenfield Towers – Unit 4B",
     propertyAddress: "9 Walter Carrington Crescent, Lagos Island",
+    landlordName: "Adeyemi Holdings Ltd",
     tenancyType: "Residential",
     startDate: "2023-08-01",
     endDate: "2025-07-31",
@@ -539,6 +544,9 @@ function TenancyListScreen({
                         Property                      </button>
                     </th>
                     <th className="text-left px-4 py-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Landlord</span>
+                    </th>
+                    <th className="text-left px-4 py-3">
                       <button onClick={() => handleSort("rent")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
                         Rent                      </button>
                     </th>
@@ -580,6 +588,7 @@ function TenancyListScreen({
                           {t.propertyName}
                         </button>
                       </td>
+                      <td className="px-4 py-4 text-gray-600 text-sm">{t.landlordName}</td>
                       <td className="px-4 py-4 text-gray-900 tabular-nums">{fmtCurrency(t.rentAmount)}</td>
                       <td className="px-4 py-4 tabular-nums">
                         {t.outstandingBalance > 0
@@ -610,6 +619,7 @@ function TenancyListScreen({
                     <div>
                       <p className="font-medium text-gray-900">{t.tenantName}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{t.propertyName}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{t.landlordName}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
                   </div>
