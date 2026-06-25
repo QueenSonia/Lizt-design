@@ -1316,7 +1316,7 @@ export default function LandlordPropertyDetail({
       />
 
       {/* Main Content Container with padding for fixed nav */}
-      <div className="pt-[73px] lg:pt-[81px]">
+      <div className={mockLandlord ? "pt-[97px] lg:pt-[109px]" : "pt-[73px] lg:pt-[81px]"}>
         <div className="bg-white border-b border-gray-200">
           <div>
             <div className="flex items-center border-b border-gray-200 -mb-[1px] px-[52px] py-[0px]">
