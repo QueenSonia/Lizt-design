@@ -670,32 +670,48 @@ function LandlordDetailScreen({
                 <button
                   key={t.id}
                   onClick={() => router.push(`/${userRole}/tenancies`)}
-                  className="w-full flex items-start justify-between gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
+                  className="w-full px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors truncate">{t.propertyName}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{t.propertyAddress}</p>
-                    {t.tenantName ? (
-                      <div className="mt-2 space-y-0.5">
-                        <p className="text-xs text-gray-600">Tenant: {t.tenantName}</p>
-                        {t.tenancyType && (
-                          <p className="text-xs text-gray-500">Tenancy Type: {t.tenancyType}</p>
-                        )}
-                        {t.rentAmount !== null && (
-                          <p className="text-xs text-gray-500">Rent: {fmtCurrency(t.rentAmount)}</p>
-                        )}
-                        {t.nextRentDue && (
-                          <p className="text-xs text-gray-500">Next Rent Due: {fmtDate(t.nextRentDue)}</p>
-                        )}
-                        {t.outstandingBalance > 0 && (
-                          <p className="text-xs font-medium text-red-600">Outstanding: {fmtCurrency(t.outstandingBalance)}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 mt-2 italic">No Active Tenancy</p>
-                    )}
+                  {/* Property header */}
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors truncate">{t.propertyName}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">{t.propertyAddress}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0 mt-0.5" />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0 mt-0.5" />
+
+                  {/* Tenancy details — two-column grid or vacant */}
+                  {t.tenantName ? (
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-2.5">
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Tenant</p>
+                        <p className="text-xs font-medium text-gray-800">{t.tenantName}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Rent</p>
+                        <p className="text-xs font-medium text-gray-800">{t.rentAmount !== null ? fmtCurrency(t.rentAmount) : "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Tenancy Type</p>
+                        <p className="text-xs font-medium text-gray-800">{t.tenancyType ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Outstanding</p>
+                        <p className={`text-xs font-medium ${t.outstandingBalance > 0 ? "text-red-600" : "text-gray-400"}`}>
+                          {t.outstandingBalance > 0 ? fmtCurrency(t.outstandingBalance) : "—"}
+                        </p>
+                      </div>
+                      {t.nextRentDue && (
+                        <div>
+                          <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Next Rent Due</p>
+                          <p className="text-xs font-medium text-gray-800">{fmtDate(t.nextRentDue)}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">No Active Tenancy</p>
+                  )}
                 </button>
               ))}
             </div>
