@@ -25,11 +25,6 @@ export const screenMap: ScreenMap = {
         default: withLandlordMobileProps(module.default),
       })),
     ),
-    properties: lazy(() =>
-      import("@/components/LandlordProperties").then((module) => ({
-        default: withLandlordMobileProps(module.default),
-      })),
-    ),
     "property-detail": lazy(() =>
       import("@/components/LandlordPropertyDetail").then((module) => ({
         default: withLandlordMobileProps(module.default),
@@ -43,11 +38,6 @@ export const screenMap: ScreenMap = {
     "edit-property": lazy(() =>
       import("@/components/LandlordEditProperty").then((module) => ({
         default: withLandlordMobileProps(module.LandlordEditProperty),
-      })),
-    ),
-    tenants: lazy(() =>
-      import("@/components/LandlordTenants").then((module) => ({
-        default: withLandlordMobileProps(module.default),
       })),
     ),
     "add-tenant": lazy(() =>

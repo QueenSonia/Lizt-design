@@ -2,8 +2,6 @@
 /* eslint-disable */
 import { useState, useRef, useEffect } from "react";
 import {
-  Users,
-  Building,
   Building2,
   Search,
   LogOut,
@@ -132,8 +130,6 @@ export function LandlordSidebar({
         { id: "dashboard", label: "Live Feed", icon: MessageSquare },
         { id: "landlords", label: "Landlords", icon: Building2 },
         { id: "tenancies", label: "Tenancies", icon: KeyRound },
-        { id: "properties", label: "Properties", icon: Building },
-        { id: "tenants", label: "Tenants", icon: Users },
         { id: "kyc", label: "Tenant Applicants", icon: FileCheck },
         { id: "communications", label: "Communications", icon: Megaphone },
         { id: "facility", label: "Facility", icon: Wrench },
