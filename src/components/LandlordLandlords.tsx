@@ -44,6 +44,7 @@ interface MockTenancy {
   rentAmount: number | null;
   nextRentDue: string | null;
   outstandingBalance: number;
+  isMarketingReady?: boolean;
 }
 
 interface MockTenant {
@@ -77,7 +78,7 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     tenancyList: [
       { id: "tn-001", propertyId: "p-001", propertyName: "Lekki Phase 1 Duplex", propertyAddress: "14 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "James Okafor", tenantId: "t-001", tenantPhone: "+234 803 214 5678", tenancyType: "Annual", rentAmount: 1800000, nextRentDue: "2026-12-31", outstandingBalance: 120000 },
       { id: "tn-002", propertyId: "p-002", propertyName: "Ikoyi 2-Bed Apartment", propertyAddress: "3 Cameron Road, Ikoyi, Lagos", tenantName: "Adaeze Nwosu", tenantId: "t-002", tenantPhone: "+234 806 332 9910", tenancyType: "Annual", rentAmount: 2400000, nextRentDue: "2027-03-14", outstandingBalance: 0 },
-      { id: "tn-003", propertyId: "p-003", propertyName: "Victoria Island Studio", propertyAddress: "22 Ozumba Mbadiwe Ave, VI, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0 },
+      { id: "tn-003", propertyId: "p-003", propertyName: "Victoria Island Studio", propertyAddress: "22 Ozumba Mbadiwe Ave, VI, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0, isMarketingReady: true },
     ],
     tenantList: [
       { id: "t-001", kycId: "kyc-001", name: "James Okafor", propertyName: "Lekki Phase 1 Duplex", phone: "+234 803 214 5678" },
@@ -165,7 +166,7 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     tenancyList: [
       { id: "tn-012", propertyId: "p-010", propertyName: "Prime Towers VI", propertyAddress: "22 Adeola Odeku St, Victoria Island, Lagos", tenantName: "Akin Martins", tenantId: "t-011", tenantPhone: "+234 905 221 3344", tenancyType: "Annual", rentAmount: 6000000, nextRentDue: "2027-01-01", outstandingBalance: 200000 },
       { id: "tn-013", propertyId: "p-011", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "Ifeanyi Dike", tenantId: "t-012", tenantPhone: "+234 803 445 6677", tenancyType: "Annual", rentAmount: 1800000, nextRentDue: "2026-11-30", outstandingBalance: 0 },
-      { id: "tn-014", propertyId: "p-011", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0 },
+      { id: "tn-014", propertyId: "p-011", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0, isMarketingReady: false },
     ],
     tenantList: [
       { id: "t-011", kycId: "kyc-011", name: "Akin Martins", propertyName: "Prime Towers VI", phone: "+234 905 221 3344" },
@@ -706,7 +707,14 @@ function LandlordDetailScreen({
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-400 italic">No Active Tenancy</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs text-gray-400 italic">No Active Tenancy</p>
+                      {t.isMarketingReady && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          Ready for Marketing
+                        </span>
+                      )}
+                    </div>
                   )}
                 </button>
               ))}
