@@ -27,17 +27,27 @@ interface MockLandlord {
   activeTenancies: number;
   outstandingBalance: number;
   occupancyRate: number;
-  propertyList: MockProperty[];
+  tenancyList: MockTenancy[];
+  tenantList: MockTenant[];
   recentActivity: ActivityItem[];
 }
 
-interface MockProperty {
+interface MockTenancy {
+  id: string;
+  propertyName: string;
+  propertyAddress: string;
+  tenantName: string | null;
+  tenantId: string | null;
+  tenantPhone: string | null;
+  nextRentDue: string | null;
+  outstandingBalance: number;
+}
+
+interface MockTenant {
   id: string;
   name: string;
-  address: string;
-  type: string;
-  tenancies: number;
-  status: "occupied" | "vacant";
+  propertyName: string;
+  phone: string;
 }
 
 interface ActivityItem {
@@ -60,16 +70,16 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     activeTenancies: 5,
     outstandingBalance: 120000,
     occupancyRate: 83,
-    propertyList: [
-      { id: "p-001", name: "Lekki Phase 1 Duplex", address: "14 Admiralty Way, Lekki Phase 1, Lagos", type: "Duplex", tenancies: 2, status: "occupied" },
-      { id: "p-002", name: "Ikoyi 2-Bed Apartment", address: "3 Cameron Road, Ikoyi, Lagos", type: "Apartment", tenancies: 2, status: "occupied" },
-      { id: "p-003", name: "Victoria Island Studio", address: "22 Ozumba Mbadiwe Ave, VI, Lagos", type: "Studio", tenancies: 1, status: "occupied" },
+    tenancyList: [
+      { id: "tn-001", propertyName: "Lekki Phase 1 Duplex", propertyAddress: "14 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "James Okafor", tenantId: "t-001", tenantPhone: "+234 803 214 5678", nextRentDue: "2026-12-31", outstandingBalance: 120000 },
+      { id: "tn-002", propertyName: "Ikoyi 2-Bed Apartment", propertyAddress: "3 Cameron Road, Ikoyi, Lagos", tenantName: "Adaeze Nwosu", tenantId: "t-002", tenantPhone: "+234 806 332 9910", nextRentDue: "2027-03-14", outstandingBalance: 0 },
+      { id: "tn-003", propertyName: "Victoria Island Studio", propertyAddress: "22 Ozumba Mbadiwe Ave, VI, Lagos", tenantName: null, tenantId: null, tenantPhone: null, nextRentDue: null, outstandingBalance: 0 },
     ],
-    recentActivity: [
-      { id: "a-001", type: "payment_received", description: "Rent payment received — Lekki Phase 1 Duplex", date: "2026-06-20" },
-      { id: "a-002", type: "tenant_onboarded", description: "New tenant onboarded — Victoria Island Studio", date: "2026-06-15" },
-      { id: "a-003", type: "maintenance", description: "Maintenance request submitted — Ikoyi 2-Bed Apartment", date: "2026-06-10" },
+    tenantList: [
+      { id: "t-001", name: "James Okafor", propertyName: "Lekki Phase 1 Duplex", phone: "+234 803 214 5678" },
+      { id: "t-002", name: "Adaeze Nwosu", propertyName: "Ikoyi 2-Bed Apartment", phone: "+234 806 332 9910" },
     ],
+    recentActivity: [],
   },
   {
     id: "ll-002",
@@ -81,14 +91,17 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     activeTenancies: 3,
     outstandingBalance: 0,
     occupancyRate: 100,
-    propertyList: [
-      { id: "p-004", name: "Banana Island Terrace", address: "5 Banana Island Road, Ikoyi, Lagos", type: "Terrace", tenancies: 2, status: "occupied" },
-      { id: "p-005", name: "Lekki Conservation Bungalow", address: "7 Lekki Conservation Drive, Lagos", type: "Bungalow", tenancies: 1, status: "occupied" },
+    tenancyList: [
+      { id: "tn-004", propertyName: "Banana Island Terrace", propertyAddress: "5 Banana Island Road, Ikoyi, Lagos", tenantName: "Chidi Okafor", tenantId: "t-003", tenantPhone: "+234 708 991 2244", nextRentDue: "2027-01-15", outstandingBalance: 0 },
+      { id: "tn-005", propertyName: "Banana Island Terrace", propertyAddress: "5 Banana Island Road, Ikoyi, Lagos", tenantName: "Amina Bello", tenantId: "t-004", tenantPhone: "+234 802 987 6543", nextRentDue: "2026-09-01", outstandingBalance: 0 },
+      { id: "tn-006", propertyName: "Lekki Conservation Bungalow", propertyAddress: "7 Lekki Conservation Drive, Lagos", tenantName: "Emmanuel Etim", tenantId: "t-005", tenantPhone: "+234 812 554 7723", nextRentDue: "2026-08-30", outstandingBalance: 0 },
     ],
-    recentActivity: [
-      { id: "a-004", type: "renewal", description: "Tenancy renewed — Banana Island Terrace", date: "2026-06-18" },
-      { id: "a-005", type: "payment_received", description: "Rent payment received — Lekki Conservation Bungalow", date: "2026-06-12" },
+    tenantList: [
+      { id: "t-003", name: "Chidi Okafor", propertyName: "Banana Island Terrace", phone: "+234 708 991 2244" },
+      { id: "t-004", name: "Amina Bello", propertyName: "Banana Island Terrace", phone: "+234 802 987 6543" },
+      { id: "t-005", name: "Emmanuel Etim", propertyName: "Lekki Conservation Bungalow", phone: "+234 812 554 7723" },
     ],
+    recentActivity: [],
   },
   {
     id: "ll-003",
@@ -100,12 +113,15 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     activeTenancies: 2,
     outstandingBalance: 45000,
     occupancyRate: 100,
-    propertyList: [
-      { id: "p-006", name: "Surulere Mini Flat", address: "12 Adeniran Ogunsanya St, Surulere, Lagos", type: "Mini Flat", tenancies: 2, status: "occupied" },
+    tenancyList: [
+      { id: "tn-007", propertyName: "Surulere Mini Flat", propertyAddress: "12 Adeniran Ogunsanya St, Surulere, Lagos", tenantName: "Ngozi Eze", tenantId: "t-006", tenantPhone: "+234 815 443 2211", nextRentDue: "2026-10-01", outstandingBalance: 45000 },
+      { id: "tn-008", propertyName: "Surulere Mini Flat", propertyAddress: "12 Adeniran Ogunsanya St, Surulere, Lagos", tenantName: "Tunde Adebayo", tenantId: "t-007", tenantPhone: "+234 803 567 8901", nextRentDue: "2026-11-15", outstandingBalance: 0 },
     ],
-    recentActivity: [
-      { id: "a-006", type: "maintenance", description: "Maintenance request submitted — Surulere Mini Flat", date: "2026-06-22" },
+    tenantList: [
+      { id: "t-006", name: "Ngozi Eze", propertyName: "Surulere Mini Flat", phone: "+234 815 443 2211" },
+      { id: "t-007", name: "Tunde Adebayo", propertyName: "Surulere Mini Flat", phone: "+234 803 567 8901" },
     ],
+    recentActivity: [],
   },
   {
     id: "ll-004",
@@ -118,17 +134,17 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     activeTenancies: 18,
     outstandingBalance: 850000,
     occupancyRate: 75,
-    propertyList: [
-      { id: "p-007", name: "Greenfield Towers", address: "9 Walter Carrington Crescent, Lagos Island", type: "Apartment", tenancies: 6, status: "occupied" },
-      { id: "p-008", name: "Marina Commercial Hub", address: "15 Marina St, Lagos Island", type: "Commercial", tenancies: 4, status: "occupied" },
-      { id: "p-009", name: "Ajah Estate Block A", address: "1 Abraham Adesanya Estate, Ajah, Lagos", type: "Apartment", tenancies: 8, status: "occupied" },
+    tenancyList: [
+      { id: "tn-009", propertyName: "Greenfield Towers", propertyAddress: "9 Walter Carrington Crescent, Lagos Island", tenantName: "Bola Fashola", tenantId: "t-008", tenantPhone: "+234 803 111 2222", nextRentDue: "2027-02-01", outstandingBalance: 200000 },
+      { id: "tn-010", propertyName: "Marina Commercial Hub", propertyAddress: "15 Marina St, Lagos Island", tenantName: "Kemi Adesanya", tenantId: "t-009", tenantPhone: "+234 706 334 5566", nextRentDue: "2026-12-01", outstandingBalance: 650000 },
+      { id: "tn-011", propertyName: "Ajah Estate Block A", propertyAddress: "1 Abraham Adesanya Estate, Ajah, Lagos", tenantName: "Seun Williams", tenantId: "t-010", tenantPhone: "+234 812 778 9900", nextRentDue: "2026-10-15", outstandingBalance: 0 },
     ],
-    recentActivity: [
-      { id: "a-007", type: "tenant_onboarded", description: "New tenant onboarded — Greenfield Towers Unit 3B", date: "2026-06-21" },
-      { id: "a-008", type: "payment_received", description: "Rent payment received — Marina Commercial Hub", date: "2026-06-19" },
-      { id: "a-009", type: "renewal", description: "Tenancy renewed — Ajah Estate Block A, Unit 4", date: "2026-06-14" },
-      { id: "a-010", type: "maintenance", description: "Maintenance request submitted — Greenfield Towers lobby", date: "2026-06-08" },
+    tenantList: [
+      { id: "t-008", name: "Bola Fashola", propertyName: "Greenfield Towers", phone: "+234 803 111 2222" },
+      { id: "t-009", name: "Kemi Adesanya", propertyName: "Marina Commercial Hub", phone: "+234 706 334 5566" },
+      { id: "t-010", name: "Seun Williams", propertyName: "Ajah Estate Block A", phone: "+234 812 778 9900" },
     ],
+    recentActivity: [],
   },
   {
     id: "ll-005",
@@ -141,14 +157,16 @@ const MOCK_LANDLORDS: MockLandlord[] = [
     activeTenancies: 11,
     outstandingBalance: 200000,
     occupancyRate: 79,
-    propertyList: [
-      { id: "p-010", name: "Prime Towers VI", address: "22 Adeola Odeku St, Victoria Island, Lagos", type: "Commercial", tenancies: 5, status: "occupied" },
-      { id: "p-011", name: "Prime Gardens Lekki", address: "10 Admiralty Way, Lekki Phase 1, Lagos", type: "Apartment", tenancies: 6, status: "occupied" },
+    tenancyList: [
+      { id: "tn-012", propertyName: "Prime Towers VI", propertyAddress: "22 Adeola Odeku St, Victoria Island, Lagos", tenantName: "Akin Martins", tenantId: "t-011", tenantPhone: "+234 905 221 3344", nextRentDue: "2027-01-01", outstandingBalance: 200000 },
+      { id: "tn-013", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "Ifeanyi Dike", tenantId: "t-012", tenantPhone: "+234 803 445 6677", nextRentDue: "2026-11-30", outstandingBalance: 0 },
+      { id: "tn-014", propertyName: "Prime Gardens Lekki", propertyAddress: "10 Admiralty Way, Lekki Phase 1, Lagos", tenantName: null, tenantId: null, tenantPhone: null, nextRentDue: null, outstandingBalance: 0 },
     ],
-    recentActivity: [
-      { id: "a-011", type: "payment_received", description: "Rent payment received — Prime Towers VI", date: "2026-06-23" },
-      { id: "a-012", type: "tenant_onboarded", description: "New tenant onboarded — Prime Gardens Lekki", date: "2026-06-17" },
+    tenantList: [
+      { id: "t-011", name: "Akin Martins", propertyName: "Prime Towers VI", phone: "+234 905 221 3344" },
+      { id: "t-012", name: "Ifeanyi Dike", propertyName: "Prime Gardens Lekki", phone: "+234 803 445 6677" },
     ],
+    recentActivity: [],
   },
 ];
 
@@ -215,7 +233,8 @@ function AddLandlordModal({ open, onClose, onAdded }: AddLandlordModalProps) {
       activeTenancies: 0,
       outstandingBalance: 0,
       occupancyRate: 0,
-      propertyList: [],
+      tenancyList: [],
+      tenantList: [],
       recentActivity: [],
     };
     onAdded(newLandlord);
@@ -595,8 +614,6 @@ function LandlordDetailScreen({
   const { user } = useAuth();
   const userRole = user?.role ?? "landlord";
 
-  const occupiedCount = landlord.propertyList.filter((p) => p.status === "occupied").length;
-
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
       {/* Top nav */}
@@ -633,75 +650,77 @@ function LandlordDetailScreen({
 
 
 
-        {/* Properties */}
+        {/* Tenancies */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60 flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Properties</p>
-            <span className="text-xs text-gray-400">{landlord.properties} total</span>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenancies</p>
+            <span className="text-xs text-gray-400">{landlord.activeTenancies} Active</span>
           </div>
 
-          {landlord.propertyList.length === 0 ? (
+          {landlord.tenancyList.length === 0 ? (
             <div className="px-5 py-8 text-center">
               <Home className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No properties yet</p>
+              <p className="text-sm text-gray-400">No tenancies yet</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
-              {landlord.propertyList.map((p) => (
+              {landlord.tenancyList.map((t) => (
                 <button
-                  key={p.id}
-                  onClick={() => router.push(`/${userRole}/property-detail/${p.id}`)}
-                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
+                  key={t.id}
+                  onClick={() => router.push(`/${userRole}/tenancies`)}
+                  className="w-full flex items-start justify-between gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                    <Home className="w-4.5 h-4.5 text-[#FF5000]" />
-                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{p.address}</p>
+                    <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors truncate">{t.propertyName}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">{t.propertyAddress}</p>
+                    {t.tenantName ? (
+                      <div className="mt-2 space-y-0.5">
+                        <p className="text-xs text-gray-600">Tenant: {t.tenantName}</p>
+                        {t.nextRentDue && (
+                          <p className="text-xs text-gray-500">Next Rent Due: {fmtDate(t.nextRentDue)}</p>
+                        )}
+                        {t.outstandingBalance > 0 && (
+                          <p className="text-xs font-medium text-red-600">Outstanding: {fmtCurrency(t.outstandingBalance)}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 mt-2 italic">No Active Tenancy</p>
+                    )}
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-medium text-gray-700">{p.tenancies} {p.tenancies === 1 ? "tenancy" : "tenancies"}</p>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                      p.status === "occupied" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                    }`}>
-                      {p.status === "occupied" ? "Occupied" : "Vacant"}
-                    </span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0 mt-0.5" />
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Recent Activity */}
+        {/* Tenants */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Recent Activity</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenants</p>
           </div>
 
-          {landlord.recentActivity.length === 0 ? (
+          {landlord.tenantList.length === 0 ? (
             <div className="px-5 py-8 text-center">
-              <Activity className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No recent activity</p>
+              <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">No tenants yet</p>
             </div>
           ) : (
-            <div className="px-5 py-3 divide-y divide-gray-50">
-              {landlord.recentActivity.map((item) => {
-                const cfg = ACTIVITY_CONFIG[item.type];
-                return (
-                  <div key={item.id} className="flex items-start gap-3 py-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${cfg.color}`}>
-                      {cfg.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800">{item.description}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{fmtDate(item.date)}</p>
-                    </div>
+            <div className="divide-y divide-gray-50">
+              {landlord.tenantList.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => router.push(`/${userRole}/tenants`)}
+                  className="w-full flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors">{t.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{t.propertyName}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{t.phone}</p>
                   </div>
-                );
-              })}
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0" />
+                </button>
+              ))}
             </div>
           )}
         </div>
