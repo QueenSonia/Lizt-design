@@ -198,13 +198,6 @@ const TASK_FILTER_GROUPS_ALL: FilterGroup[] = [
     multi: true,
   },
   {
-    key: "priority",
-    label: "Priority",
-    options: [
-      { value: "high", label: "High Priority" },
-    ],
-  },
-  {
     key: "property",
     label: "Property",
     options: PROPS_DATA.map((p) => ({ value: p.id, label: p.name })),
@@ -317,12 +310,6 @@ export default function FacilityManagerIssues() {
     const statuses = filterValues["status"] ?? [];
     if (statuses.length > 0) {
       result = result.filter((i) => statuses.includes(i.status));
-    }
-
-    // Priority
-    const priority = filterValues["priority"] ?? [];
-    if (priority.includes("high")) {
-      result = result.filter((i) => isTaskPriority(i.id));
     }
 
     // Property
