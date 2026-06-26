@@ -513,25 +513,38 @@ function TenancyCard({
 type SortCol = "name" | "properties" | "tenancies" | null;
 type SortDir = "asc" | "desc";
 
+// Mock property & tenant lists for the searchable selectors
+const ALL_PROPERTIES = [
+  { value: "Lekki Phase 1 Duplex", label: "Lekki Phase 1 Duplex" },
+  { value: "Ikoyi 2-Bed Apartment", label: "Ikoyi 2-Bed Apartment" },
+  { value: "Victoria Island Studio", label: "Victoria Island Studio" },
+  { value: "Banana Island Terrace", label: "Banana Island Terrace" },
+  { value: "Lekki Conservation Bungalow", label: "Lekki Conservation Bungalow" },
+  { value: "Surulere Mini Flat", label: "Surulere Mini Flat" },
+  { value: "Greenfield Towers", label: "Greenfield Towers" },
+  { value: "Marina Commercial Hub", label: "Marina Commercial Hub" },
+  { value: "Ajah Estate Block A", label: "Ajah Estate Block A" },
+  { value: "Prime Towers VI", label: "Prime Towers VI" },
+  { value: "Prime Gardens Lekki", label: "Prime Gardens Lekki" },
+];
+
+const ALL_TENANTS = [
+  { value: "James Okafor", label: "James Okafor" },
+  { value: "Adaeze Nwosu", label: "Adaeze Nwosu" },
+  { value: "Mary Johnson", label: "Mary Johnson" },
+  { value: "Chidi Okafor", label: "Chidi Okafor" },
+  { value: "Amina Bello", label: "Amina Bello" },
+  { value: "Emmanuel Etim", label: "Emmanuel Etim" },
+  { value: "Ngozi Eze", label: "Ngozi Eze" },
+  { value: "Tunde Adebayo", label: "Tunde Adebayo" },
+  { value: "Bola Fashola", label: "Bola Fashola" },
+  { value: "Kemi Adesanya", label: "Kemi Adesanya" },
+  { value: "Seun Williams", label: "Seun Williams" },
+  { value: "Akin Martins", label: "Akin Martins" },
+  { value: "Ifeanyi Dike", label: "Ifeanyi Dike" },
+];
+
 const LANDLORD_FILTER_GROUPS: FilterGroup[] = [
-  {
-    key: "portfolioSize",
-    label: "Portfolio Size",
-    options: [
-      { value: "1", label: "1 Property" },
-      { value: "2-5", label: "2–5 Properties" },
-      { value: "6-10", label: "6–10 Properties" },
-      { value: "10+", label: "10+ Properties" },
-    ],
-  },
-  {
-    key: "landlordType",
-    label: "Landlord Type",
-    options: [
-      { value: "individual", label: "Individual" },
-      { value: "corporate", label: "Company" },
-    ],
-  },
   {
     key: "tenancyStatus",
     label: "Tenancy Status",
@@ -550,6 +563,18 @@ const LANDLORD_FILTER_GROUPS: FilterGroup[] = [
       { value: "props_asc", label: "Least Properties" },
       { value: "tenancies_desc", label: "Most Active Tenancies" },
     ],
+  },
+  {
+    key: "property",
+    label: "Properties",
+    options: ALL_PROPERTIES,
+    searchable: true,
+  },
+  {
+    key: "tenant",
+    label: "Tenants",
+    options: ALL_TENANTS,
+    searchable: true,
   },
 ];
 
@@ -582,27 +607,6 @@ function LandlordListScreen({
         )
       : [...landlords];
 
-    // Portfolio size
-    const sizes = filterValues["portfolioSize"] ?? [];
-    if (sizes.length > 0) {
-      base = base.filter((l) => {
-        const p = l.properties;
-        return sizes.some((s) => {
-          if (s === "1") return p === 1;
-          if (s === "2-5") return p >= 2 && p <= 5;
-          if (s === "6-10") return p >= 6 && p <= 10;
-          if (s === "10+") return p > 10;
-          return false;
-        });
-      });
-    }
-
-    // Landlord type
-    const types = filterValues["landlordType"] ?? [];
-    if (types.length > 0) {
-      base = base.filter((l) => types.includes(l.type));
-    }
-
     // Tenancy status
     const tenancyFilters = filterValues["tenancyStatus"] ?? [];
     if (tenancyFilters.length > 0) {
@@ -614,6 +618,26 @@ function LandlordListScreen({
           return false;
         });
       });
+    }
+
+    // Property filter — keep landlords that have the selected property in their tenancy list
+    const propFilter = filterValues["property"] ?? [];
+    if (propFilter.length > 0) {
+      base = base.filter((l) =>
+        propFilter.some((pName) =>
+          l.tenancyList.some((t) => t.propertyName === pName)
+        )
+      );
+    }
+
+    // Tenant filter — keep landlords that have the selected tenant in their tenant list
+    const tenantFilter = filterValues["tenant"] ?? [];
+    if (tenantFilter.length > 0) {
+      base = base.filter((l) =>
+        tenantFilter.some((tName) =>
+          l.tenantList.some((t) => t.name === tName)
+        )
+      );
     }
 
     // Sort

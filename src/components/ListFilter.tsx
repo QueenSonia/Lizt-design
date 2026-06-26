@@ -2,7 +2,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { SlidersHorizontal, X, Search, Check } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,7 +15,8 @@ export interface FilterGroup {
   key: string;
   label: string;
   options: FilterOption[];
-  multi?: boolean; // allow multiple selections within group (default false)
+  multi?: boolean;       // allow multiple selections (default false = single-select)
+  searchable?: boolean;  // render as searchable selector instead of chip buttons
 }
 
 export type FilterValues = Record<string, string[]>; // groupKey → selected values
@@ -44,11 +45,9 @@ function chipList(groups: FilterGroup[], values: FilterValues): { groupKey: stri
   return chips;
 }
 
-// ── Filter Button ─────────────────────────────────────────────────────────────
+// ── Chip-style Filter Button ──────────────────────────────────────────────────
 
-function FilterBtn({
-  label, active, onClick,
-}: { label: string; active: boolean; onClick: () => void }) {
+function FilterBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -61,6 +60,79 @@ function FilterBtn({
     >
       {label}
     </button>
+  );
+}
+
+// ── Searchable Selector (inline, within panel) ────────────────────────────────
+
+function SearchableSelector({
+  group,
+  draft,
+  onToggle,
+}: {
+  group: FilterGroup;
+  draft: FilterValues;
+  onToggle: (groupKey: string, value: string, multi: boolean) => void;
+}) {
+  const [q, setQ] = useState("");
+  const selected = draft[group.key] ?? [];
+  const filtered = q.trim()
+    ? group.options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase()))
+    : group.options;
+
+  return (
+    <div>
+      {/* Search box */}
+      <div className="relative mb-2">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={`Search ${group.label.toLowerCase()}...`}
+          className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 outline-none focus:bg-white focus:border-gray-300"
+        />
+        {q && (
+          <button onClick={() => setQ("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+
+      {/* Option list */}
+      <div className="max-h-36 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
+        {filtered.length === 0 ? (
+          <p className="px-3 py-3 text-xs text-gray-400 text-center">No results</p>
+        ) : (
+          filtered.map((opt) => {
+            const isSelected = selected.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onToggle(group.key, opt.value, group.multi ?? false)}
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors ${
+                  isSelected ? "bg-orange-50 text-[#FF5000]" : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <span className="truncate">{opt.label}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 shrink-0 ml-2" />}
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {/* Clear selection */}
+      {selected.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onToggle(group.key, selected[0], false)}
+          className="mt-1.5 text-xs text-gray-400 hover:text-gray-600 hover:underline"
+        >
+          Clear selection
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -92,27 +164,18 @@ export function ListFilter({ groups, values, onChange, onClear }: ListFilterProp
           : [...current, value];
         return { ...prev, [groupKey]: next };
       } else {
-        // single-select: toggle off if already selected
         return { ...prev, [groupKey]: current.includes(value) ? [] : [value] };
       }
     });
   };
 
-  const apply = () => {
-    onChange(draft);
-    setOpen(false);
-  };
-
+  const apply = () => { onChange(draft); setOpen(false); };
   const resetDraft = () => setDraft({});
 
   const removeChip = (groupKey: string, value: string) => {
-    onChange({
-      ...values,
-      [groupKey]: (values[groupKey] ?? []).filter((v) => v !== value),
-    });
+    onChange({ ...values, [groupKey]: (values[groupKey] ?? []).filter((v) => v !== value) });
   };
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handle = (e: MouseEvent) => {
@@ -127,7 +190,7 @@ export function ListFilter({ groups, values, onChange, onClear }: ListFilterProp
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Filter trigger button — shrinks to content */}
+      {/* Trigger button */}
       <button
         ref={btnRef}
         type="button"
@@ -157,17 +220,9 @@ export function ListFilter({ groups, values, onChange, onClear }: ListFilterProp
         <span>Filter</span>
         {count > 0 && (
           <span style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 18,
-            height: 18,
-            borderRadius: "50%",
-            background: "#FF5000",
-            color: "#FFFFFF",
-            fontSize: 10,
-            fontWeight: 700,
-            flexShrink: 0,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            width: 18, height: 18, borderRadius: "50%",
+            background: "#FF5000", color: "#FFFFFF", fontSize: 10, fontWeight: 700, flexShrink: 0,
           }}>
             {count}
           </span>
@@ -178,29 +233,20 @@ export function ListFilter({ groups, values, onChange, onClear }: ListFilterProp
       {chips.length > 0 && (
         <div className="flex flex-wrap gap-1.5 items-center">
           {chips.map(({ groupKey, value, label }) => (
-            <span
-              key={`${groupKey}-${value}`}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-700 font-medium"
-            >
+            <span key={`${groupKey}-${value}`} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-700 font-medium">
               {label}
-              <button
-                onClick={() => removeChip(groupKey, value)}
-                className="text-gray-400 hover:text-gray-600 ml-0.5"
-              >
+              <button onClick={() => removeChip(groupKey, value)} className="text-gray-400 hover:text-gray-600 ml-0.5">
                 <X className="w-3 h-3" />
               </button>
             </span>
           ))}
-          <button
-            onClick={onClear}
-            className="text-xs text-[#FF5000] hover:underline font-medium ml-1"
-          >
+          <button onClick={onClear} className="text-xs text-[#FF5000] hover:underline font-medium ml-1">
             Clear All
           </button>
         </div>
       )}
 
-      {/* Filter panel — portal so it escapes overflow:hidden */}
+      {/* Filter panel */}
       {open && typeof document !== "undefined" && createPortal(
         <>
           <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
@@ -224,35 +270,33 @@ export function ListFilter({ groups, values, onChange, onClear }: ListFilterProp
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     {group.label}
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {group.options.map((opt) => {
-                      const selected = (draft[group.key] ?? []).includes(opt.value);
-                      return (
-                        <FilterBtn
-                          key={opt.value}
-                          label={opt.label}
-                          active={selected}
-                          onClick={() => toggle(group.key, opt.value, group.multi ?? false)}
-                        />
-                      );
-                    })}
-                  </div>
+                  {group.searchable ? (
+                    <SearchableSelector group={group} draft={draft} onToggle={toggle} />
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {group.options.map((opt) => {
+                        const selected = (draft[group.key] ?? []).includes(opt.value);
+                        return (
+                          <FilterBtn
+                            key={opt.value}
+                            label={opt.label}
+                            active={selected}
+                            onClick={() => toggle(group.key, opt.value, group.multi ?? false)}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
 
             {/* Actions */}
             <div className="px-4 py-3 border-t border-gray-100 flex gap-2 justify-end">
-              <button
-                onClick={resetDraft}
-                className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
+              <button onClick={resetDraft} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 Reset
               </button>
-              <button
-                onClick={apply}
-                className="px-3 py-1.5 text-xs font-medium text-white bg-[#FF5000] rounded-lg hover:bg-[#e04600] transition-colors"
-              >
+              <button onClick={apply} className="px-3 py-1.5 text-xs font-medium text-white bg-[#FF5000] rounded-lg hover:bg-[#e04600] transition-colors">
                 Apply
               </button>
             </div>
