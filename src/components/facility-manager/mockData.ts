@@ -46,6 +46,7 @@ export interface FmIssue {
   phone: string;
   status: FmIssueStatus;
   source?: "tenant" | "landlord";
+  assignedTo?: string | null; // FM name, null = unassigned
   desc: string;
   time: number;
   media: string | null;
@@ -151,18 +152,18 @@ export const LIVE_POOL: Omit<FmFeedItem, "id" | "time">[] = [
 const _T = (h: number, m = 0) => Date.now() - h * 3600000 - m * 60000;
 
 const _ISSUES_BASE: Omit<FmIssue, "ref">[] = [
-  { id: "is01", title: "Elevator malfunction on Floor 8", property: "Greenfield Towers", propertyId: "p1", tenant: "Chidi O.", phone: "+234 801 234 5678", status: "open", source: "tenant", desc: "Elevator B has been stuck since 6 AM. Residents on upper floors are unable to get down. Engineer has been called.", time: _T(0, 2), media: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=60", attachments: [
+  { id: "is01", title: "Elevator malfunction on Floor 8", property: "Greenfield Towers", propertyId: "p1", tenant: "Chidi O.", phone: "+234 801 234 5678", status: "open", source: "tenant", assignedTo: "Jide Akinola", desc: "Elevator B has been stuck since 6 AM. Residents on upper floors are unable to get down. Engineer has been called.", time: _T(0, 2), media: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=60", attachments: [
     { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", type: "image", group: "original" },
     { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400", type: "image", group: "original" },
     { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400", type: "image", group: "original" },
     { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video", group: "original" },
   ] },
-  { id: "is02", title: "Water leakage in B-block corridor", property: "Horizon Residences", propertyId: "p2", tenant: "Adaeze M.", phone: "+234 802 345 6789", status: "in_progress", source: "tenant", desc: "Ceiling dripping near unit 204. Plumber has been dispatched and is currently on site assessing the source.", time: _T(0, 17), media: null, attachments: [
+  { id: "is02", title: "Water leakage in B-block corridor", property: "Horizon Residences", propertyId: "p2", tenant: "Adaeze M.", phone: "+234 802 345 6789", status: "in_progress", source: "tenant", assignedTo: "Jide Akinola", desc: "Ceiling dripping near unit 204. Plumber has been dispatched and is currently on site assessing the source.", time: _T(0, 17), media: null, attachments: [
     { url: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=400", type: "image", group: "reopened" },
   ] },
-  { id: "is03", title: "Power outage in parking bay 3", property: "Greenfield Towers", propertyId: "p1", tenant: "Emeka P.", phone: "+234 803 456 7890", status: "in_progress", desc: "Lighting circuit tripped overnight. The entire parking bay is unlit. Electrician is reviewing the fuse board.", time: _T(1, 22), media: null },
-  { id: "is04", title: "HVAC noise in Unit 501", property: "Marina Heights", propertyId: "p4", tenant: "Tunde B.", phone: "+234 804 567 8901", status: "open", desc: "Loud rattling from the central air unit in block C. Tenant has reported it twice this week.", time: _T(2, 0), media: null },
-  { id: "is05", title: "Fire exit door jammed — Floor 3", property: "Marina Heights", propertyId: "p4", tenant: "Akin F.", phone: "+234 805 678 9012", status: "open", desc: "Emergency exit on floor 3 is stuck and cannot be opened from inside. Flagged as urgent safety concern.", time: _T(2, 33), media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=200&q=60" },
+  { id: "is03", title: "Power outage in parking bay 3", property: "Greenfield Towers", propertyId: "p1", tenant: "Emeka P.", phone: "+234 803 456 7890", status: "in_progress", assignedTo: "Sarah Okonkwo", desc: "Lighting circuit tripped overnight. The entire parking bay is unlit. Electrician is reviewing the fuse board.", time: _T(1, 22), media: null },
+  { id: "is04", title: "HVAC noise in Unit 501", property: "Marina Heights", propertyId: "p4", tenant: "Tunde B.", phone: "+234 804 567 8901", status: "open", assignedTo: null, desc: "Loud rattling from the central air unit in block C. Tenant has reported it twice this week.", time: _T(2, 0), media: null },
+  { id: "is05", title: "Fire exit door jammed — Floor 3", property: "Marina Heights", propertyId: "p4", tenant: "Akin F.", phone: "+234 805 678 9012", status: "open", assignedTo: "John Adewale", desc: "Emergency exit on floor 3 is stuck and cannot be opened from inside. Flagged as urgent safety concern.", time: _T(2, 33), media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=200&q=60" },
   {
     id: "is06", title: "Broken gate latch — East entrance", property: "Parkview Estate", propertyId: "p3", tenant: "Funke A.", phone: "+234 806 789 0123", status: "resolved",
     desc: "The latch on the secondary gate was loose and could not lock. A replacement has been fitted and verified.",
@@ -175,7 +176,7 @@ const _ISSUES_BASE: Omit<FmIssue, "ref">[] = [
     time: _T(26, 0), media: null,
     resolutions: [{ hadCost: true, costAmount: "₦120,000", artisanName: "AquaTech Pool Services", artisanPhone: "0801 987 6543", summary: "Faulty circulation pump replaced with a new unit. Pool pressure tested and confirmed operational.", category: "Plumbing", resolvedAt: new Date(Date.now() - 25 * 3600000).toISOString(), resolvedBy: "Jide Akinola" }],
   },
-  { id: "is08", title: "Intercom system offline — Tower A", property: "Greenfield Towers", propertyId: "p1", tenant: "Sade L.", phone: "+234 808 901 2345", status: "in_progress", desc: "Visitors cannot buzz into units. Technician identified a wiring fault on the 4th floor junction box.", time: _T(27, 40), media: null },
+  { id: "is08", title: "Intercom system offline — Tower A", property: "Greenfield Towers", propertyId: "p1", tenant: "Sade L.", phone: "+234 808 901 2345", status: "in_progress", assignedTo: "Jide Akinola", desc: "Visitors cannot buzz into units. Technician identified a wiring fault on the 4th floor junction box.", time: _T(27, 40), media: null },
   {
     id: "is09", title: "Kitchen sink leakage fixed", property: "Marina Heights", propertyId: "p4", tenant: "James O.", phone: "+234 809 012 3456", status: "resolved",
     desc: "Persistent dripping under the kitchen sink in unit 302. Pipe replaced and joints sealed.",
@@ -194,6 +195,7 @@ const _ISSUES_BASE: Omit<FmIssue, "ref">[] = [
   {
     id: "is11", title: "Quarterly inspection — cracked bathroom tiles in unit 4B", property: "Parkview Estate", propertyId: "p3", tenant: "Dr. Amina Bello", phone: "+234 810 123 4567", status: "open",
     source: "landlord",
+    assignedTo: "Sarah Okonkwo",
     desc: "Landlord inspection flagged cracked tiles in the main bathroom of unit 4B. Requires replacement before tenant reports it.",
     time: _T(0, 20), media: null,
   },

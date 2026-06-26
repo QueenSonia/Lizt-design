@@ -1,42 +1,64 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FacilityManagerHeader } from "./FacilityManagerHeader";
 import { useIsMobile, fmtDate } from "./helpers";
 import { useFmContext } from "./FacilityManagerProvider";
 import { FmIssue } from "./mockData";
 import { isTaskPriority, subscribeToThreadStore } from "@/lib/taskThreadStore";
 
+// ── The logged-in FM's name (mock — in a real app, from auth context) ─────────
+const MY_NAME = "Jide Akinola";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function fmtResolved(isoString: string): string {
   const d = new Date(isoString);
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) +
-    ", " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return (
+    d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) +
+    ", " +
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+  );
 }
+
+function assignmentLabel(issue: FmIssue): { text: string; mine: boolean; unassigned: boolean } {
+  if (!issue.assignedTo) return { text: "Unassigned", mine: false, unassigned: true };
+  if (issue.assignedTo === MY_NAME) return { text: "Assigned to You", mine: true, unassigned: false };
+  return { text: `Assigned to ${issue.assignedTo.split(" ")[0]}`, mine: false, unassigned: false };
+}
+
+// ── Issue Row ─────────────────────────────────────────────────────────────────
 
 function IssueRow({
   issue,
   isLast,
   isMobile,
+  showAssignment,
+  isReadOnly,
   onClick,
 }: {
   issue: FmIssue;
   isLast: boolean;
   isMobile: boolean;
+  showAssignment: boolean;
+  isReadOnly: boolean;
   onClick: () => void;
 }) {
   const isResolved = issue.status === "resolved";
   const isPriority = !isResolved && isTaskPriority(issue.id);
+  const assignment = assignmentLabel(issue);
 
   return (
     <div
-      className="fm-list-row"
       onClick={onClick}
       style={{
         padding: "16px 20px",
         borderBottom: isLast ? "none" : "1px solid #F0EEEA",
-        cursor: "pointer",
+        cursor: isReadOnly ? "default" : "pointer",
         opacity: isResolved ? 0.85 : 1,
+        background: isReadOnly ? "#FAFAF9" : "#FFFFFF",
       }}
     >
+      {/* Top row: title + badges */}
       <div
         style={{
           display: "flex",
@@ -51,77 +73,52 @@ function IssueRow({
           style={{
             fontSize: 14,
             fontWeight: 600,
-            color: isResolved ? "#6B7280" : "#1A1A1A",
+            color: isResolved ? "#6B7280" : isReadOnly ? "#6B7280" : "#1A1A1A",
             lineHeight: 1.4,
             wordBreak: "break-word",
           }}
         >
           {issue.title}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
           {isPriority && (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "#C94A00",
-                background: "#FFF1EC",
-                border: "1px solid #FFD4C2",
-                borderRadius: 99,
-                padding: "2px 8px",
-                lineHeight: 1.6,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 3,
-              }}
-            >
-              <span style={{ fontSize: 9 }}>▲</span>
-              Priority
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#C94A00", background: "#FFF1EC", border: "1px solid #FFD4C2", borderRadius: 99, padding: "2px 8px", lineHeight: 1.6, display: "inline-flex", alignItems: "center", gap: 3 }}>
+              <span style={{ fontSize: 9 }}>▲</span> Priority
             </span>
           )}
           {isResolved ? (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 500,
-                color: "#176B3A",
-                background: "#EDFAF3",
-                border: "1px solid #A5E5C3",
-                borderRadius: 99,
-                padding: "2px 8px",
-                lineHeight: 1.6,
-              }}
-            >
+            <span style={{ fontSize: 11, fontWeight: 500, color: "#176B3A", background: "#EDFAF3", border: "1px solid #A5E5C3", borderRadius: 99, padding: "2px 8px", lineHeight: 1.6 }}>
               Resolved
             </span>
+          ) : issue.status === "in_progress" ? (
+            <span style={{ fontSize: 11, fontWeight: 500, color: "#1E56A0", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 99, padding: "2px 8px", lineHeight: 1.6 }}>
+              In Progress
+            </span>
           ) : (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 500,
-                color: "#7A6A00",
-                background: "#FEFBE8",
-                border: "1px solid #F0E68A",
-                borderRadius: 99,
-                padding: "2px 8px",
-                lineHeight: 1.6,
-              }}
-            >
+            <span style={{ fontSize: 11, fontWeight: 500, color: "#7A6A00", background: "#FEFBE8", border: "1px solid #F0E68A", borderRadius: 99, padding: "2px 8px", lineHeight: 1.6 }}>
               Pending
+            </span>
+          )}
+          {/* Assignment badge — All Tasks only */}
+          {showAssignment && (
+            <span style={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: assignment.mine ? "#FF5000" : assignment.unassigned ? "#9A9790" : "#374151",
+              background: assignment.mine ? "#FFF3EB" : assignment.unassigned ? "#F3F4F6" : "#F9FAFB",
+              border: `1px solid ${assignment.mine ? "#FFD4C2" : assignment.unassigned ? "#E5E7EB" : "#E5E7EB"}`,
+              borderRadius: 99,
+              padding: "2px 8px",
+              lineHeight: 1.6,
+            }}>
+              {assignment.text}
             </span>
           )}
         </div>
       </div>
-      <div
-        style={{
-          fontSize: 12,
-          color: "#9A9790",
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          flexWrap: "wrap",
-        }}
-      >
+
+      {/* Meta row */}
+      <div style={{ fontSize: 12, color: "#9A9790", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
         {issue.tenant && <span>{issue.tenant}</span>}
         {issue.tenant && <span style={{ color: "#D5D2CD" }}>·</span>}
         <span>
@@ -132,9 +129,7 @@ function IssueRow({
         {issue.source && (
           <>
             <span style={{ color: "#D5D2CD" }}>·</span>
-            <span style={{ color: "#C0BDB8" }}>
-              Created by: {issue.source === "landlord" ? "Landlord" : "Tenant"}
-            </span>
+            <span style={{ color: "#C0BDB8" }}>Created by: {issue.source === "landlord" ? "Landlord" : "Tenant"}</span>
           </>
         )}
         {issue.attachments && issue.attachments.length > 0 && (
@@ -148,21 +143,151 @@ function IssueRow({
             </span>
           </>
         )}
+        {/* Assigned to — All Tasks inline */}
+        {showAssignment && issue.assignedTo && (
+          <>
+            <span style={{ color: "#D5D2CD" }}>·</span>
+            <span style={{ color: "#C0BDB8" }}>
+              Assigned to: <span style={{ color: issue.assignedTo === MY_NAME ? "#FF5000" : "#9A9790", fontWeight: 500 }}>{issue.assignedTo}</span>
+            </span>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+// ── Issue Group List ──────────────────────────────────────────────────────────
+
+function IssueList({ items, showAssignment, isMobile, onOpen }: {
+  items: FmIssue[];
+  showAssignment: boolean;
+  isMobile: boolean;
+  onOpen: (i: FmIssue) => void;
+}) {
+  return (
+    <div style={{ background: "#FFFFFF", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.03)", overflow: "hidden" }}>
+      {items.map((issue, i) => {
+        const isReadOnly = showAssignment && issue.assignedTo !== MY_NAME;
+        return (
+          <IssueRow
+            key={issue.id}
+            issue={issue}
+            isLast={i === items.length - 1}
+            isMobile={isMobile}
+            showAssignment={showAssignment}
+            isReadOnly={isReadOnly}
+            onClick={() => { if (!isReadOnly) onOpen(issue); }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Search + Filter bar ───────────────────────────────────────────────────────
+
+type AssignFilter = "me" | "others" | "unassigned" | null;
+
+function SearchBar({
+  value,
+  onChange,
+  showAssignFilter,
+  assignFilter,
+  onAssignFilter,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  showAssignFilter: boolean;
+  assignFilter: AssignFilter;
+  onAssignFilter: (f: AssignFilter) => void;
+}) {
+  return (
+    <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
+          <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9A9790", pointerEvents: "none" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Search tasks..."
+            style={{ width: "100%", paddingLeft: 32, paddingRight: 10, height: 36, border: "1px solid #E5E3DF", borderRadius: 8, fontSize: 13, color: "#1A1A1A", background: "#FAFAF9", outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+      </div>
+      {showAssignFilter && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {([["me", "Assigned to Me"], ["others", "Assigned to Others"], ["unassigned", "Unassigned"]] as [AssignFilter, string][]).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => onAssignFilter(assignFilter === val ? null : val)}
+              style={{
+                fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 99, border: "1px solid", cursor: "pointer",
+                color: assignFilter === val ? "#FF5000" : "#6B7280",
+                background: assignFilter === val ? "#FFF3EB" : "#F9FAFB",
+                borderColor: assignFilter === val ? "#FFD4C2" : "#E5E7EB",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
+type Tab = "mine" | "all";
+
 export default function FacilityManagerIssues() {
   const isMobile = useIsMobile();
   const { issues, openIssueDetail } = useFmContext();
   const [, tick] = useState(0);
+  const [tab, setTab] = useState<Tab>("mine");
+  const [search, setSearch] = useState("");
+  const [assignFilter, setAssignFilter] = useState<AssignFilter>(null);
 
   useEffect(() => {
     return subscribeToThreadStore(() => tick((n) => n + 1));
   }, []);
 
-  const pending = issues
+  // Reset search/filter when switching tabs
+  const handleTabChange = (t: Tab) => {
+    setTab(t);
+    setSearch("");
+    setAssignFilter(null);
+  };
+
+  const myIssues = useMemo(() => issues.filter((i) => i.assignedTo === MY_NAME), [issues]);
+  const allIssues = useMemo(() => issues, [issues]);
+
+  const filterIssues = (pool: FmIssue[], isAll: boolean) => {
+    const q = search.toLowerCase().trim();
+    let result = q
+      ? pool.filter((i) =>
+          i.title.toLowerCase().includes(q) ||
+          i.property.toLowerCase().includes(q) ||
+          (i.tenant && i.tenant.toLowerCase().includes(q))
+        )
+      : pool;
+
+    if (isAll && assignFilter) {
+      result = result.filter((i) => {
+        if (assignFilter === "me") return i.assignedTo === MY_NAME;
+        if (assignFilter === "others") return i.assignedTo && i.assignedTo !== MY_NAME;
+        if (assignFilter === "unassigned") return !i.assignedTo;
+        return true;
+      });
+    }
+    return result;
+  };
+
+  const source = tab === "mine" ? myIssues : allIssues;
+  const visible = filterIssues(source, tab === "all");
+
+  const pending = visible
     .filter((i) => i.status === "open" || i.status === "in_progress")
     .sort((a, b) => {
       const pa = isTaskPriority(a.id) ? 0 : 1;
@@ -171,104 +296,136 @@ export default function FacilityManagerIssues() {
       return b.time - a.time;
     });
 
-  const resolved = issues
+  const resolved = visible
     .filter((i) => i.status === "resolved")
     .sort((a, b) => {
-      const aAt = a.resolution?.resolvedAt ? new Date(a.resolution.resolvedAt).getTime() : a.time;
-      const bAt = b.resolution?.resolvedAt ? new Date(b.resolution.resolvedAt).getTime() : b.time;
+      const aAt = a.resolutions?.[a.resolutions.length - 1]?.resolvedAt
+        ? new Date(a.resolutions[a.resolutions.length - 1].resolvedAt!).getTime()
+        : a.time;
+      const bAt = b.resolutions?.[b.resolutions.length - 1]?.resolvedAt
+        ? new Date(b.resolutions[b.resolutions.length - 1].resolvedAt!).getTime()
+        : b.time;
       return bAt - aAt;
     });
 
-  const IssueList = ({ items }: { items: FmIssue[] }) => (
-    <div
-      style={{
-        background: "#FFFFFF",
-        borderRadius: 12,
-        boxShadow: "0 1px 3px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.03)",
-        overflow: "hidden",
-      }}
-    >
-      {items.map((issue, i) => (
-        <IssueRow
-          key={issue.id}
-          issue={issue}
-          isLast={i === items.length - 1}
-          isMobile={isMobile}
-          onClick={() => openIssueDetail(issue)}
-        />
-      ))}
+  const showAssignment = tab === "all";
+
+  const SectionLabel = ({ label, count }: { label: string; count: number }) => (
+    <div style={{ fontSize: 11, fontWeight: 600, color: "#B0ADA8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
+      {label} · {count}
     </div>
   );
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        minWidth: 0,
-        overflow: "hidden",
-        background: "#FFFFFF",
-      }}
-    >
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden", background: "#FFFFFF" }}>
       <FacilityManagerHeader />
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px 32px" }}>
-        <p
-          style={{
-            fontSize: 13,
-            color: "#9A9790",
-            lineHeight: 1.55,
-            margin: "0 0 12px",
-            maxWidth: 520,
-          }}
-        >
-          View all maintenance requests across your properties and tenants.
-          <br />
-          Tap any request to see details and take action.
+
+      {/* Tabs */}
+      <div style={{ borderBottom: "1px solid #EDECEA", background: "#FFFFFF", flexShrink: 0 }}>
+        <div style={{ display: "flex", padding: isMobile ? "0 12px" : "0 20px", gap: 0 }}>
+          {(["mine", "all"] as Tab[]).map((t) => {
+            const label = t === "mine" ? "My Tasks" : "All Tasks";
+            const count = t === "mine" ? myIssues.length : allIssues.length;
+            const active = tab === t;
+            return (
+              <button
+                key={t}
+                onClick={() => handleTabChange(t)}
+                style={{
+                  padding: "12px 16px",
+                  fontSize: 13,
+                  fontWeight: active ? 600 : 500,
+                  color: active ? "#FF5000" : "#6B7280",
+                  borderBottom: active ? "2px solid #FF5000" : "2px solid transparent",
+                  background: "none",
+                  border: "none",
+                  borderBottom: active ? "2px solid #FF5000" : "2px solid transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "color 0.15s, border-color 0.15s",
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  flexShrink: 0,
+                }}
+              >
+                {label}
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: 99,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "0 5px",
+                  background: active ? "#FFF3EB" : "#F3F4F6",
+                  color: active ? "#FF5000" : "#9A9790",
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 12px 32px" : "20px 20px 32px" }}>
+
+        {/* Subtitle */}
+        <p style={{ fontSize: 13, color: "#9A9790", lineHeight: 1.55, margin: "0 0 12px", maxWidth: 520 }}>
+          {tab === "mine"
+            ? "Maintenance requests assigned to you. Tap any request to view details and take action."
+            : "All maintenance requests across the portfolio. You can view all tasks but can only action your own."}
         </p>
         <div style={{ height: 1, background: "#F0EEE9", marginBottom: 20 }} />
 
-        {/* Pending */}
+        {/* Search + filter */}
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          showAssignFilter={tab === "all"}
+          assignFilter={assignFilter}
+          onAssignFilter={setAssignFilter}
+        />
+
+        {/* Empty state — no assigned tasks */}
+        {tab === "mine" && myIssues.length === 0 && (
+          <div style={{ textAlign: "center", paddingTop: 48, paddingBottom: 24 }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 6 }}>You don't have any assigned tasks yet.</p>
+            <p style={{ fontSize: 13, color: "#9A9790", marginBottom: 20 }}>Tasks assigned to you will appear here.</p>
+            <button
+              onClick={() => handleTabChange("all")}
+              style={{ fontSize: 13, fontWeight: 600, color: "#FF5000", background: "#FFF3EB", border: "1px solid #FFD4C2", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "'Inter', system-ui, sans-serif" }}
+            >
+              View All Tasks
+            </button>
+          </div>
+        )}
+
+        {/* Empty state — filters / search */}
+        {(tab === "mine" ? myIssues.length > 0 : true) && pending.length === 0 && resolved.length === 0 && (
+          <div style={{ textAlign: "center", paddingTop: 48, color: "#B0ADA8", fontSize: 13 }}>
+            {search || assignFilter ? "No tasks match your search or filters." : "No tasks yet."}
+          </div>
+        )}
+
+        {/* Pending / Active */}
         {pending.length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "#B0ADA8",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                marginBottom: 10,
-              }}
-            >
-              Active · {pending.length}
-            </div>
-            <IssueList items={pending} />
+            <SectionLabel label="Active" count={pending.length} />
+            <IssueList items={pending} showAssignment={showAssignment} isMobile={isMobile} onOpen={openIssueDetail} />
           </div>
         )}
 
         {/* Resolved */}
         {resolved.length > 0 && (
           <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "#B0ADA8",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                marginBottom: 10,
-              }}
-            >
-              Resolved · {resolved.length}
-            </div>
-            <IssueList items={resolved} />
-          </div>
-        )}
-
-        {pending.length === 0 && resolved.length === 0 && (
-          <div style={{ textAlign: "center", paddingTop: 48, color: "#B0ADA8", fontSize: 13 }}>
-            No tasks yet
+            <SectionLabel label="Resolved" count={resolved.length} />
+            <IssueList items={resolved} showAssignment={showAssignment} isMobile={isMobile} onOpen={openIssueDetail} />
           </div>
         )}
       </div>
