@@ -3,8 +3,9 @@ import { useState, useEffect, useMemo } from "react";
 import { FacilityManagerHeader } from "./FacilityManagerHeader";
 import { useIsMobile, fmtDate } from "./helpers";
 import { useFmContext } from "./FacilityManagerProvider";
-import { FmIssue } from "./mockData";
+import { FmIssue, PROPS_DATA } from "./mockData";
 import { isTaskPriority, subscribeToThreadStore } from "@/lib/taskThreadStore";
+import { ListFilter, type FilterValues, type FilterGroup } from "@/components/ListFilter";
 
 // ── The logged-in FM's name (mock — in a real app, from auth context) ─────────
 const MY_NAME = "Jide Akinola";
@@ -174,26 +175,70 @@ function IssueList({ items, showAssignment, isMobile, onOpen }: {
   );
 }
 
-// ── Search + Filter bar ───────────────────────────────────────────────────────
+// ── Filter groups ─────────────────────────────────────────────────────────────
 
-type AssignFilter = "me" | "others" | "unassigned" | null;
+const TASK_FILTER_GROUPS_ALL: FilterGroup[] = [
+  {
+    key: "assignment",
+    label: "Assignment",
+    options: [
+      { value: "me", label: "Assigned to Me" },
+      { value: "others", label: "Assigned to Others" },
+      { value: "unassigned", label: "Unassigned" },
+    ],
+  },
+  {
+    key: "status",
+    label: "Status",
+    options: [
+      { value: "open", label: "Pending" },
+      { value: "in_progress", label: "In Progress" },
+      { value: "resolved", label: "Resolved" },
+    ],
+    multi: true,
+  },
+  {
+    key: "priority",
+    label: "Priority",
+    options: [
+      { value: "high", label: "High Priority" },
+    ],
+  },
+  {
+    key: "property",
+    label: "Property",
+    options: PROPS_DATA.map((p) => ({ value: p.id, label: p.name })),
+    multi: true,
+  },
+];
+
+const TASK_FILTER_GROUPS_MINE: FilterGroup[] = TASK_FILTER_GROUPS_ALL.filter(
+  (g) => g.key !== "assignment"
+);
+
+const EMPTY_FILTERS: FilterValues = {};
+
+// ── Search + Filter bar ───────────────────────────────────────────────────────
 
 function SearchBar({
   value,
   onChange,
-  showAssignFilter,
-  assignFilter,
-  onAssignFilter,
+  filterGroups,
+  filterValues,
+  onFilterChange,
+  onFilterClear,
 }: {
   value: string;
   onChange: (v: string) => void;
-  showAssignFilter: boolean;
-  assignFilter: AssignFilter;
-  onAssignFilter: (f: AssignFilter) => void;
+  filterGroups: FilterGroup[];
+  filterValues: FilterValues;
+  onFilterChange: (v: FilterValues) => void;
+  onFilterClear: () => void;
 }) {
   return (
-    <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", gap: 8 }}>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+        {/* Search input */}
         <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
           <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9A9790", pointerEvents: "none" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input
@@ -203,25 +248,14 @@ function SearchBar({
             style={{ width: "100%", paddingLeft: 32, paddingRight: 10, height: 36, border: "1px solid #E5E3DF", borderRadius: 8, fontSize: 13, color: "#1A1A1A", background: "#FAFAF9", outline: "none", boxSizing: "border-box" }}
           />
         </div>
+        {/* Filter button — uses ListFilter which handles chips internally */}
+        <ListFilter
+          groups={filterGroups}
+          values={filterValues}
+          onChange={onFilterChange}
+          onClear={onFilterClear}
+        />
       </div>
-      {showAssignFilter && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {([["me", "Assigned to Me"], ["others", "Assigned to Others"], ["unassigned", "Unassigned"]] as [AssignFilter, string][]).map(([val, label]) => (
-            <button
-              key={val}
-              onClick={() => onAssignFilter(assignFilter === val ? null : val)}
-              style={{
-                fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 99, border: "1px solid", cursor: "pointer",
-                color: assignFilter === val ? "#FF5000" : "#6B7280",
-                background: assignFilter === val ? "#FFF3EB" : "#F9FAFB",
-                borderColor: assignFilter === val ? "#FFD4C2" : "#E5E7EB",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -236,23 +270,22 @@ export default function FacilityManagerIssues() {
   const [, tick] = useState(0);
   const [tab, setTab] = useState<Tab>("mine");
   const [search, setSearch] = useState("");
-  const [assignFilter, setAssignFilter] = useState<AssignFilter>(null);
+  const [filterValues, setFilterValues] = useState<FilterValues>(EMPTY_FILTERS);
 
   useEffect(() => {
     return subscribeToThreadStore(() => tick((n) => n + 1));
   }, []);
 
-  // Reset search/filter when switching tabs
   const handleTabChange = (t: Tab) => {
     setTab(t);
     setSearch("");
-    setAssignFilter(null);
+    setFilterValues(EMPTY_FILTERS);
   };
 
   const myIssues = useMemo(() => issues.filter((i) => i.assignedTo === MY_NAME), [issues]);
   const allIssues = useMemo(() => issues, [issues]);
 
-  const filterIssues = (pool: FmIssue[], isAll: boolean) => {
+  const filterIssues = (pool: FmIssue[]) => {
     const q = search.toLowerCase().trim();
     let result = q
       ? pool.filter((i) =>
@@ -262,19 +295,42 @@ export default function FacilityManagerIssues() {
         )
       : pool;
 
-    if (isAll && assignFilter) {
-      result = result.filter((i) => {
-        if (assignFilter === "me") return i.assignedTo === MY_NAME;
-        if (assignFilter === "others") return i.assignedTo && i.assignedTo !== MY_NAME;
-        if (assignFilter === "unassigned") return !i.assignedTo;
-        return true;
-      });
+    // Assignment
+    const assign = filterValues["assignment"] ?? [];
+    if (assign.length > 0) {
+      result = result.filter((i) =>
+        assign.some((a) => {
+          if (a === "me") return i.assignedTo === MY_NAME;
+          if (a === "others") return i.assignedTo && i.assignedTo !== MY_NAME;
+          if (a === "unassigned") return !i.assignedTo;
+          return false;
+        })
+      );
     }
+
+    // Status
+    const statuses = filterValues["status"] ?? [];
+    if (statuses.length > 0) {
+      result = result.filter((i) => statuses.includes(i.status));
+    }
+
+    // Priority
+    const priority = filterValues["priority"] ?? [];
+    if (priority.includes("high")) {
+      result = result.filter((i) => isTaskPriority(i.id));
+    }
+
+    // Property
+    const props = filterValues["property"] ?? [];
+    if (props.length > 0) {
+      result = result.filter((i) => props.includes(i.propertyId));
+    }
+
     return result;
   };
 
   const source = tab === "mine" ? myIssues : allIssues;
-  const visible = filterIssues(source, tab === "all");
+  const visible = filterIssues(source);
 
   const pending = visible
     .filter((i) => i.status === "open" || i.status === "in_progress")
@@ -355,9 +411,10 @@ export default function FacilityManagerIssues() {
         <SearchBar
           value={search}
           onChange={setSearch}
-          showAssignFilter={tab === "all"}
-          assignFilter={assignFilter}
-          onAssignFilter={setAssignFilter}
+          filterGroups={tab === "all" ? TASK_FILTER_GROUPS_ALL : TASK_FILTER_GROUPS_MINE}
+          filterValues={filterValues}
+          onFilterChange={setFilterValues}
+          onFilterClear={() => setFilterValues(EMPTY_FILTERS)}
         />
 
         {/* Empty state — no assigned tasks */}
@@ -378,7 +435,7 @@ export default function FacilityManagerIssues() {
         {/* Empty state — filters / search */}
         {(tab === "mine" ? myIssues.length > 0 : true) && pending.length === 0 && resolved.length === 0 && (
           <div style={{ textAlign: "center", paddingTop: 48, color: "#B0ADA8", fontSize: 13 }}>
-            {search || assignFilter ? "No tasks match your search or filters." : "No tasks yet."}
+            {search || Object.values(filterValues).some((v) => v.length > 0) ? "No tasks match your search or filters." : "No tasks yet."}
           </div>
         )}
 
