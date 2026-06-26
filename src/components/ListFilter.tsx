@@ -132,16 +132,43 @@ export function ListFilter({ groups, values, onChange, onClear }: ListFilterProp
         ref={btnRef}
         type="button"
         onClick={openPanel}
-        className={`flex items-center gap-2 h-9 px-4 rounded-lg border text-sm font-medium transition-colors shrink-0 whitespace-nowrap ${
-          count > 0
-            ? "border-[#FF5000] text-[#FF5000] bg-[#FFF3EB]"
-            : "border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-white"
-        }`}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          height: 36,
+          paddingLeft: 16,
+          paddingRight: 16,
+          borderRadius: 8,
+          border: `1px solid ${count > 0 ? "#FFD4C2" : "#E5E3DF"}`,
+          background: count > 0 ? "#FFF3EB" : "#FFFFFF",
+          color: count > 0 ? "#FF5000" : "#6B7280",
+          fontSize: 14,
+          fontWeight: 500,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+          width: "auto",
+          transition: "border-color 0.15s, color 0.15s, background 0.15s",
+          fontFamily: "inherit",
+        }}
       >
-        <SlidersHorizontal className="w-4 h-4" />
-        <span className="hidden sm:inline">Filter</span>
+        <SlidersHorizontal style={{ width: 16, height: 16, flexShrink: 0 }} />
+        <span>Filter</span>
         {count > 0 && (
-          <span className="w-4 h-4 rounded-full bg-[#FF5000] text-white text-[10px] font-bold flex items-center justify-center">
+          <span style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            background: "#FF5000",
+            color: "#FFFFFF",
+            fontSize: 10,
+            fontWeight: 700,
+            flexShrink: 0,
+          }}>
             {count}
           </span>
         )}
