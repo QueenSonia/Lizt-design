@@ -14,7 +14,6 @@ import { ListFilter, type FilterValues, type FilterGroup } from "./ListFilter";
 import { GlobalSearchDropdown } from "./GlobalSearch";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRef } from "react";
 import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
