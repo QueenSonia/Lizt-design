@@ -104,17 +104,6 @@ function IssueRow({
               Pending
             </span>
           )}
-          {showAssignment && (
-            <span style={{
-              fontSize: 11, fontWeight: 500,
-              color: assignment.mine ? "#FF5000" : assignment.unassigned ? "#9A9790" : "#374151",
-              background: assignment.mine ? "#FFF3EB" : assignment.unassigned ? "#F3F4F6" : "#F9FAFB",
-              border: `1px solid ${assignment.mine ? "#FFD4C2" : "#E5E7EB"}`,
-              borderRadius: 99, padding: "2px 8px", lineHeight: 1.6,
-            }}>
-              {assignment.text}
-            </span>
-          )}
         </div>
       </div>
 
