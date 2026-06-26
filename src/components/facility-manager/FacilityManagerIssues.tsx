@@ -58,7 +58,12 @@ function IssueRow({
         background: isReadOnly ? "#FAFAF9" : "#FFFFFF",
       }}
     >
-      {/* Top row: title + badges */}
+      {/* Property name — top line */}
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#9A9790", marginBottom: 4, letterSpacing: "0.01em" }}>
+        {issue.property}
+      </div>
+
+      {/* Title + badges row */}
       <div
         style={{
           display: "flex",
@@ -99,17 +104,13 @@ function IssueRow({
               Pending
             </span>
           )}
-          {/* Assignment badge — All Tasks only */}
           {showAssignment && (
             <span style={{
-              fontSize: 11,
-              fontWeight: 500,
+              fontSize: 11, fontWeight: 500,
               color: assignment.mine ? "#FF5000" : assignment.unassigned ? "#9A9790" : "#374151",
               background: assignment.mine ? "#FFF3EB" : assignment.unassigned ? "#F3F4F6" : "#F9FAFB",
-              border: `1px solid ${assignment.mine ? "#FFD4C2" : assignment.unassigned ? "#E5E7EB" : "#E5E7EB"}`,
-              borderRadius: 99,
-              padding: "2px 8px",
-              lineHeight: 1.6,
+              border: `1px solid ${assignment.mine ? "#FFD4C2" : "#E5E7EB"}`,
+              borderRadius: 99, padding: "2px 8px", lineHeight: 1.6,
             }}>
               {assignment.text}
             </span>
@@ -119,19 +120,19 @@ function IssueRow({
 
       {/* Meta row */}
       <div style={{ fontSize: 12, color: "#9A9790", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-        {issue.tenant && <span>{issue.tenant}</span>}
-        {issue.tenant && <span style={{ color: "#D5D2CD" }}>·</span>}
+        {issue.tenant && (
+          <>
+            <span style={{ color: "#C0BDB8" }}>
+              Created by: <span style={{ color: "#9A9790", fontWeight: 500 }}>{issue.tenant}</span>
+            </span>
+            <span style={{ color: "#D5D2CD" }}>·</span>
+          </>
+        )}
         <span>
           {isResolved && issue.resolutions?.[issue.resolutions.length - 1]?.resolvedAt
             ? fmtResolved(issue.resolutions[issue.resolutions.length - 1].resolvedAt!)
             : fmtDate(issue.time)}
         </span>
-        {issue.source && (
-          <>
-            <span style={{ color: "#D5D2CD" }}>·</span>
-            <span style={{ color: "#C0BDB8" }}>Created by: {issue.source === "landlord" ? "Landlord" : "Tenant"}</span>
-          </>
-        )}
         {issue.attachments && issue.attachments.length > 0 && (
           <>
             <span style={{ color: "#D5D2CD" }}>·</span>
@@ -143,7 +144,6 @@ function IssueRow({
             </span>
           </>
         )}
-        {/* Assigned to — All Tasks inline */}
         {showAssignment && issue.assignedTo && (
           <>
             <span style={{ color: "#D5D2CD" }}>·</span>
