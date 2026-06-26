@@ -250,12 +250,15 @@ function SearchBar({
         </div>
         {/* Filter button — auto width, never grows */}
         <div style={{ flexShrink: 0, width: "auto" }}>
-          <ListFilter
-            groups={filterGroups}
-            values={filterValues}
-            onChange={onFilterChange}
-            onClear={onFilterClear}
-          />
+          <style>{`.fm-filter-btn button:first-child { padding-left: 20px !important; padding-right: 20px !important; }`}</style>
+          <div className="fm-filter-btn">
+            <ListFilter
+              groups={filterGroups}
+              values={filterValues}
+              onChange={onFilterChange}
+              onClear={onFilterClear}
+            />
+          </div>
         </div>
       </div>
     </div>
