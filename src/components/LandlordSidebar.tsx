@@ -1,20 +1,17 @@
 "use client";
 /* eslint-disable */
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import {
   Building2,
-  Search,
   LogOut,
   MessageSquare,
   Settings,
   ChevronDown,
-  X,
   Wrench,
   FileCheck,
   KeyRound,
   Megaphone,
 } from "lucide-react";
-import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -28,7 +25,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { getProfile } from "@/services/users/api";
-import { GlobalSearchResults, Tenant } from "./GlobalSearchResults";
 import { LogoutConfirmationModal } from "./modals/LogoutConfirmationModal";
 
 interface LandlordSidebarProps {
@@ -58,10 +54,7 @@ export function LandlordSidebar({
   onClose,
 }: LandlordSidebarProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showSearchResults, setShowSearchResults] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { user } = useAuth();
   const userRole = user?.role;
@@ -71,57 +64,6 @@ export function LandlordSidebar({
     queryFn: getProfile,
     staleTime: 5 * 60 * 1000,
   });
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(event.target as Node)
-      ) {
-        setShowSearchResults(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setShowSearchResults(value.trim().length > 0);
-  };
-
-  const handleClearSearch = () => {
-    setSearchTerm("");
-    setShowSearchResults(false);
-  };
-
-  const handlePropertyClick = (propertyId: string) => {
-    router.push(`/${userRole}/property-detail/${propertyId}`);
-    setShowSearchResults(false);
-    if (isMobile && onClose) {
-      onClose();
-    }
-  };
-
-  const handleTenantClick = (tenant: Tenant) => {
-    const kycId = (tenant as any).kycApplicationId || tenant.id.replace(/^app-/, "");
-    router.push(`/${userRole}/kyc-application-detail/${kycId}`);
-    setShowSearchResults(false);
-    if (isMobile && onClose) {
-      onClose();
-    }
-  };
-
-  const handleServiceRequestClick = (requestId: string) => {
-    router.push(`/${userRole}/dashboard?request=${requestId}`);
-    setShowSearchResults(false);
-    if (isMobile && onClose) {
-      onClose();
-    }
-  };
 
   const menuGroups = [
     {
@@ -174,43 +116,6 @@ export function LandlordSidebar({
             className="h-10 w-auto object-contain"
           />
         </button>
-      </div>
-
-      <div className="px-6 py-4" ref={searchContainerRef}>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none z-10" />
-          <Input
-            placeholder="Search properties, tenants, requests..."
-            value={searchTerm}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onFocus={() => {
-              if (searchTerm.trim().length > 0) {
-                setShowSearchResults(true);
-              }
-            }}
-            className="pl-10 pr-8 h-9 bg-slate-50 border-0 focus:bg-white focus:ring-1 focus:ring-orange-200 transition-all duration-200 text-sm placeholder:text-slate-400"
-            aria-label="Global search"
-          />
-          {searchTerm && (
-            <button
-              onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full p-0.5 transition-all duration-200 z-10"
-              aria-label="Clear search"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-
-          {showSearchResults && (
-            <GlobalSearchResults
-              searchTerm={searchTerm}
-              onPropertyClick={handlePropertyClick}
-              onTenantClick={handleTenantClick}
-              onServiceRequestClick={handleServiceRequestClick}
-              onClose={() => setShowSearchResults(false)}
-            />
-          )}
-        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3">
