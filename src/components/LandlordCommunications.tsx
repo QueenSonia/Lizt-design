@@ -70,31 +70,26 @@ function fmtTime(iso: string) {
 
 // ── Compose Modal ─────────────────────────────────────────────────────────────
 
-type RecipientMode = "all" | "properties" | "individuals";
+type RecipientMode = "all" | "individuals";
 type Step = "recipients" | "compose" | "preview";
 
 function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Broadcast) => void }) {
   const [step, setStep] = useState<Step>("recipients");
   const [mode, setMode] = useState<RecipientMode>("all");
-  const [selectedProps, setSelectedProps] = useState<string[]>([]);
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
   const [body, setBody] = useState("");
   const [search, setSearch] = useState("");
 
   const recipientCount = mode === "all"
     ? MOCK_TENANTS.length
-    : mode === "properties"
-    ? MOCK_PROPERTIES.filter(p => selectedProps.includes(p.id)).reduce((s, p) => s + p.tenants, 0)
     : selectedTenants.length;
 
   const recipientLabel = mode === "all"
     ? "All Tenants"
-    : mode === "properties"
-    ? `${selectedProps.length} Propert${selectedProps.length !== 1 ? "ies" : "y"}`
     : `${selectedTenants.length} Tenant${selectedTenants.length !== 1 ? "s" : ""}`;
 
   const MAX_BODY = 500;
-  const canProceedRecipients = mode === "all" || (mode === "properties" && selectedProps.length > 0) || (mode === "individuals" && selectedTenants.length > 0);
+  const canProceedRecipients = mode === "all" || (mode === "individuals" && selectedTenants.length > 0);
   const canProceedCompose = body.trim().length > 0 && body.length <= MAX_BODY;
   const previewTenantName = mode === "individuals" && selectedTenants.length === 1
     ? MOCK_TENANTS.find(t => t.id === selectedTenants[0])?.name ?? "Tenant"
@@ -103,9 +98,6 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
 
   const filteredTenants = MOCK_TENANTS.filter(t =>
     !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.property.toLowerCase().includes(search.toLowerCase())
-  );
-  const filteredProps = MOCK_PROPERTIES.filter(p =>
-    !search || p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   function handleSend() {
@@ -147,15 +139,14 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
             {/* Step 1: Recipients */}
             {step === "recipients" && (
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {([
                     { id: "all", label: "All Tenants", icon: <Users className="w-4 h-4" /> },
-                    { id: "properties", label: "By Property", icon: <Building className="w-4 h-4" /> },
                     { id: "individuals", label: "Tenants", icon: <User className="w-4 h-4" /> },
                   ] as { id: RecipientMode; label: string; icon: React.ReactNode }[]).map(opt => (
                     <button
                       key={opt.id}
-                      onClick={() => { setMode(opt.id); setSelectedProps([]); setSelectedTenants([]); setSearch(""); }}
+                      onClick={() => { setMode(opt.id); setSelectedTenants([]); setSearch(""); }}
                       className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-xs font-medium transition-colors ${
                         mode === opt.id ? "border-[#FF5000] bg-[#FFF3EB] text-[#FF5000]" : "border-gray-200 text-gray-600 hover:border-gray-300"
                       }`}
@@ -179,33 +170,20 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
                   </div>
                 )}
 
-                {(mode === "properties" || mode === "individuals") && (
+                {mode === "individuals" && (
                   <>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                       <Input
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder={mode === "properties" ? "Search properties…" : "Search tenants…"}
+                        placeholder="Search tenants…"
                         className="pl-9 h-9 text-sm"
                       />
                     </div>
 
                     <div className="space-y-1 max-h-48 overflow-y-auto">
-                      {mode === "properties" && filteredProps.map(p => {
-                        const sel = selectedProps.includes(p.id);
-                        return (
-                          <button key={p.id} onClick={() => setSelectedProps(prev => sel ? prev.filter(x => x !== p.id) : [...prev, p.id])}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-colors ${sel ? "border-[#FF5000] bg-[#FFF3EB]" : "border-gray-200 hover:border-gray-300"}`}>
-                            <div>
-                              <p className="text-sm text-gray-900 font-medium">{p.name}</p>
-                              <p className="text-xs text-gray-400">{p.tenants} tenant{p.tenants !== 1 ? "s" : ""}</p>
-                            </div>
-                            {sel && <Check className="w-4 h-4 text-[#FF5000] shrink-0" />}
-                          </button>
-                        );
-                      })}
-                      {mode === "individuals" && filteredTenants.map(t => {
+                      {filteredTenants.map(t => {
                         const sel = selectedTenants.includes(t.id);
                         return (
                           <button key={t.id} onClick={() => setSelectedTenants(prev => sel ? prev.filter(x => x !== t.id) : [...prev, t.id])}
