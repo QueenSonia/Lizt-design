@@ -237,10 +237,9 @@ function SearchBar({
 }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      {/* Search + filter on one row */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {/* Search input — takes all remaining space */}
-        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, width: "fit-content", maxWidth: "100%" }}>
+        {/* Search input — fixed max width, never grows beyond it */}
+        <div style={{ position: "relative", width: 460, maxWidth: "calc(100vw - 120px)" }}>
           <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9A9790", pointerEvents: "none" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input
             value={value}
@@ -249,8 +248,8 @@ function SearchBar({
             style={{ width: "100%", paddingLeft: 32, paddingRight: 10, height: 36, border: "1px solid #E5E3DF", borderRadius: 8, fontSize: 13, color: "#1A1A1A", background: "#FAFAF9", outline: "none", boxSizing: "border-box" }}
           />
         </div>
-        {/* Filter button — shrinks to content, never grows */}
-        <div style={{ flexShrink: 0 }}>
+        {/* Filter button — auto width, never grows */}
+        <div style={{ flexShrink: 0, width: "auto" }}>
           <ListFilter
             groups={filterGroups}
             values={filterValues}
