@@ -2,15 +2,15 @@
 "use client";
 import { useState, useMemo } from "react";
 import {
-  Search, ChevronLeft, ChevronRight, Building2, Users, ArrowUpDown,
-  ArrowUp, ArrowDown, Plus, X, Phone, Mail, TrendingUp,
-  Home, Activity, AlertCircle, CheckCircle, Clock,
+  Search, ChevronLeft, ChevronRight, Building2, Users, Plus, X,
+  Phone, Mail, Home, Activity, AlertCircle, CheckCircle, Clock,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { SetRentPriceRangeModal } from "./SetRentPriceRangeModal";
+import { ListFilter, type FilterValues, type FilterGroup } from "./ListFilter";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -513,6 +513,48 @@ function TenancyCard({
 type SortCol = "name" | "properties" | "tenancies" | null;
 type SortDir = "asc" | "desc";
 
+const LANDLORD_FILTER_GROUPS: FilterGroup[] = [
+  {
+    key: "portfolioSize",
+    label: "Portfolio Size",
+    options: [
+      { value: "1", label: "1 Property" },
+      { value: "2-5", label: "2–5 Properties" },
+      { value: "6-10", label: "6–10 Properties" },
+      { value: "10+", label: "10+ Properties" },
+    ],
+  },
+  {
+    key: "landlordType",
+    label: "Landlord Type",
+    options: [
+      { value: "individual", label: "Individual" },
+      { value: "corporate", label: "Company" },
+    ],
+  },
+  {
+    key: "tenancyStatus",
+    label: "Tenancy Status",
+    options: [
+      { value: "active", label: "Active Tenancies" },
+      { value: "none", label: "No Active Tenancies" },
+    ],
+  },
+  {
+    key: "sortBy",
+    label: "Sort By",
+    options: [
+      { value: "name_asc", label: "Name (A–Z)" },
+      { value: "name_desc", label: "Name (Z–A)" },
+      { value: "props_desc", label: "Most Properties" },
+      { value: "props_asc", label: "Least Properties" },
+      { value: "tenancies_desc", label: "Most Active Tenancies" },
+    ],
+  },
+];
+
+const EMPTY_FILTERS: FilterValues = {};
+
 function LandlordListScreen({
   landlords,
   onSelect,
@@ -527,44 +569,70 @@ function LandlordListScreen({
   onAdd: () => void;
 }) {
   const [search, setSearch] = useState("");
-  const [sortCol, setSortCol] = useState<SortCol>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-
-  const handleSort = (col: SortCol) => {
-    if (sortCol === col) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortCol(col);
-      setSortDir("asc");
-    }
-  };
-
-  const SortIcon = ({ col }: { col: SortCol }) => {
-    if (sortCol !== col) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
-    return sortDir === "asc"
-      ? <ArrowUp className="w-3 h-3 ml-1 text-[#FF5000]" />
-      : <ArrowDown className="w-3 h-3 ml-1 text-[#FF5000]" />;
-  };
+  const [filterValues, setFilterValues] = useState<FilterValues>(EMPTY_FILTERS);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    const base = q
+
+    let base = q
       ? landlords.filter(
           (l) =>
             l.name.toLowerCase().includes(q) ||
             (l.contactName && l.contactName.toLowerCase().includes(q))
         )
-      : landlords;
+      : [...landlords];
 
-    if (!sortCol) return base;
-    return [...base].sort((a, b) => {
-      let diff = 0;
-      if (sortCol === "name") diff = a.name.localeCompare(b.name);
-      if (sortCol === "properties") diff = a.properties - b.properties;
-      if (sortCol === "tenancies") diff = a.activeTenancies - b.activeTenancies;
-      return sortDir === "asc" ? diff : -diff;
-    });
-  }, [landlords, search, sortCol, sortDir]);
+    // Portfolio size
+    const sizes = filterValues["portfolioSize"] ?? [];
+    if (sizes.length > 0) {
+      base = base.filter((l) => {
+        const p = l.properties;
+        return sizes.some((s) => {
+          if (s === "1") return p === 1;
+          if (s === "2-5") return p >= 2 && p <= 5;
+          if (s === "6-10") return p >= 6 && p <= 10;
+          if (s === "10+") return p > 10;
+          return false;
+        });
+      });
+    }
+
+    // Landlord type
+    const types = filterValues["landlordType"] ?? [];
+    if (types.length > 0) {
+      base = base.filter((l) => types.includes(l.type));
+    }
+
+    // Tenancy status
+    const tenancyFilters = filterValues["tenancyStatus"] ?? [];
+    if (tenancyFilters.length > 0) {
+      base = base.filter((l) => {
+        const hasActive = l.activeTenancies > 0;
+        return tenancyFilters.some((f) => {
+          if (f === "active") return hasActive;
+          if (f === "none") return !hasActive;
+          return false;
+        });
+      });
+    }
+
+    // Sort
+    const sort = (filterValues["sortBy"] ?? [])[0];
+    if (sort) {
+      base = [...base].sort((a, b) => {
+        if (sort === "name_asc") return a.name.localeCompare(b.name);
+        if (sort === "name_desc") return b.name.localeCompare(a.name);
+        if (sort === "props_desc") return b.properties - a.properties;
+        if (sort === "props_asc") return a.properties - b.properties;
+        if (sort === "tenancies_desc") return b.activeTenancies - a.activeTenancies;
+        return 0;
+      });
+    }
+
+    return base;
+  }, [landlords, search, filterValues]);
+
+  const hasActiveFilters = Object.values(filterValues).some((v) => v.length > 0);
 
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
@@ -597,24 +665,35 @@ function LandlordListScreen({
 
         <div className="border-t border-gray-200 mx-4 lg:mx-8" />
 
-        {/* Search row */}
-        <div className="px-4 lg:px-8 py-4">
-          <div className="relative w-72 max-w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by landlord name"
-              className="pl-10 h-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-orange-200 text-sm"
+        {/* Search + filter row */}
+        <div className="px-4 lg:px-8 py-4 space-y-2">
+          <div className="flex items-start gap-2">
+            {/* Search */}
+            <div className="relative w-72 max-w-full shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by landlord name"
+                className="pl-10 h-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-orange-200 text-sm"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter */}
+            <ListFilter
+              groups={LANDLORD_FILTER_GROUPS}
+              values={filterValues}
+              onChange={setFilterValues}
+              onClear={() => setFilterValues(EMPTY_FILTERS)}
             />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -625,8 +704,20 @@ function LandlordListScreen({
           {filtered.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
               <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-700 text-sm font-medium mb-1">No landlords found</p>
-              <p className="text-gray-400 text-xs">Try adjusting your search or add a new landlord.</p>
+              <p className="text-gray-700 text-sm font-medium mb-1">
+                {hasActiveFilters ? "No landlords match your current filters." : "No landlords found"}
+              </p>
+              <p className="text-gray-400 text-xs mb-4">
+                {hasActiveFilters ? "" : "Try adjusting your search or add a new landlord."}
+              </p>
+              {hasActiveFilters && (
+                <button
+                  onClick={() => setFilterValues(EMPTY_FILTERS)}
+                  className="px-4 py-2 text-xs font-medium text-[#FF5000] border border-[#FF5000] rounded-lg hover:bg-[#FFF3EB] transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           ) : (
             <>

@@ -1,0 +1,238 @@
+/* eslint-disable */
+"use client";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
+export interface FilterGroup {
+  key: string;
+  label: string;
+  options: FilterOption[];
+  multi?: boolean; // allow multiple selections within group (default false)
+}
+
+export type FilterValues = Record<string, string[]>; // groupKey → selected values
+
+interface ListFilterProps {
+  groups: FilterGroup[];
+  values: FilterValues;
+  onChange: (values: FilterValues) => void;
+  onClear: () => void;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function activeFilterCount(values: FilterValues): number {
+  return Object.values(values).reduce((sum, arr) => sum + arr.length, 0);
+}
+
+function chipList(groups: FilterGroup[], values: FilterValues): { groupKey: string; value: string; label: string }[] {
+  const chips: { groupKey: string; value: string; label: string }[] = [];
+  for (const group of groups) {
+    for (const val of values[group.key] ?? []) {
+      const opt = group.options.find((o) => o.value === val);
+      if (opt) chips.push({ groupKey: group.key, value: val, label: opt.label });
+    }
+  }
+  return chips;
+}
+
+// ── Filter Button ─────────────────────────────────────────────────────────────
+
+function FilterBtn({
+  label, active, onClick,
+}: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+        active
+          ? "border-[#FF5000] bg-[#FFF3EB] text-[#FF5000]"
+          : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
+export function ListFilter({ groups, values, onChange, onClear }: ListFilterProps) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<FilterValues>({});
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const count = activeFilterCount(values);
+  const chips = chipList(groups, values);
+
+  const openPanel = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 8, left: Math.max(8, rect.right - 320) });
+    }
+    setDraft(structuredClone(values));
+    setOpen(true);
+  };
+
+  const toggle = (groupKey: string, value: string, multi: boolean) => {
+    setDraft((prev) => {
+      const current = prev[groupKey] ?? [];
+      if (multi) {
+        const next = current.includes(value)
+          ? current.filter((v) => v !== value)
+          : [...current, value];
+        return { ...prev, [groupKey]: next };
+      } else {
+        // single-select: toggle off if already selected
+        return { ...prev, [groupKey]: current.includes(value) ? [] : [value] };
+      }
+    });
+  };
+
+  const apply = () => {
+    onChange(draft);
+    setOpen(false);
+  };
+
+  const resetDraft = () => setDraft({});
+
+  const removeChip = (groupKey: string, value: string) => {
+    onChange({
+      ...values,
+      [groupKey]: (values[groupKey] ?? []).filter((v) => v !== value),
+    });
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: MouseEvent) => {
+      const panel = document.getElementById("list-filter-panel");
+      if (panel && !panel.contains(e.target as Node) && !btnRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open]);
+
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {/* Filter trigger button */}
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={openPanel}
+        className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-sm font-medium transition-colors shrink-0 ${
+          count > 0
+            ? "border-[#FF5000] text-[#FF5000] bg-[#FFF3EB]"
+            : "border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-white"
+        }`}
+      >
+        <SlidersHorizontal className="w-4 h-4" />
+        <span className="hidden sm:inline">Filter</span>
+        {count > 0 && (
+          <span className="w-4 h-4 rounded-full bg-[#FF5000] text-white text-[10px] font-bold flex items-center justify-center">
+            {count}
+          </span>
+        )}
+      </button>
+
+      {/* Active filter chips */}
+      {chips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {chips.map(({ groupKey, value, label }) => (
+            <span
+              key={`${groupKey}-${value}`}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-700 font-medium"
+            >
+              {label}
+              <button
+                onClick={() => removeChip(groupKey, value)}
+                className="text-gray-400 hover:text-gray-600 ml-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+          <button
+            onClick={onClear}
+            className="text-xs text-[#FF5000] hover:underline font-medium ml-1"
+          >
+            Clear All
+          </button>
+        </div>
+      )}
+
+      {/* Filter panel — portal so it escapes overflow:hidden */}
+      {open && typeof document !== "undefined" && createPortal(
+        <>
+          <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
+          <div
+            id="list-filter-panel"
+            className="fixed z-[100] w-80 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+            style={{ top: pos.top, left: pos.left }}
+          >
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-900">Filters</p>
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Groups */}
+            <div className="px-4 py-4 space-y-5 max-h-[60vh] overflow-y-auto">
+              {groups.map((group) => (
+                <div key={group.key}>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.options.map((opt) => {
+                      const selected = (draft[group.key] ?? []).includes(opt.value);
+                      return (
+                        <FilterBtn
+                          key={opt.value}
+                          label={opt.label}
+                          active={selected}
+                          onClick={() => toggle(group.key, opt.value, group.multi ?? false)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="px-4 py-3 border-t border-gray-100 flex gap-2 justify-end">
+              <button
+                onClick={resetDraft}
+                className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Reset
+              </button>
+              <button
+                onClick={apply}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-[#FF5000] rounded-lg hover:bg-[#e04600] transition-colors"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  );
+}
