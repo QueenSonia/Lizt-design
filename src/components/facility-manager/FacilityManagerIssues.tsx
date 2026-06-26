@@ -325,7 +325,6 @@ export default function FacilityManagerIssues() {
         <div style={{ display: "flex", padding: isMobile ? "0 12px" : "0 20px", gap: 0 }}>
           {(["mine", "all"] as Tab[]).map((t) => {
             const label = t === "mine" ? "My Tasks" : "All Tasks";
-            const count = t === "mine" ? myIssues.length : allIssues.length;
             const active = tab === t;
             return (
               <button
@@ -336,35 +335,16 @@ export default function FacilityManagerIssues() {
                   fontSize: 13,
                   fontWeight: active ? 600 : 500,
                   color: active ? "#FF5000" : "#6B7280",
-                  borderBottom: active ? "2px solid #FF5000" : "2px solid transparent",
                   background: "none",
                   border: "none",
                   borderBottom: active ? "2px solid #FF5000" : "2px solid transparent",
                   cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
                   transition: "color 0.15s, border-color 0.15s",
                   fontFamily: "'Inter', system-ui, sans-serif",
                   flexShrink: 0,
                 }}
               >
                 {label}
-                <span style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  minWidth: 18,
-                  height: 18,
-                  borderRadius: 99,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "0 5px",
-                  background: active ? "#FFF3EB" : "#F3F4F6",
-                  color: active ? "#FF5000" : "#9A9790",
-                }}>
-                  {count}
-                </span>
               </button>
             );
           })}
