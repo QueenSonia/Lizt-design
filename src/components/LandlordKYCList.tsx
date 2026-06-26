@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Search } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -15,6 +15,7 @@ import { KYCService, KYCApplication } from "@/services/kyc/kyc.service";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { GlobalSearchDropdown } from "./GlobalSearch";
 
 // Extended type to handle flat tenancy fields and offer letter status from backend API
 interface KYCApplicationWithFlatFields extends KYCApplication {
@@ -162,6 +163,8 @@ export default function LandlordKYCList({
   isMobile = false,
 }: LandlordKYCListProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
   const [showGenerateKYCModal, setShowGenerateKYCModal] = useState(false);
   const [showOfferLetterPreview, setShowOfferLetterPreview] = useState(false);
   const [offerLetterData, setOfferLetterData] =
@@ -330,15 +333,24 @@ export default function LandlordKYCList({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:pt-24">
         <div className="mb-6">
           <div className="flex items-center justify-between">
-            <div className="relative">
+            <div ref={searchWrapperRef} className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
                 type="text"
-                placeholder="Search by name, phone, email, or property..."
+                placeholder="Search landlords, properties, tenants..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setShowGlobalSearch(true)}
+                onBlur={() => setTimeout(() => setShowGlobalSearch(false), 150)}
                 className="pl-10 h-12 bg-white border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-[#FF5000]/20 focus:border-[#FF5000] w-96"
               />
+              {showGlobalSearch && searchTerm.length >= 2 && (
+                <GlobalSearchDropdown
+                  query={searchTerm}
+                  anchorRef={searchWrapperRef}
+                  onClose={() => { setShowGlobalSearch(false); setSearchTerm(""); }}
+                />
+              )}
             </div>
           </div>
         </div>

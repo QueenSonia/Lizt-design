@@ -28,6 +28,7 @@ import { RenewTenancyScreen, type RenewTenancyData } from "./RenewTenancyScreen"
 import { TenancyReminderSettings, InvoiceDrawer, MOCK_INVOICES, type Invoice } from "./InvoicesPage";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { GlobalSearchDropdown } from "./GlobalSearch";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -327,6 +328,8 @@ function TenancyListScreen({
   const userRole = user?.role ?? "landlord";
 
   const [search, setSearch] = useState("");
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<TenancyFilters>(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<TenancyFilters>(EMPTY_FILTERS);
@@ -420,14 +423,23 @@ function TenancyListScreen({
 
         {/* Search + filter row */}
         <div className="px-4 lg:px-8 py-4 flex items-center gap-2">
-          <div className="relative w-72">
+          <div ref={searchWrapperRef} className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by tenant or property"
+              onFocus={() => setShowGlobalSearch(true)}
+              onBlur={() => setTimeout(() => setShowGlobalSearch(false), 150)}
+              placeholder="Search landlords, properties, tenants..."
               className="pl-10 h-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-orange-200 text-sm"
             />
+            {showGlobalSearch && search.length >= 2 && (
+              <GlobalSearchDropdown
+                query={search}
+                anchorRef={searchWrapperRef}
+                onClose={() => { setShowGlobalSearch(false); setSearch(""); }}
+              />
+            )}
           </div>
           <div className="relative">
             <button

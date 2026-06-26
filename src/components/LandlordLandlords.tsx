@@ -1,6 +1,6 @@
 /* eslint-disable */
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   Search, ChevronLeft, ChevronRight, Building2, Users, Plus, X,
   Phone, Mail, Home, Activity, AlertCircle, CheckCircle, Clock,
@@ -11,8 +11,10 @@ import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { SetRentPriceRangeModal } from "./SetRentPriceRangeModal";
 import { ListFilter, type FilterValues, type FilterGroup } from "./ListFilter";
+import { GlobalSearchDropdown } from "./GlobalSearch";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -595,6 +597,8 @@ function LandlordListScreen({
 }) {
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<FilterValues>(EMPTY_FILTERS);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -693,12 +697,14 @@ function LandlordListScreen({
         <div className="px-4 lg:px-8 py-4 space-y-2">
           <div className="flex items-start gap-2">
             {/* Search */}
-            <div className="relative w-72 max-w-full shrink-0">
+            <div ref={searchWrapperRef} className="relative w-72 max-w-full shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by landlord name"
+                onFocus={() => setShowGlobalSearch(true)}
+                onBlur={() => setTimeout(() => setShowGlobalSearch(false), 150)}
+                placeholder="Search landlords, properties, tenants..."
                 className="pl-10 h-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-orange-200 text-sm"
               />
               {search && (
@@ -708,6 +714,13 @@ function LandlordListScreen({
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
+              )}
+              {showGlobalSearch && search.length >= 2 && (
+                <GlobalSearchDropdown
+                  query={search}
+                  anchorRef={searchWrapperRef}
+                  onClose={() => { setShowGlobalSearch(false); setSearch(""); }}
+                />
               )}
             </div>
 
