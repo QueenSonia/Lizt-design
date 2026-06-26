@@ -727,34 +727,13 @@ function LandlordListScreen({
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="text-left px-6 py-3">
-                        <button
-                          onClick={() => handleSort("name")}
-                          className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
-                            sortCol === "name" ? "text-[#FF5000]" : "text-gray-500 hover:text-[#FF5000]"
-                          }`}
-                        >
-                          Landlord
-                        </button>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Landlord</span>
                       </th>
                       <th className="text-left px-4 py-3">
-                        <button
-                          onClick={() => handleSort("properties")}
-                          className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
-                            sortCol === "properties" ? "text-[#FF5000]" : "text-gray-500 hover:text-[#FF5000]"
-                          }`}
-                        >
-                          Properties
-                        </button>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Properties</span>
                       </th>
                       <th className="text-left px-4 py-3 pr-6">
-                        <button
-                          onClick={() => handleSort("tenancies")}
-                          className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
-                            sortCol === "tenancies" ? "text-[#FF5000]" : "text-gray-500 hover:text-[#FF5000]"
-                          }`}
-                        >
-                          Active Tenancies
-                        </button>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Active Tenancies</span>
                       </th>
                     </tr>
                   </thead>
