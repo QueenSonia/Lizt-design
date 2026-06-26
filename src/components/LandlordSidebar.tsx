@@ -26,6 +26,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { getProfile } from "@/services/users/api";
 import { LogoutConfirmationModal } from "./modals/LogoutConfirmationModal";
+import { GlobalSearch } from "./GlobalSearch";
 
 interface LandlordSidebarProps {
   currentScreen: string;
@@ -118,8 +119,13 @@ export function LandlordSidebar({
         </button>
       </div>
 
+      {/* Global search */}
+      <GlobalSearch onNavigate={isMobile ? onClose : undefined} />
+
+      <div className="border-t border-slate-100 mx-4 mb-1" />
+
       <div className="flex-1 overflow-y-auto px-3">
-        <nav className="space-y-8 py-4">
+        <nav className="space-y-4 py-3">
           {menuGroups.map((group, groupIndex) => (
             <div key={group.title}>
               <div className="px-3 mb-3"></div>
