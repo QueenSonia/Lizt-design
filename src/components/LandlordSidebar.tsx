@@ -70,8 +70,8 @@ export function LandlordSidebar({
       title: "Main",
       items: [
         { id: "dashboard", label: "Live Feed", icon: MessageSquare },
-        { id: "landlords", label: "Landlords", icon: Building2 },
         { id: "tenancies", label: "Tenancies", icon: KeyRound },
+        { id: "landlords", label: "Landlords", icon: Building2 },
         { id: "kyc", label: "Tenant Applicants", icon: FileCheck },
         { id: "communications", label: "Communications", icon: Megaphone },
         { id: "facility", label: "Facility", icon: Wrench },
