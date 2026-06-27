@@ -77,6 +77,7 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
   const [step, setStep] = useState<Step>("recipients");
   const [mode, setMode] = useState<RecipientMode>("all");
   const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
+  const [broadcastTitle, setBroadcastTitle] = useState("");
   const [body, setBody] = useState("");
   const [search, setSearch] = useState("");
 
@@ -89,8 +90,9 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
     : `${selectedTenants.length} Tenant${selectedTenants.length !== 1 ? "s" : ""}`;
 
   const MAX_BODY = 500;
+  const MAX_TITLE = 100;
   const canProceedRecipients = mode === "all" || (mode === "individuals" && selectedTenants.length > 0);
-  const canProceedCompose = body.trim().length > 0 && body.length <= MAX_BODY;
+  const canProceedCompose = broadcastTitle.trim().length > 0 && broadcastTitle.length <= MAX_TITLE && body.trim().length > 0 && body.length <= MAX_BODY;
   const previewTenantName = mode === "individuals" && selectedTenants.length === 1
     ? MOCK_TENANTS.find(t => t.id === selectedTenants[0])?.name ?? "Tenant"
     : "Tenant";
@@ -103,7 +105,7 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
   function handleSend() {
     const broadcast: Broadcast = {
       id: `bc-${Date.now()}`,
-      title: collapsedBody.slice(0, 60) + (collapsedBody.length > 60 ? "…" : ""),
+      title: broadcastTitle.trim(),
       body,
       recipientType: mode,
       recipientCount,
@@ -225,6 +227,31 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
             {/* Step 2: Compose — template with editable section */}
             {step === "compose" && (
               <div className="space-y-4">
+                {/* Broadcast Title */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-semibold text-gray-900">
+                      Broadcast Title <span className="text-red-500">*</span>
+                    </label>
+                    <span className={`text-xs tabular-nums ${broadcastTitle.length > MAX_TITLE ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                      {broadcastTitle.length} / {MAX_TITLE}
+                    </span>
+                  </div>
+                  <Input
+                    value={broadcastTitle}
+                    onChange={e => setBroadcastTitle(e.target.value)}
+                    placeholder="e.g. Annual Maintenance Notice"
+                    maxLength={MAX_TITLE + 10}
+                    className={`h-10 text-sm ${broadcastTitle.length > MAX_TITLE ? "border-red-400 focus:ring-red-400" : ""}`}
+                    autoFocus
+                  />
+                  {broadcastTitle.length > MAX_TITLE ? (
+                    <p className="text-xs text-red-500">Title must be 100 characters or fewer.</p>
+                  ) : (
+                    <p className="text-xs text-gray-400">Internal use only — not sent to tenants via WhatsApp.</p>
+                  )}
+                </div>
+
                 {/* WhatsApp template with inline textarea */}
                 <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-4 space-y-2.5">
                   <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">ANNOUNCEMENT</p>
@@ -234,7 +261,6 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
                     onChange={e => setBody(e.target.value)}
                     rows={5}
                     placeholder="Type your announcement here…"
-                    autoFocus
                     className={`w-full bg-white/70 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 resize-none placeholder:text-gray-400 ${
                       body.length > MAX_BODY ? "ring-2 ring-red-400" : "focus:ring-[#FF5000]/40"
                     }`}
@@ -262,6 +288,10 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
             {step === "preview" && (
               <div className="space-y-5">
                 <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Title</span>
+                    <span className="font-medium text-gray-900 text-right max-w-[60%]">{broadcastTitle}</span>
+                  </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Recipients</span>
                     <span className="font-medium text-gray-900">{recipientLabel} ({recipientCount})</span>
