@@ -553,6 +553,22 @@ export default function AdminSettings({
   const [isUploadingLetterhead, setIsUploadingLetterhead] = useState(false);
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
 
+  // ── Landlord branding selector ──────────────────────────────────────────────
+  const BRANDING_LANDLORDS = [
+    { id: "ll-001", name: "Michael Adeyemi" },
+    { id: "ll-002", name: "Sarah Johnson" },
+    { id: "ll-003", name: "Funke Balogun" },
+    { id: "ll-004", name: "Adeyemi Holdings Ltd" },
+    { id: "ll-005", name: "Prime Estates Limited" },
+  ];
+  const [selectedLandlordId, setSelectedLandlordId] = useState("ll-001");
+  const [landlordSelectorOpen, setLandlordSelectorOpen] = useState(false);
+  const [landlordSearchQuery, setLandlordSearchQuery] = useState("");
+  const selectedLandlord = BRANDING_LANDLORDS.find(l => l.id === selectedLandlordId);
+  const filteredBrandingLandlords = BRANDING_LANDLORDS.filter(l =>
+    !landlordSearchQuery || l.name.toLowerCase().includes(landlordSearchQuery.toLowerCase())
+  );
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1036,14 +1052,65 @@ export default function AdminSettings({
           {/* Offer Letter Branding Section */}
           <div className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-lg">
             <div className="p-6">
-              <div className="flex items-center space-x-2 mb-6">
+              <div className="flex items-center space-x-2 mb-2">
                 <FileText className="w-5 h-5 text-gray-600" />
                 <h2 className="text-gray-900">Offer Letter Branding</h2>
               </div>
               <p className="text-sm text-gray-600 mb-6">
-                Set your business logo and footer details once, and they&apos;ll
-                automatically appear in every offer letter you send.
+                Manage branding independently for each landlord. Select a landlord to view or edit their branding settings.
               </p>
+
+              {/* Landlord selector */}
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Select Landlord</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => { setLandlordSelectorOpen(o => !o); setLandlordSearchQuery(""); }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-left hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF5000]/20 focus:border-[#FF5000] transition-colors"
+                  >
+                    <span className="font-medium text-gray-900">{selectedLandlord?.name}</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+
+                  {landlordSelectorOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                      <div className="p-2 border-b border-gray-100">
+                        <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded-md">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                          <input
+                            autoFocus
+                            value={landlordSearchQuery}
+                            onChange={e => setLandlordSearchQuery(e.target.value)}
+                            placeholder="Search landlords..."
+                            className="flex-1 text-sm bg-transparent outline-none text-gray-800 placeholder:text-gray-400"
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto py-1">
+                        {filteredBrandingLandlords.length === 0 ? (
+                          <p className="px-3 py-3 text-sm text-gray-400 text-center">No landlords found</p>
+                        ) : filteredBrandingLandlords.map(l => (
+                          <button
+                            key={l.id}
+                            type="button"
+                            onClick={() => { setSelectedLandlordId(l.id); setLandlordSelectorOpen(false); }}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors ${selectedLandlordId === l.id ? "bg-orange-50 text-[#FF5000]" : "text-gray-900"}`}
+                          >
+                            {l.name}
+                            {selectedLandlordId === l.id && (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[#FF5000] shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Editing branding for: <span className="font-medium text-gray-700">{selectedLandlord?.name}</span>. Changes only affect this landlord.
+                </p>
+              </div>
 
               <div className="space-y-6">
                 {/* Upload Logo/Letterhead */}
@@ -1468,6 +1535,14 @@ export default function AdminSettings({
           {/* Offer Letter Template Editor Section */}
           <div className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-lg">
             <div className="p-6">
+              {/* Landlord context indicator */}
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                <FileText className="w-4 h-4 text-[#FF5000] shrink-0" />
+                <p className="text-sm text-orange-800">
+                  Editing template for: <span className="font-semibold">{selectedLandlord?.name}</span>
+                </p>
+              </div>
+
               {/* Controls */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
                 <div className="flex-1 min-w-0">
