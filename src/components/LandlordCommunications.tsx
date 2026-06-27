@@ -138,40 +138,44 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
 
             {/* Step 1: Recipients */}
             {step === "recipients" && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    { id: "all", label: "All Tenants", icon: <Users className="w-4 h-4" /> },
-                    { id: "individuals", label: "Tenants", icon: <User className="w-4 h-4" /> },
-                  ] as { id: RecipientMode; label: string; icon: React.ReactNode }[]).map(opt => (
-                    <button
-                      key={opt.id}
-                      onClick={() => { setMode(opt.id); setSelectedTenants([]); setSearch(""); }}
-                      className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-xs font-medium transition-colors ${
-                        mode === opt.id ? "border-[#FF5000] bg-[#FFF3EB] text-[#FF5000]" : "border-gray-200 text-gray-600 hover:border-gray-300"
-                      }`}
-                    >
-                      {opt.icon}
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="space-y-5">
 
-                {mode === "all" && (
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-sm text-gray-700">Message will be sent to <strong>all {MOCK_TENANTS.length} active tenants</strong>.</p>
-                    <ul className="mt-2 space-y-1">
-                      {MOCK_TENANTS.map(t => (
-                        <li key={t.id} className="text-xs text-gray-500 flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />{t.name}
-                        </li>
-                      ))}
-                    </ul>
+                {/* Radio: Select All Tenants */}
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="recipientMode"
+                    checked={mode === "all"}
+                    onChange={() => { setMode("all"); setSelectedTenants([]); setSearch(""); }}
+                    className="mt-0.5 w-4 h-4 accent-[#FF5000] cursor-pointer shrink-0"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">Select All Tenants</p>
+                    {mode === "all" && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Message will be sent to all <strong>{MOCK_TENANTS.length} active tenants</strong>.
+                      </p>
+                    )}
                   </div>
-                )}
+                </label>
 
+                {/* Radio: Select Tenants */}
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="recipientMode"
+                    checked={mode === "individuals"}
+                    onChange={() => { setMode("individuals"); setSelectedTenants([]); setSearch(""); }}
+                    className="mt-0.5 w-4 h-4 accent-[#FF5000] cursor-pointer shrink-0"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">Select Tenants</p>
+                  </div>
+                </label>
+
+                {/* Tenant list — only when "individuals" selected */}
                 {mode === "individuals" && (
-                  <>
+                  <div className="ml-7 space-y-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                       <Input
@@ -186,23 +190,35 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
                       {filteredTenants.map(t => {
                         const sel = selectedTenants.includes(t.id);
                         return (
-                          <button key={t.id} onClick={() => setSelectedTenants(prev => sel ? prev.filter(x => x !== t.id) : [...prev, t.id])}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-colors ${sel ? "border-[#FF5000] bg-[#FFF3EB]" : "border-gray-200 hover:border-gray-300"}`}>
-                            <div>
-                              <p className="text-sm text-gray-900 font-medium">{t.name}</p>
-                              <p className="text-xs text-gray-400">{t.property}</p>
+                          <label
+                            key={t.id}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                              sel ? "border-[#FF5000] bg-[#FFF3EB]" : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={sel}
+                              onChange={() => setSelectedTenants(prev => sel ? prev.filter(x => x !== t.id) : [...prev, t.id])}
+                              className="w-4 h-4 accent-[#FF5000] shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-900 font-medium truncate">{t.name}</p>
+                              <p className="text-xs text-gray-400 truncate">{t.property}</p>
                             </div>
-                            {sel && <Check className="w-4 h-4 text-[#FF5000] shrink-0" />}
-                          </button>
+                          </label>
                         );
                       })}
                     </div>
-                  </>
+
+                    {selectedTenants.length > 0 && (
+                      <p className="text-xs font-medium text-gray-500 text-center pt-1">
+                        {selectedTenants.length} recipient{selectedTenants.length !== 1 ? "s" : ""} selected
+                      </p>
+                    )}
+                  </div>
                 )}
 
-                {recipientCount > 0 && (
-                  <p className="text-xs text-gray-500 text-center">{recipientCount} recipient{recipientCount !== 1 ? "s" : ""} selected</p>
-                )}
               </div>
             )}
 
