@@ -704,6 +704,17 @@ export function LandlordAddPropertyModal({
                         className="flex-1 text-sm outline-none bg-transparent placeholder:text-slate-400"
                       />
                     </div>
+                    {/* Always-visible Add New Landlord action — pinned at top */}
+                    <div className="border-b border-slate-100">
+                      <button
+                        type="button"
+                        onClick={handleAddNewLandlordFromDropdown}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#FF5000] hover:bg-orange-50 transition-colors"
+                      >
+                        <Plus className="w-4 h-4 shrink-0" />
+                        Add New Landlord
+                      </button>
+                    </div>
                     <div className="max-h-48 overflow-y-auto py-1">
                       {filteredLandlords.length === 0 ? (
                         <p className="px-3 py-3 text-sm text-slate-400 text-center">No landlords found</p>
@@ -734,17 +745,6 @@ export function LandlordAddPropertyModal({
                           </button>
                         ))
                       )}
-                    </div>
-                    {/* Always-visible Add New Landlord action */}
-                    <div className="border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={handleAddNewLandlordFromDropdown}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-[#FF5000] hover:bg-orange-50 transition-colors"
-                      >
-                        <Plus className="w-4 h-4 shrink-0" />
-                        Add New Landlord
-                      </button>
                     </div>
                   </PopoverContent>
                 </Popover>
