@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { LandlordTopNav } from "./LandlordTopNav";
 import { Input } from "./ui/input";
 import {
@@ -9,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, ChevronLeft, Paperclip } from "lucide-react";
+import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, ChevronLeft, Paperclip, AlertCircle, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import AddManagerModal from "./AddManagerModal";
 import { LandlordReportMaintenanceModal, LandlordMaintenancePayload } from "./LandlordReportMaintenanceModal";
 import { toast } from "sonner";
@@ -19,14 +20,18 @@ import {
   useGetAllServiceRequests,
   StatusHistoryEvent,
 } from "@/services/service-requests/query";
+import { StatusBadgeDropdown, StatusEvent } from "./StatusBadgeDropdown";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  assignRequestToManager,
   getRequestAssignee,
   getRequestsForManager,
   subscribeToFMStore,
 } from "@/lib/facilityManagerStore";
 import {
+  appendThreadEntry,
+  makeMsgId,
   isTaskPriority,
   setTaskPriority,
 } from "@/lib/taskThreadStore";
