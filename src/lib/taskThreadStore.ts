@@ -22,7 +22,24 @@ export interface ThreadEvent {
   timestamp: string;
 }
 
-export type ThreadEntry = ThreadMessage | ThreadEvent;
+export type PaymentRequestStatus = "pending" | "approved" | "declined";
+export type PaymentRequestCategory = "Materials" | "Labour" | "Transport" | "Equipment" | "Miscellaneous";
+
+export interface ThreadPaymentRequest {
+  id: string;
+  type: "payment_request";
+  amount: string;          // formatted, e.g. "₦85,000"
+  reason: string;
+  category?: PaymentRequestCategory;
+  attachmentName?: string; // filename of uploaded doc (mock)
+  status: PaymentRequestStatus;
+  approvedBy?: string;
+  approvedAt?: string;     // ISO
+  declinedReason?: string;
+  timestamp: string;       // ISO — when request was submitted
+}
+
+export type ThreadEntry = ThreadMessage | ThreadEvent | ThreadPaymentRequest;
 
 export function makeMsgId() {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -149,6 +166,20 @@ export function getThread(taskId: string): ThreadEntry[] {
 export function appendThreadEntry(taskId: string, entry: ThreadEntry) {
   const existing = _threads.get(taskId) ?? [];
   _threads.set(taskId, [...existing, entry]);
+  _notify();
+}
+
+export function updatePaymentRequest(
+  taskId: string,
+  entryId: string,
+  update: { status: PaymentRequestStatus; approvedBy?: string; approvedAt?: string; declinedReason?: string }
+) {
+  const entries = _threads.get(taskId) ?? [];
+  _threads.set(taskId, entries.map(e =>
+    e.id === entryId && e.type === "payment_request"
+      ? { ...e, ...update }
+      : e
+  ));
   _notify();
 }
 

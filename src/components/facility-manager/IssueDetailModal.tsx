@@ -12,6 +12,8 @@ import {
   fmtThreadDate,
   subscribeToThreadStore,
   ThreadEntry,
+  ThreadPaymentRequest,
+  PaymentRequestCategory,
 } from "@/lib/taskThreadStore";
 
 function ResRow({ label, value }: { label: string; value: string }) {
@@ -58,6 +60,41 @@ export function IssueDetailModal({
   const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [threadInput, setThreadInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Payment request modal state
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const [payReason, setPayReason] = useState("");
+  const [payCategory, setPayCategory] = useState<PaymentRequestCategory | "">("");
+  const [payAttachmentName, setPayAttachmentName] = useState<string | undefined>(undefined);
+  const payFileRef = useRef<HTMLInputElement>(null);
+
+  const resetPayModal = () => {
+    setPayAmount("");
+    setPayReason("");
+    setPayCategory("");
+    setPayAttachmentName(undefined);
+    setPayModalOpen(false);
+  };
+
+  const submitPaymentRequest = () => {
+    if (!issue) return;
+    const raw = payAmount.replace(/[^\d.]/g, "");
+    if (!raw || !payReason.trim()) return;
+    const formatted = `₦${Number(raw).toLocaleString("en-NG")}`;
+    const entry: ThreadPaymentRequest = {
+      id: makeMsgId(),
+      type: "payment_request",
+      amount: formatted,
+      reason: payReason.trim(),
+      category: payCategory || undefined,
+      attachmentName: payAttachmentName,
+      status: "pending",
+      timestamp: new Date().toISOString(),
+    };
+    appendThreadEntry(issue.id, entry);
+    resetPayModal();
+  };
 
   const autoResize = useCallback(() => {
     const el = textareaRef.current;
@@ -463,6 +500,70 @@ export function IssueDetailModal({
                                 </div>
                               );
                             }
+
+                            if (entry.type === "payment_request") {
+                              const statusColor =
+                                entry.status === "approved" ? { bg: "#F0FDF4", border: "#86EFAC", text: "#166534" } :
+                                entry.status === "declined" ? { bg: "#FFF1F2", border: "#FECDD3", text: "#9F1239" } :
+                                { bg: "#FFFBEB", border: "#FDE68A", text: "#92400E" };
+                              const statusLabel =
+                                entry.status === "approved" ? "✅ Approved" :
+                                entry.status === "declined" ? "❌ Declined" :
+                                "⏳ Pending Approval";
+                              return (
+                                <div key={entry.id} style={{ border: "1px solid #E8E5E0", borderRadius: 12, background: "#FAFAF8", overflow: "hidden" }}>
+                                  {/* Card header */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderBottom: "1px solid #F0EEEA", background: "#F5F3EF" }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                                    </svg>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: "#4B5563", letterSpacing: "0.05em", textTransform: "uppercase" }}>Payment Request</span>
+                                    <span style={{ marginLeft: "auto", fontSize: 10, color: "#B0ADA8" }}>{fmtThreadTime(entry.timestamp)}</span>
+                                  </div>
+                                  {/* Card body */}
+                                  <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                                    <div>
+                                      <div style={{ fontSize: 10, color: "#9A9790", marginBottom: 2 }}>Amount</div>
+                                      <div style={{ fontSize: 18, fontWeight: 700, color: "#1A1A1A", letterSpacing: "-0.01em" }}>{entry.amount}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: 10, color: "#9A9790", marginBottom: 2 }}>Reason</div>
+                                      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>{entry.reason}</div>
+                                    </div>
+                                    {entry.category && (
+                                      <div>
+                                        <div style={{ fontSize: 10, color: "#9A9790", marginBottom: 2 }}>Category</div>
+                                        <div style={{ fontSize: 13, color: "#374151" }}>{entry.category}</div>
+                                      </div>
+                                    )}
+                                    {/* Status badge */}
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                                      <span style={{ display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: statusColor.bg, border: `1px solid ${statusColor.border}`, color: statusColor.text }}>
+                                        {statusLabel}
+                                      </span>
+                                      {entry.attachmentName && (
+                                        <span style={{ fontSize: 11, color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>
+                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                          {entry.attachmentName}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {entry.status === "approved" && entry.approvedBy && (
+                                      <div style={{ fontSize: 11, color: "#166534", borderTop: "1px solid #D1FAE5", paddingTop: 8, marginTop: 2 }}>
+                                        Approved by <strong>{entry.approvedBy}</strong>
+                                        {entry.approvedAt && <> · {new Date(entry.approvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} {fmtThreadTime(entry.approvedAt)}</>}
+                                      </div>
+                                    )}
+                                    {entry.status === "declined" && entry.declinedReason && (
+                                      <div style={{ fontSize: 11, color: "#9F1239", borderTop: "1px solid #FECDD3", paddingTop: 8, marginTop: 2 }}>
+                                        <strong>Reason for Decline:</strong> {entry.declinedReason}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
                             const isFM = entry.author === "facility_manager";
                             return (
                               <div key={entry.id} style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: isFM ? "flex-end" : "flex-start" }}>
@@ -492,62 +593,89 @@ export function IssueDetailModal({
                     ))}
                   </div>
 
-                  {/* Input */}
-                  <div style={{
-                    display: "flex",
-                    alignItems: "flex-end",
-                    gap: 8,
-                    marginTop: 12,
-                    border: "1px solid #E2E0DC",
-                    borderRadius: 12,
-                    padding: "8px 10px 8px 14px",
-                    background: "#FAFAF8",
-                  }}>
-                    <textarea
-                      ref={textareaRef}
-                      value={threadInput}
-                      rows={1}
-                      onChange={(e) => { setThreadInput(e.target.value); autoResize(); }}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                      placeholder="Add an update…"
-                      style={{
-                        flex: 1,
-                        background: "transparent",
-                        border: "none",
-                        outline: "none",
-                        fontSize: 13,
-                        color: "#1A1A1A",
-                        resize: "none",
-                        lineHeight: 1.5,
-                        maxHeight: 120,
-                        overflowY: "auto",
-                        fontFamily: "inherit",
-                        padding: 0,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={sendMessage}
-                      disabled={!threadInput.trim()}
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 8,
-                        border: "none",
-                        background: threadInput.trim() ? "#FF5000" : "#E2E0DC",
-                        cursor: threadInput.trim() ? "pointer" : "default",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        transition: "background 0.15s",
-                      }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13" />
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                      </svg>
-                    </button>
+                  {/* Composer */}
+                  <div style={{ marginTop: 12 }}>
+                    {/* Request Payment secondary action */}
+                    <div style={{ marginBottom: 8, display: "flex", justifyContent: "flex-start" }}>
+                      <button
+                        type="button"
+                        onClick={() => setPayModalOpen(true)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#6B7280",
+                          background: "#F5F4F1",
+                          border: "1px solid #E2E0DC",
+                          borderRadius: 8,
+                          padding: "5px 11px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                        </svg>
+                        Request Payment
+                      </button>
+                    </div>
+                    {/* Text input */}
+                    <div style={{
+                      display: "flex",
+                      alignItems: "flex-end",
+                      gap: 8,
+                      border: "1px solid #E2E0DC",
+                      borderRadius: 12,
+                      padding: "8px 10px 8px 14px",
+                      background: "#FAFAF8",
+                    }}>
+                      <textarea
+                        ref={textareaRef}
+                        value={threadInput}
+                        rows={1}
+                        onChange={(e) => { setThreadInput(e.target.value); autoResize(); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                        placeholder="Add an update…"
+                        style={{
+                          flex: 1,
+                          background: "transparent",
+                          border: "none",
+                          outline: "none",
+                          fontSize: 13,
+                          color: "#1A1A1A",
+                          resize: "none",
+                          lineHeight: 1.5,
+                          maxHeight: 120,
+                          overflowY: "auto",
+                          fontFamily: "inherit",
+                          padding: 0,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={sendMessage}
+                        disabled={!threadInput.trim()}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 8,
+                          border: "none",
+                          background: threadInput.trim() ? "#FF5000" : "#E2E0DC",
+                          cursor: threadInput.trim() ? "pointer" : "default",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          transition: "background 0.15s",
+                        }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13" />
+                          <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -679,6 +807,137 @@ export function IssueDetailModal({
           )}
         </div>
       </div>
+      {/* ── Payment Request Modal ───────────────────────────────────────── */}
+      {payModalOpen && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) resetPayModal(); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+        >
+          <div style={{ background: "#FFFFFF", borderRadius: 16, width: "100%", maxWidth: 440, boxShadow: "0 12px 48px rgba(0,0,0,.22)", overflow: "hidden" }}>
+            {/* Modal header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #EDECEA" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                </svg>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#1A1A1A" }}>Request Payment</span>
+              </div>
+              <button onClick={resetPayModal} style={{ background: "none", border: "none", cursor: "pointer", color: "#9A9790", display: "flex", alignItems: "center", padding: 4, borderRadius: 6 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div style={{ padding: "20px 20px 8px", display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Amount */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+                  Amount <span style={{ color: "#EF4444" }}>*</span>
+                </label>
+                <div style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "#6B7280", fontWeight: 500 }}>₦</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={payAmount ? Number(payAmount.replace(/[^\d]/g, "")).toLocaleString("en-NG") : ""}
+                    onChange={e => setPayAmount(e.target.value.replace(/[^\d]/g, ""))}
+                    placeholder="0"
+                    style={{ width: "100%", padding: "9px 12px 9px 26px", border: "1px solid #E2E0DC", borderRadius: 8, fontSize: 14, color: "#1A1A1A", outline: "none", boxSizing: "border-box", background: "#FAFAF8", fontFamily: "inherit" }}
+                  />
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+                  Reason <span style={{ color: "#EF4444" }}>*</span>
+                </label>
+                <textarea
+                  value={payReason}
+                  onChange={e => setPayReason(e.target.value)}
+                  rows={3}
+                  placeholder="Explain why this payment is required."
+                  style={{ width: "100%", padding: "9px 12px", border: "1px solid #E2E0DC", borderRadius: 8, fontSize: 13, color: "#1A1A1A", outline: "none", resize: "vertical", boxSizing: "border-box", background: "#FAFAF8", fontFamily: "inherit", lineHeight: 1.55 }}
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Category <span style={{ color: "#B0ADA8", fontWeight: 400 }}>(Optional)</span></label>
+                <select
+                  value={payCategory}
+                  onChange={e => setPayCategory(e.target.value as PaymentRequestCategory | "")}
+                  style={{ width: "100%", padding: "9px 12px", border: "1px solid #E2E0DC", borderRadius: 8, fontSize: 13, color: payCategory ? "#1A1A1A" : "#9A9790", outline: "none", background: "#FAFAF8", fontFamily: "inherit", cursor: "pointer" }}
+                >
+                  <option value="">Select category</option>
+                  {(["Materials", "Labour", "Transport", "Equipment", "Miscellaneous"] as PaymentRequestCategory[]).map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Attachment */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Attachment <span style={{ color: "#B0ADA8", fontWeight: 400 }}>(Optional)</span></label>
+                <input
+                  ref={payFileRef}
+                  type="file"
+                  accept=".pdf,image/jpeg,image/png"
+                  style={{ display: "none" }}
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) setPayAttachmentName(f.name);
+                  }}
+                />
+                {payAttachmentName ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", border: "1px solid #D1FAE5", borderRadius: 8, background: "#F0FDF4" }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    <span style={{ fontSize: 12, color: "#166534", flex: 1 }}>{payAttachmentName}</span>
+                    <button onClick={() => { setPayAttachmentName(undefined); if (payFileRef.current) payFileRef.current.value = ""; }} style={{ background: "none", border: "none", cursor: "pointer", color: "#9A9790", display: "flex" }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => payFileRef.current?.click()}
+                    style={{ width: "100%", padding: "9px 12px", border: "1px dashed #D5D2CD", borderRadius: 8, background: "#FAFAF8", fontSize: 12, color: "#9A9790", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Upload quote, invoice, receipt or image (PDF, JPG, PNG)
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Modal footer */}
+            <div style={{ display: "flex", gap: 10, padding: "16px 20px 20px", justifyContent: "flex-end" }}>
+              <button
+                onClick={resetPayModal}
+                style={{ padding: "9px 20px", borderRadius: 8, border: "1px solid #E2E0DC", background: "#FFFFFF", fontSize: 13, fontWeight: 500, color: "#374151", cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitPaymentRequest}
+                disabled={!payAmount || !payReason.trim()}
+                style={{
+                  padding: "9px 20px", borderRadius: 8, border: "none",
+                  background: payAmount && payReason.trim() ? "#FF5000" : "#E2E0DC",
+                  fontSize: 13, fontWeight: 600, color: "#FFFFFF",
+                  cursor: payAmount && payReason.trim() ? "pointer" : "default",
+                  transition: "background 0.15s",
+                }}
+              >
+                Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {resolveOpen && (
         <ResolutionModal
           issue={issue}
