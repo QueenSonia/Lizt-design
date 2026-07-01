@@ -505,9 +505,10 @@ export function LandlordFacility({
   const [areaNameError, setAreaNameError] = useState("");
   const [areaAddressError, setAreaAddressError] = useState("");
 
-  // Payment request decline modal
-  const [declineModal, setDeclineModal] = useState<{ taskId: string; entryId: string } | null>(null);
+  // Payment request modals
+  const [declineModal, setDeclineModal] = useState<{ taskId: string; entryId: string; amount: string; requestedBy: string; reason: string } | null>(null);
   const [declineReason, setDeclineReason] = useState("");
+  const [approveModal, setApproveModal] = useState<{ taskId: string; entryId: string; amount: string; requestedBy: string; reason: string } | null>(null);
 
   const filteredAreas = useMemo(
     () =>
@@ -1296,7 +1297,7 @@ export function LandlordFacility({
             </div>
 
             {/* Scrollable body */}
-            <div className={`flex-1 overflow-y-auto ${isApproved ? "pb-[72px]" : "pb-6"}`}>
+            <div className="flex-1 overflow-y-auto pb-6">
               <div className="px-4 py-5 space-y-6">
 
                 {/* Details grid */}
@@ -1437,16 +1438,16 @@ export function LandlordFacility({
                   );
                 })()}
 
-                {/* Thread — visible only after approval */}
-                {isApproved && <div className="bg-white rounded-xl p-4 shadow-sm">
+                {/* Updates & Activity — always visible */}
+                <div className="bg-white rounded-xl p-4 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Updates & Thread</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Updates & Activity</p>
                   </div>
 
                   <div className="space-y-1 mb-4">
                     {groups.length === 0 && (
-                      <p className="text-xs text-gray-400 italic py-2">No updates yet. Add the first update below.</p>
+                      <p className="text-xs text-gray-400 italic py-2">No updates yet.</p>
                     )}
                     {groups.map((group) => (
                       <div key={group.label}>
@@ -1468,31 +1469,36 @@ export function LandlordFacility({
                             }
 
                             if (entry.type === "payment_request") {
-                              const isPending = entry.status === "pending";
-                              const isApproved = entry.status === "approved";
-                              const isDeclined = entry.status === "declined";
+                              const pyIsPending = entry.status === "pending";
+                              const pyIsApproved = entry.status === "approved";
+                              const pyIsDeclined = entry.status === "declined";
                               const taskId = selectedRequest?.id ?? "";
+                              const assigneeName = getRequestAssignee(taskId)?.name ?? "Facility Manager";
                               return (
-                                <div key={entry.id} className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50/60">
+                                <div key={entry.id} className="border border-amber-200/60 rounded-xl overflow-hidden bg-amber-50/30">
                                   {/* Card header */}
-                                  <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-gray-100 bg-gray-100/70">
+                                  <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-amber-100 bg-amber-50/60">
                                     <div className="flex items-center gap-2">
-                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
                                       </svg>
-                                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Payment Request</span>
+                                      <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wide">Payment Request</span>
                                     </div>
-                                    <span className="text-[10px] text-gray-400">{fmtThreadTime(entry.timestamp)}</span>
+                                    <span className="text-[10px] text-amber-700/70">
+                                      {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · {fmtThreadTime(entry.timestamp)}
+                                    </span>
                                   </div>
                                   {/* Card body */}
-                                  <div className="px-3.5 py-3 flex flex-col gap-2">
-                                    <div>
-                                      <p className="text-[10px] text-gray-400 mb-0.5">Amount</p>
-                                      <p className="text-lg font-bold text-gray-900 tabular-nums leading-tight">{entry.amount}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] text-gray-400 mb-0.5">Reason</p>
-                                      <p className="text-sm text-gray-700 leading-snug">{entry.reason}</p>
+                                  <div className="px-3.5 py-3 flex flex-col gap-2.5">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <p className="text-[10px] text-gray-400 mb-0.5">Requested by</p>
+                                        <p className="text-sm font-medium text-gray-800">{assigneeName}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-[10px] text-gray-400 mb-0.5">Amount</p>
+                                        <p className="text-xl font-bold text-gray-900 tabular-nums leading-tight">{entry.amount}</p>
+                                      </div>
                                     </div>
                                     {entry.category && (
                                       <div>
@@ -1500,47 +1506,59 @@ export function LandlordFacility({
                                         <p className="text-sm text-gray-700">{entry.category}</p>
                                       </div>
                                     )}
-                                    {/* Status row */}
-                                    <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+                                    <div>
+                                      <p className="text-[10px] text-gray-400 mb-0.5">Reason</p>
+                                      <p className="text-sm text-gray-700 leading-snug">{entry.reason}</p>
+                                    </div>
+                                    {entry.attachmentName && (
+                                      <div>
+                                        <p className="text-[10px] text-gray-400 mb-0.5">Attachment</p>
+                                        <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-medium">
+                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                          View {entry.attachmentName}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {/* Status badge */}
+                                    <div className="pt-1">
                                       <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
-                                        isApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
-                                        isDeclined ? "bg-red-50 border-red-200 text-red-800" :
+                                        pyIsApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
+                                        pyIsDeclined ? "bg-red-50 border-red-200 text-red-800" :
                                         "bg-amber-50 border-amber-200 text-amber-800"
                                       }`}>
-                                        {isApproved ? "✅ Approved" : isDeclined ? "❌ Declined" : "⏳ Pending Approval"}
+                                        {pyIsApproved ? "✅ Approved" : pyIsDeclined ? "❌ Declined" : "⏳ Pending Approval"}
                                       </span>
-                                      {entry.attachmentName && (
-                                        <span className="flex items-center gap-1 text-[11px] text-gray-500">
-                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                                          {entry.attachmentName}
-                                        </span>
-                                      )}
                                     </div>
-                                    {/* Approved detail */}
-                                    {isApproved && entry.approvedBy && (
-                                      <p className="text-[11px] text-emerald-700 border-t border-emerald-100 pt-2 mt-1">
-                                        Approved by <strong>{entry.approvedBy}</strong>
-                                        {entry.approvedAt && <> · {new Date(entry.approvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} {fmtThreadTime(entry.approvedAt)}</>}
-                                      </p>
+                                    {/* Approved footer */}
+                                    {pyIsApproved && entry.approvedBy && (
+                                      <div className="border-t border-emerald-100 pt-2 mt-0.5">
+                                        <p className="text-[11px] text-emerald-700">
+                                          Approved by <strong>{entry.approvedBy}</strong>
+                                          {entry.approvedAt && <> · {new Date(entry.approvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} {fmtThreadTime(entry.approvedAt)}</>}
+                                        </p>
+                                      </div>
                                     )}
-                                    {/* Declined detail */}
-                                    {isDeclined && entry.declinedReason && (
-                                      <p className="text-[11px] text-red-700 border-t border-red-100 pt-2 mt-1">
-                                        <strong>Reason for Decline:</strong> {entry.declinedReason}
-                                      </p>
+                                    {/* Declined footer */}
+                                    {pyIsDeclined && (
+                                      <div className="border-t border-red-100 pt-2 mt-0.5">
+                                        {entry.declinedReason && (
+                                          <p className="text-[11px] text-red-700 mb-1"><strong>Reason:</strong> {entry.declinedReason}</p>
+                                        )}
+                                        <p className="text-[11px] text-red-600">Declined by <strong>Tunji Oginni</strong></p>
+                                      </div>
                                     )}
-                                    {/* Approve / Decline actions — Property Manager only */}
-                                    {isPending && (
-                                      <div className="flex gap-2 pt-1 mt-1 border-t border-gray-100">
+                                    {/* Approve / Decline actions */}
+                                    {pyIsPending && (
+                                      <div className="flex gap-2 pt-2 mt-0.5 border-t border-amber-100">
                                         <button
-                                          onClick={() => updatePaymentRequest(taskId, entry.id, { status: "approved", approvedBy: "Tunji Oginni", approvedAt: new Date().toISOString() })}
-                                          className="flex-1 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                                          onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason })}
+                                          className="flex-1 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
                                         >
-                                          Approve
+                                          Approve Payment
                                         </button>
                                         <button
-                                          onClick={() => { setDeclineModal({ taskId, entryId: entry.id }); setDeclineReason(""); }}
-                                          className="flex-1 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors"
+                                          onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason }); setDeclineReason(""); }}
+                                          className="flex-1 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors"
                                         >
                                           Decline
                                         </button>
@@ -1571,7 +1589,31 @@ export function LandlordFacility({
                       </div>
                     ))}
                   </div>
-                </div>}
+
+                  {/* Thread input — only visible after approval */}
+                  {isApproved && (
+                    <div className="flex items-end gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors mt-2">
+                      <textarea
+                        ref={threadTextareaRef}
+                        rows={1}
+                        value={threadInput}
+                        onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                        placeholder="Add an update…"
+                        className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
+                        style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={sendMessage}
+                        disabled={!threadInput.trim()}
+                        className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
+                      >
+                        <Send className="w-3.5 h-3.5 text-white" />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Resolution History */}
                 {(req.resolutions ?? (req.resolution ? [req.resolution] : [])).length > 0 && (() => {
@@ -1679,29 +1721,6 @@ export function LandlordFacility({
               </div>
             </div>
 
-            {/* Fixed thread input at bottom — visible only after approval */}
-            {isApproved && <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-10">
-              <div className="flex items-end gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
-                <textarea
-                  ref={threadTextareaRef}
-                  rows={1}
-                  value={threadInput}
-                  onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder="Add an update…"
-                  className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
-                  style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
-                />
-                <button
-                  type="button"
-                  onClick={sendMessage}
-                  disabled={!threadInput.trim()}
-                  className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
-                >
-                  <Send className="w-3.5 h-3.5 text-white" />
-                </button>
-              </div>
-            </div>}
           </div>
         );
       })()}
@@ -1911,82 +1930,163 @@ export function LandlordFacility({
                     );
                   })()}
 
-                  {/* ── Task Thread — visible only after approval ──────────── */}
-                  {isApproved && (() => {
+                  {/* ── Updates & Activity — always visible ──────────────── */}
+                  {(() => {
                     const thread = getThread(selectedRequest.id);
-
-                    // Group entries by date label
-                    const groups: { label: string; entries: ThreadEntry[] }[] = [];
+                    const deskGroups: { label: string; entries: ThreadEntry[] }[] = [];
                     for (const entry of thread) {
                       const label = fmtThreadDate(entry.timestamp);
-                      const last = groups[groups.length - 1];
-                      if (last && last.label === label) {
-                        last.entries.push(entry);
-                      } else {
-                        groups.push({ label, entries: [entry] });
-                      }
+                      const last = deskGroups[deskGroups.length - 1];
+                      if (last && last.label === label) { last.entries.push(entry); }
+                      else { deskGroups.push({ label, entries: [entry] }); }
                     }
-
+                    const deskAssigneeName = getRequestAssignee(selectedRequest.id)?.name ?? "Facility Manager";
                     const sendMessage = () => {
                       const body = threadInput.trim();
                       if (!body) return;
                       appendThreadEntry(selectedRequest.id, {
                         id: makeMsgId(), type: "message",
                         author: "landlord", authorName: "You",
-                        body,
-                        timestamp: new Date().toISOString(),
+                        body, timestamp: new Date().toISOString(),
                       });
                       setThreadInput("");
                       if (threadTextareaRef.current) threadTextareaRef.current.style.height = "auto";
                     };
-
                     return (
                       <div className="border-t border-gray-100 pt-4">
                         <div className="flex items-center gap-2 mb-3">
                           <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                            Updates & Thread
-                          </p>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Updates & Activity</p>
                         </div>
-
-                        {/* Thread entries */}
                         <div className="space-y-1 mb-3">
-                          {groups.length === 0 && (
-                            <p className="text-xs text-gray-400 italic py-2">No updates yet. Add the first update below.</p>
+                          {deskGroups.length === 0 && (
+                            <p className="text-xs text-gray-400 italic py-2">No updates yet.</p>
                           )}
-                          {groups.map((group) => (
+                          {deskGroups.map((group) => (
                             <div key={group.label}>
-                              {/* Date divider */}
                               <div className="flex items-center gap-2 my-3">
                                 <div className="flex-1 h-px bg-gray-100" />
                                 <span className="text-[10px] text-gray-400 font-medium">{group.label}</span>
                                 <div className="flex-1 h-px bg-gray-100" />
                               </div>
-                              <div className="space-y-2">
+                              <div className="space-y-3">
                                 {group.entries.map((entry) => {
                                   if (entry.type === "event") {
                                     return (
-                                      <div key={entry.id} className="flex items-center gap-2 py-1">
+                                      <div key={entry.id} className="flex items-center gap-2 py-0.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0 ml-1" />
                                         <p className="text-xs text-gray-400 flex-1">{entry.body}</p>
                                         <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
                                       </div>
                                     );
                                   }
+
+                                  if (entry.type === "payment_request") {
+                                    const pyIsPending = entry.status === "pending";
+                                    const pyIsApproved = entry.status === "approved";
+                                    const pyIsDeclined = entry.status === "declined";
+                                    const taskId = selectedRequest.id;
+                                    return (
+                                      <div key={entry.id} className="border border-amber-200/60 rounded-xl overflow-hidden bg-amber-50/30">
+                                        {/* Header */}
+                                        <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-amber-100 bg-amber-50/60">
+                                          <div className="flex items-center gap-2">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                              <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                                            </svg>
+                                            <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wide">Payment Request</span>
+                                          </div>
+                                          <span className="text-[10px] text-amber-700/70">
+                                            {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · {fmtThreadTime(entry.timestamp)}
+                                          </span>
+                                        </div>
+                                        {/* Body */}
+                                        <div className="px-3.5 py-3 flex flex-col gap-2.5">
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                              <p className="text-[10px] text-gray-400 mb-0.5">Requested by</p>
+                                              <p className="text-sm font-medium text-gray-800">{deskAssigneeName}</p>
+                                            </div>
+                                            <div className="text-right">
+                                              <p className="text-[10px] text-gray-400 mb-0.5">Amount</p>
+                                              <p className="text-xl font-bold text-gray-900 tabular-nums leading-tight">{entry.amount}</p>
+                                            </div>
+                                          </div>
+                                          {entry.category && (
+                                            <div>
+                                              <p className="text-[10px] text-gray-400 mb-0.5">Category</p>
+                                              <p className="text-sm text-gray-700">{entry.category}</p>
+                                            </div>
+                                          )}
+                                          <div>
+                                            <p className="text-[10px] text-gray-400 mb-0.5">Reason</p>
+                                            <p className="text-sm text-gray-700 leading-snug">{entry.reason}</p>
+                                          </div>
+                                          {entry.attachmentName && (
+                                            <div>
+                                              <p className="text-[10px] text-gray-400 mb-0.5">Attachment</p>
+                                              <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-medium">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                                View {entry.attachmentName}
+                                              </span>
+                                            </div>
+                                          )}
+                                          <div className="pt-0.5">
+                                            <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                                              pyIsApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
+                                              pyIsDeclined ? "bg-red-50 border-red-200 text-red-800" :
+                                              "bg-amber-50 border-amber-200 text-amber-800"
+                                            }`}>
+                                              {pyIsApproved ? "✅ Approved" : pyIsDeclined ? "❌ Declined" : "⏳ Pending Approval"}
+                                            </span>
+                                          </div>
+                                          {pyIsApproved && entry.approvedBy && (
+                                            <div className="border-t border-emerald-100 pt-2 mt-0.5">
+                                              <p className="text-[11px] text-emerald-700">
+                                                Approved by <strong>{entry.approvedBy}</strong>
+                                                {entry.approvedAt && <> · {new Date(entry.approvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} {fmtThreadTime(entry.approvedAt)}</>}
+                                              </p>
+                                            </div>
+                                          )}
+                                          {pyIsDeclined && (
+                                            <div className="border-t border-red-100 pt-2 mt-0.5">
+                                              {entry.declinedReason && (
+                                                <p className="text-[11px] text-red-700 mb-1"><strong>Reason:</strong> {entry.declinedReason}</p>
+                                              )}
+                                              <p className="text-[11px] text-red-600">Declined by <strong>Tunji Oginni</strong></p>
+                                            </div>
+                                          )}
+                                          {pyIsPending && (
+                                            <div className="flex gap-2 pt-2 mt-0.5 border-t border-amber-100">
+                                              <button
+                                                onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: deskAssigneeName, reason: entry.reason })}
+                                                className="flex-1 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                                              >
+                                                Approve Payment
+                                              </button>
+                                              <button
+                                                onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: deskAssigneeName, reason: entry.reason }); setDeclineReason(""); }}
+                                                className="flex-1 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors"
+                                              >
+                                                Decline
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
                                   const isLandlord = entry.author === "landlord";
                                   return (
                                     <div key={entry.id} className={`flex flex-col gap-0.5 ${isLandlord ? "items-end" : "items-start"}`}>
                                       <div className={`max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed ${
-                                        isLandlord
-                                          ? "bg-[#FF5000] text-white rounded-br-sm"
-                                          : "bg-gray-100 text-gray-900 rounded-bl-sm"
+                                        isLandlord ? "bg-[#FF5000] text-white rounded-br-sm" : "bg-gray-100 text-gray-900 rounded-bl-sm"
                                       }`}>
                                         {entry.body}
                                       </div>
                                       <div className={`flex items-center gap-1.5 ${isLandlord ? "flex-row-reverse" : ""}`}>
-                                        <span className="text-[10px] text-gray-400 font-medium">
-                                          {isLandlord ? "You" : entry.authorName}
-                                        </span>
+                                        <span className="text-[10px] text-gray-400 font-medium">{isLandlord ? "You" : entry.authorName}</span>
                                         <span className="text-[10px] text-gray-300">·</span>
                                         <span className="text-[10px] text-gray-400">{fmtThreadTime(entry.timestamp)}</span>
                                       </div>
@@ -1997,28 +2097,29 @@ export function LandlordFacility({
                             </div>
                           ))}
                         </div>
-
-                        {/* Input */}
-                        <div className="flex items-end gap-2 mt-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
-                          <textarea
-                            ref={threadTextareaRef}
-                            rows={1}
-                            value={threadInput}
-                            onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
-                            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                            placeholder="Add an update…"
-                            className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
-                            style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
-                          />
-                          <button
-                            type="button"
-                            onClick={sendMessage}
-                            disabled={!threadInput.trim()}
-                            className="shrink-0 w-7 h-7 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
-                          >
-                            <Send className="w-3.5 h-3.5 text-white" />
-                          </button>
-                        </div>
+                        {/* Thread input — only after approval */}
+                        {isApproved && (
+                          <div className="flex items-end gap-2 mt-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors">
+                            <textarea
+                              ref={threadTextareaRef}
+                              rows={1}
+                              value={threadInput}
+                              onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
+                              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                              placeholder="Add an update…"
+                              className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
+                              style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
+                            />
+                            <button
+                              type="button"
+                              onClick={sendMessage}
+                              disabled={!threadInput.trim()}
+                              className="shrink-0 w-7 h-7 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
+                            >
+                              <Send className="w-3.5 h-3.5 text-white" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -2225,12 +2326,65 @@ export function LandlordFacility({
         </div>
       )}
 
-      {/* Report Maintenance Request Modal */}
+      {/* ── Approve Payment Request Modal ────────────────────────── */}
+      {approveModal && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setApproveModal(null); }}
+          className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
+        >
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                </svg>
+                <span className="text-sm font-bold text-gray-900">Approve Payment Request</span>
+              </div>
+              <button onClick={() => setApproveModal(null)} className="text-gray-400 hover:text-gray-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-gray-600">Are you sure you want to approve this payment request?</p>
+              <div className="bg-gray-50 rounded-xl p-3.5 space-y-2.5 border border-gray-100">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-400">Amount</span>
+                  <span className="text-base font-bold text-gray-900 tabular-nums">{approveModal.amount}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-400">Requested by</span>
+                  <span className="text-sm font-medium text-gray-800">{approveModal.requestedBy}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-400 block mb-1">Reason</span>
+                  <p className="text-sm text-gray-700 leading-snug">{approveModal.reason}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 px-5 pb-5 justify-end">
+              <button onClick={() => setApproveModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!approveModal) return;
+                  updatePaymentRequest(approveModal.taskId, approveModal.entryId, { status: "approved", approvedBy: "Tunji Oginni", approvedAt: new Date().toISOString() });
+                  setApproveModal(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold text-white"
+              >
+                Approve Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Decline Payment Request Modal ───────────────────────────── */}
       {declineModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setDeclineModal(null); }}
-          className="fixed inset-0 bg-black/40 z-[1300] flex items-center justify-center p-5"
+          className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
         >
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -2239,15 +2393,23 @@ export function LandlordFacility({
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            <div className="px-5 py-4">
-              <label className="text-xs font-semibold text-gray-600 block mb-2">Reason for Decline <span className="text-gray-400 font-normal">(Optional)</span></label>
-              <textarea
-                value={declineReason}
-                onChange={e => setDeclineReason(e.target.value)}
-                rows={3}
-                placeholder="e.g. Please obtain two additional quotations before proceeding."
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 resize-none outline-none focus:border-gray-400 bg-gray-50 leading-relaxed"
-              />
+            <div className="px-5 py-4 space-y-3">
+              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 flex justify-between items-center">
+                <span className="text-xs text-gray-400">Amount</span>
+                <span className="text-sm font-bold text-gray-900 tabular-nums">{declineModal.amount}</span>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-2">
+                  Reason for Decline <span className="text-gray-400 font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  value={declineReason}
+                  onChange={e => setDeclineReason(e.target.value)}
+                  rows={3}
+                  placeholder="Explain why this payment request is being declined."
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 resize-none outline-none focus:border-gray-400 bg-gray-50 leading-relaxed"
+                />
+              </div>
             </div>
             <div className="flex gap-3 px-5 pb-5 justify-end">
               <button onClick={() => setDeclineModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
@@ -2262,7 +2424,7 @@ export function LandlordFacility({
                 }}
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-semibold text-white"
               >
-                Confirm Decline
+                Decline Request
               </button>
             </div>
           </div>

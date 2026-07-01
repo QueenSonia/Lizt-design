@@ -75,6 +75,7 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "m-002", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "Understood. I'll visit the property by 2 PM today to assess the sockets.", timestamp: "2026-04-23T09:12:00.000Z" },
       { id: "e-003", type: "event", body: "Request approved", timestamp: "2026-04-23T09:30:00.000Z" },
       { id: "m-003", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "Visited the property. The issue is a tripped breaker and one damaged socket. Parts ordered — will complete by tomorrow.", timestamp: "2026-04-23T15:45:00.000Z" },
+      { id: "p-001", type: "payment_request", amount: "₦85,000", reason: "Replacement of damaged fire exit lock and labour charges.", category: "Labour", attachmentName: "Quote_April2026.pdf", status: "pending", timestamp: "2026-04-24T10:30:00.000Z" } as ThreadPaymentRequest,
     ],
   ],
   [
