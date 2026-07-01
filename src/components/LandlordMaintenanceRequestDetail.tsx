@@ -203,7 +203,7 @@ export default function LandlordMaintenanceRequestDetail() {
     <div className="min-h-screen bg-gray-50">
       <div className="px-4 sm:px-6 py-6 max-w-4xl mx-auto">
 
-        {/* Page header */}
+        {/* ── Page header (outside white frame) ──────────────────────── */}
         <div className="mb-6">
           <button
             type="button"
@@ -211,10 +211,9 @@ export default function LandlordMaintenanceRequestDetail() {
             className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-4"
           >
             <ChevronLeft className="w-4 h-4" />
-            Maintenance Request
+            Maintenance Requests
           </button>
 
-          {/* Title row with status and action buttons */}
           <div className="flex items-start gap-3 flex-wrap">
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-semibold text-gray-900 leading-snug">{req.description}</h1>
@@ -250,118 +249,134 @@ export default function LandlordMaintenanceRequestDetail() {
           </div>
         </div>
 
-        <div className="space-y-6">
+        {/* Assign-first warning — outside the white frame */}
+        {!isApproved && !assignee && (
+          <div className="mb-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            Assign a facility manager before approving this request.
+          </div>
+        )}
 
-          {/* Not-assignee warning */}
-          {!isApproved && !assignee && (
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              Assign a facility manager before approving this request.
-            </p>
-          )}
+        {/* ── Single unified white content frame ──────────────────────── */}
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 
-          {/* Details card */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4 text-sm">
+          {/* Property information */}
+          <div className="px-6 py-6">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Details</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-5 text-sm">
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">Property</p>
-                <p className="text-gray-900 leading-snug">{req.property_name}</p>
+                <p className="text-gray-900 font-medium leading-snug">{req.property_name}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">Category</p>
-                <p className="text-gray-900">{req.issue_category}</p>
+                <p className="text-gray-900 font-medium">{req.issue_category}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">Reported by</p>
-                <p className="text-gray-900 leading-snug">{SOURCE_LABEL[source]} – {reporterName(req)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
-                <p className="text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
+                <p className="text-gray-900 font-medium leading-snug">{SOURCE_LABEL[source]} – {reporterName(req)}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">Date Reported</p>
-                <p className="text-gray-900">{formatDateTime(req.date_reported)}</p>
+                <p className="text-gray-900 font-medium">{formatDateTime(req.date_reported)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
+                <p className="text-gray-900 font-medium">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
               </div>
             </div>
           </div>
 
           {/* Assigned FM — hidden after approval */}
           {!isApproved && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Assigned Facility Manager</p>
-              <Select
-                value={assignee?.id ?? "unassigned"}
-                onValueChange={(value) => {
-                  const nextId = value === "unassigned" ? null : value;
-                  assignRequestToManager(req.id, nextId);
-                  fmStoreTick((n) => n + 1);
-                  if (nextId) {
-                    const fm = managers.find((m) => m.id === nextId);
-                    toast.success(`Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`);
-                    appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${fm?.name ?? "facility manager"}`, timestamp: new Date().toISOString() });
-                  } else {
-                    toast.success("Request unassigned");
-                    appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() });
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full sm:max-w-sm">
-                  <SelectValue placeholder="Choose a facility manager" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {managers.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-gray-400 mt-2">Assigning sends a WhatsApp notification to the facility manager.</p>
-            </div>
+            <>
+              <div className="h-px bg-gray-100 mx-6" />
+              <div className="px-6 py-6">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Assigned Facility Manager</p>
+                <Select
+                  value={assignee?.id ?? "unassigned"}
+                  onValueChange={(value) => {
+                    const nextId = value === "unassigned" ? null : value;
+                    assignRequestToManager(req.id, nextId);
+                    fmStoreTick((n) => n + 1);
+                    if (nextId) {
+                      const fm = managers.find((m) => m.id === nextId);
+                      toast.success(`Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`);
+                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${fm?.name ?? "facility manager"}`, timestamp: new Date().toISOString() });
+                    } else {
+                      toast.success("Request unassigned");
+                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:max-w-xs">
+                    <SelectValue placeholder="Choose a facility manager" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {managers.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-gray-400 mt-2">Assigning sends a WhatsApp notification to the facility manager.</p>
+              </div>
+            </>
           )}
 
           {/* Description */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Description</p>
+          <div className="h-px bg-gray-100 mx-6" />
+          <div className="px-6 py-6">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Description</p>
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{req.description}</p>
           </div>
 
           {/* Reopened notice */}
           {req.reopened_at && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-              <div className="flex items-center gap-2 mb-1">
-                <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Reopened</p>
+            <>
+              <div className="h-px bg-gray-100 mx-6" />
+              <div className="px-6 py-4">
+                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-0.5">Reopened</p>
+                    <p className="text-xs text-red-600">Last reopened: {formatDateTime(req.reopened_at)}</p>
+                    {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-red-600 mb-0.5">Last reopened: {formatDateTime(req.reopened_at)}</p>
-              {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
-            </div>
+            </>
           )}
 
           {/* Attachments */}
           {allAttachments.length > 0 && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Attachments</p>
-              <div className="space-y-3">
-                {renderAttachmentGroup(origItems, "Original Request")}
-                {renderAttachmentGroup(reopenedItems, "Reopened Request")}
+            <>
+              <div className="h-px bg-gray-100 mx-6" />
+              <div className="px-6 py-6">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Attachments</p>
+                <div className="space-y-4">
+                  {renderAttachmentGroup(origItems, "Original Request")}
+                  {renderAttachmentGroup(reopenedItems, "Reopened Request")}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Updates & Activity */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="h-px bg-gray-100 mx-6" />
+          <div className="px-6 py-6">
+            <div className="flex items-center gap-2 mb-5">
               <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Updates & Activity</p>
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Updates & Activity</p>
             </div>
 
-            <div className="space-y-1 mb-4">
+            <div className="space-y-1">
               {groups.length === 0 && (
                 <p className="text-xs text-gray-400 italic py-2">No updates yet.</p>
               )}
               {groups.map((group) => (
                 <div key={group.label}>
-                  <div className="flex items-center gap-2 my-4">
+                  <div className="flex items-center gap-3 my-5">
                     <div className="flex-1 h-px bg-gray-100" />
                     <span className="text-[10px] text-gray-400 font-medium">{group.label}</span>
                     <div className="flex-1 h-px bg-gray-100" />
@@ -371,7 +386,7 @@ export default function LandlordMaintenanceRequestDetail() {
                       if (entry.type === "event") {
                         return (
                           <div key={entry.id} className="flex items-center gap-2 py-0.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-gray-200 shrink-0" />
                             <p className="text-xs text-gray-400 flex-1">{entry.body}</p>
                             <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
                           </div>
@@ -385,7 +400,6 @@ export default function LandlordMaintenanceRequestDetail() {
                         const taskId = req.id;
                         return (
                           <div key={entry.id} className="border border-amber-200/60 rounded-xl overflow-hidden bg-amber-50/30">
-                            {/* Card header */}
                             <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-amber-100 bg-amber-50/60">
                               <div className="flex items-center gap-2">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -397,7 +411,6 @@ export default function LandlordMaintenanceRequestDetail() {
                                 {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · {fmtThreadTime(entry.timestamp)}
                               </span>
                             </div>
-                            {/* Card body */}
                             <div className="px-3.5 py-3 flex flex-col gap-2.5">
                               <div className="flex items-start justify-between gap-3">
                                 <div>
@@ -428,7 +441,6 @@ export default function LandlordMaintenanceRequestDetail() {
                                   </span>
                                 </div>
                               )}
-                              {/* Status badge */}
                               <div className="pt-1">
                                 <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
                                   pyIsApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
@@ -438,7 +450,6 @@ export default function LandlordMaintenanceRequestDetail() {
                                   {pyIsApproved ? "✅ Approved" : pyIsDeclined ? "❌ Declined" : "⏳ Pending Approval"}
                                 </span>
                               </div>
-                              {/* Approved footer */}
                               {pyIsApproved && entry.approvedBy && (
                                 <div className="border-t border-emerald-100 pt-2 mt-0.5">
                                   <p className="text-[11px] text-emerald-700">
@@ -447,7 +458,6 @@ export default function LandlordMaintenanceRequestDetail() {
                                   </p>
                                 </div>
                               )}
-                              {/* Declined footer */}
                               {pyIsDeclined && (
                                 <div className="border-t border-red-100 pt-2 mt-0.5">
                                   {entry.declinedReason && (
@@ -456,7 +466,6 @@ export default function LandlordMaintenanceRequestDetail() {
                                   <p className="text-[11px] text-red-600">Declined by <strong>Tunji Oginni</strong></p>
                                 </div>
                               )}
-                              {/* Approve / Decline actions */}
                               {pyIsPending && (
                                 <div className="flex gap-2 pt-2 mt-0.5 border-t border-amber-100">
                                   <button
@@ -481,7 +490,7 @@ export default function LandlordMaintenanceRequestDetail() {
                       const isLandlord = entry.author === "landlord";
                       return (
                         <div key={entry.id} className={`flex flex-col gap-1 ${isLandlord ? "items-end" : "items-start"}`}>
-                          <div className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                          <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
                             isLandlord ? "bg-[#FF5000] text-white rounded-br-sm" : "bg-gray-100 text-gray-900 rounded-bl-sm"
                           }`}>
                             {entry.body}
@@ -499,9 +508,9 @@ export default function LandlordMaintenanceRequestDetail() {
               ))}
             </div>
 
-            {/* Thread input — only visible after approval */}
+            {/* Thread composer — only after approval */}
             {isApproved && (
-              <div className="flex items-end gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors mt-2">
+              <div className="flex items-end gap-2 mt-5 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/60 focus-within:border-gray-300 focus-within:bg-white transition-colors">
                 <textarea
                   ref={threadTextareaRef}
                   rows={1}
@@ -526,81 +535,84 @@ export default function LandlordMaintenanceRequestDetail() {
 
           {/* Resolution History */}
           {resArr.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Resolution History</p>
-              <div className="flex flex-col gap-3">
-                {[...resArr].reverse().map((attempt, revIdx) => {
-                  const origIdx = resArr.length - 1 - revIdx;
-                  const attemptNum = origIdx + 1;
-                  const isLatest = revIdx === 0;
-                  return (
-                    <div key={origIdx}>
-                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden shadow-sm">
-                        <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
-                          <div className="flex items-center gap-2">
-                            <Check className="w-3.5 h-3.5 text-emerald-700" />
-                            <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolution Attempt {attemptNum}</p>
-                          </div>
-                          {attempt.rejectedByTenant && (
-                            <span className="text-[10px] font-semibold text-red-800 bg-red-100 border border-red-200 rounded-full px-2 py-0.5">Rejected by tenant</span>
-                          )}
-                        </div>
-                        <div className="px-4 py-3.5 space-y-2.5 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-0.5">Description</p>
-                            <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.summary}</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                            <div>
-                              <p className="text-xs text-gray-500 mb-0.5">Job category</p>
-                              <p className="text-gray-900">{attempt.category}</p>
+            <>
+              <div className="h-px bg-gray-100 mx-6" />
+              <div className="px-6 py-6">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Resolution History</p>
+                <div className="flex flex-col gap-3">
+                  {[...resArr].reverse().map((attempt, revIdx) => {
+                    const origIdx = resArr.length - 1 - revIdx;
+                    const attemptNum = origIdx + 1;
+                    const isLatest = revIdx === 0;
+                    return (
+                      <div key={origIdx}>
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+                          <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
+                            <div className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-emerald-700" />
+                              <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolution Attempt {attemptNum}</p>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500 mb-0.5">Cost</p>
-                              <p className="text-gray-900 tabular-nums">{attempt.hadCost ? attempt.costAmount || "—" : "No cost"}</p>
-                            </div>
-                            {attempt.artisanName && (
-                              <div>
-                                <p className="text-xs text-gray-500 mb-0.5">Artisan name</p>
-                                <p className="text-gray-900">{attempt.artisanName}</p>
-                              </div>
+                            {attempt.rejectedByTenant && (
+                              <span className="text-[10px] font-semibold text-red-800 bg-red-100 border border-red-200 rounded-full px-2 py-0.5">Rejected by tenant</span>
                             )}
-                            {attempt.artisanPhone && (
-                              <div>
-                                <p className="text-xs text-gray-500 mb-0.5">Phone number</p>
-                                <p className="text-gray-900">{attempt.artisanPhone}</p>
-                              </div>
-                            )}
+                          </div>
+                          <div className="px-4 py-3.5 space-y-2.5 text-sm">
                             <div>
-                              <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
-                              <p className="text-gray-900">{formatDateTime(attempt.resolvedAt)}</p>
+                              <p className="text-xs text-gray-500 mb-0.5">Description</p>
+                              <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.summary}</p>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
-                              <p className="text-gray-900">{attempt.resolvedBy}</p>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                              <div>
+                                <p className="text-xs text-gray-500 mb-0.5">Job category</p>
+                                <p className="text-gray-900">{attempt.category}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500 mb-0.5">Cost</p>
+                                <p className="text-gray-900 tabular-nums">{attempt.hadCost ? attempt.costAmount || "—" : "No cost"}</p>
+                              </div>
+                              {attempt.artisanName && (
+                                <div>
+                                  <p className="text-xs text-gray-500 mb-0.5">Artisan name</p>
+                                  <p className="text-gray-900">{attempt.artisanName}</p>
+                                </div>
+                              )}
+                              {attempt.artisanPhone && (
+                                <div>
+                                  <p className="text-xs text-gray-500 mb-0.5">Phone number</p>
+                                  <p className="text-gray-900">{attempt.artisanPhone}</p>
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
+                                <p className="text-gray-900">{formatDateTime(attempt.resolvedAt)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
+                                <p className="text-gray-900">{attempt.resolvedBy}</p>
+                              </div>
                             </div>
                           </div>
                         </div>
+                        {attempt.rejectedByTenant && attempt.tenantFeedback && (
+                          <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                            <p className="text-xs text-amber-800 italic">"{attempt.tenantFeedback}"</p>
+                          </div>
+                        )}
+                        {isLatest && !attempt.rejectedByTenant && (
+                          <div className="mt-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+                            <p className="text-[11px] text-gray-500 italic">Awaiting tenant confirmation</p>
+                          </div>
+                        )}
                       </div>
-                      {attempt.rejectedByTenant && attempt.tenantFeedback && (
-                        <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                          <p className="text-xs text-amber-800 italic">"{attempt.tenantFeedback}"</p>
-                        </div>
-                      )}
-                      {isLatest && !attempt.rejectedByTenant && (
-                        <div className="mt-1.5 bg-gray-100 rounded-lg px-3 py-1.5">
-                          <p className="text-[11px] text-gray-500 italic">Awaiting tenant confirmation</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
-        </div>
-      </div>
+        </div>{/* end white frame */}
+      </div>{/* end max-w container */}
 
       {/* Lightbox */}
       {lightbox && (
