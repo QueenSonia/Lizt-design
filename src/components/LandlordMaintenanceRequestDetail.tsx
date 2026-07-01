@@ -200,175 +200,159 @@ export default function LandlordMaintenanceRequestDetail() {
   const resArr = req.resolutions ?? (req.resolution ? [req.resolution] : []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-4 sm:px-6 py-6 max-w-4xl mx-auto">
+    <div className="page-container">
 
-        {/* ── Page header (outside white frame) ──────────────────────── */}
-        <div className="mb-6">
+      {/* ── Page header ─────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+        <div className="min-w-0">
           <button
             type="button"
             onClick={() => router.push(`/${userRole}/facility`)}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-4"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors mb-2"
           >
             <ChevronLeft className="w-4 h-4" />
             Maintenance Requests
           </button>
+          <h1 className="text-2xl font-bold text-slate-900 leading-snug">{req.description}</h1>
+          {isApproved && assignee && (
+            <p className="text-sm text-[#FF5000] mt-1 font-medium">Assigned to {assignee.name}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap shrink-0 pt-7">
+          <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${statusColors[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
+            {formatStatusLabel(currentStatus)}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={togglePriority}
+            className={isPriority ? "border-orange-300 text-orange-700 hover:bg-orange-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}
+          >
+            <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+            {isPriority ? "Remove Priority" : "Add Priority"}
+          </Button>
+          <Button
+            size="sm"
+            disabled={!canApprove}
+            className="bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50"
+            onClick={() => {
+              setStatus("in_progress", `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp; tenant updated.`);
+              appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() });
+            }}
+          >
+            {isApproved ? "Approved" : "Approve Request"}
+          </Button>
+        </div>
+      </div>
 
-          <div className="flex items-start gap-3 flex-wrap">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-semibold text-gray-900 leading-snug">{req.description}</h1>
-              {isApproved && assignee && (
-                <p className="text-sm text-[#FF5000] mt-1 font-medium">Assigned to {assignee.name}</p>
-              )}
+      {/* Assign-first warning */}
+      {!isApproved && !assignee && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          Assign a facility manager before approving this request.
+        </div>
+      )}
+
+      {/* ── Single unified white content frame ──────────────────────── */}
+      <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-100">
+
+        {/* Request information */}
+        <div className="p-6 sm:p-8">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Request Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-1">Property</p>
+              <p className="text-slate-900">{req.property_name}</p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <span className={`text-xs px-2.5 py-1 rounded-full border ${statusColors[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
-                {formatStatusLabel(currentStatus)}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={togglePriority}
-                className={isPriority ? "border-orange-300 text-orange-700 hover:bg-orange-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}
-              >
-                <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
-                {isPriority ? "Remove Priority" : "Add Priority"}
-              </Button>
-              <Button
-                size="sm"
-                disabled={!canApprove}
-                className="bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50"
-                onClick={() => {
-                  setStatus("in_progress", `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp; tenant updated.`);
-                  appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() });
-                }}
-              >
-                {isApproved ? "Approved" : "Approve Request"}
-              </Button>
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-1">Category</p>
+              <p className="text-slate-900">{req.issue_category}</p>
             </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-1">Reported by</p>
+              <p className="text-slate-900">{SOURCE_LABEL[source]} – {reporterName(req)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-1">Date Reported</p>
+              <p className="text-slate-900">{formatDateTime(req.date_reported)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-1">Last Updated</p>
+              <p className="text-slate-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
+            </div>
+            {(isApproved && assignee) && (
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-1">Assigned Facility Manager</p>
+                <p className="text-slate-900">{assignee.name}</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Assign-first warning — outside the white frame */}
-        {!isApproved && !assignee && (
-          <div className="mb-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            Assign a facility manager before approving this request.
+        {/* Assigned FM selector — only before approval */}
+        {!isApproved && (
+          <div className="p-6 sm:p-8">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Assigned Facility Manager</h3>
+            <Select
+              value={assignee?.id ?? "unassigned"}
+              onValueChange={(value) => {
+                const nextId = value === "unassigned" ? null : value;
+                assignRequestToManager(req.id, nextId);
+                fmStoreTick((n) => n + 1);
+                if (nextId) {
+                  const fm = managers.find((m) => m.id === nextId);
+                  toast.success(`Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`);
+                  appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${fm?.name ?? "facility manager"}`, timestamp: new Date().toISOString() });
+                } else {
+                  toast.success("Request unassigned");
+                  appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() });
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:max-w-xs">
+                <SelectValue placeholder="Choose a facility manager" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {managers.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-400 mt-2">Assigning sends a WhatsApp notification to the facility manager.</p>
           </div>
         )}
 
-        {/* ── Single unified white content frame ──────────────────────── */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-
-          {/* Property information */}
-          <div className="px-6 py-6">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Details</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-5 text-sm">
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Property</p>
-                <p className="text-gray-900 font-medium leading-snug">{req.property_name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Category</p>
-                <p className="text-gray-900 font-medium">{req.issue_category}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Reported by</p>
-                <p className="text-gray-900 font-medium leading-snug">{SOURCE_LABEL[source]} – {reporterName(req)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Date Reported</p>
-                <p className="text-gray-900 font-medium">{formatDateTime(req.date_reported)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
-                <p className="text-gray-900 font-medium">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Assigned FM — hidden after approval */}
-          {!isApproved && (
-            <>
-              <div className="h-px bg-gray-100 mx-6" />
-              <div className="px-6 py-6">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Assigned Facility Manager</p>
-                <Select
-                  value={assignee?.id ?? "unassigned"}
-                  onValueChange={(value) => {
-                    const nextId = value === "unassigned" ? null : value;
-                    assignRequestToManager(req.id, nextId);
-                    fmStoreTick((n) => n + 1);
-                    if (nextId) {
-                      const fm = managers.find((m) => m.id === nextId);
-                      toast.success(`Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`);
-                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${fm?.name ?? "facility manager"}`, timestamp: new Date().toISOString() });
-                    } else {
-                      toast.success("Request unassigned");
-                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() });
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full sm:max-w-xs">
-                    <SelectValue placeholder="Choose a facility manager" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {managers.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[11px] text-gray-400 mt-2">Assigning sends a WhatsApp notification to the facility manager.</p>
-              </div>
-            </>
-          )}
-
-          {/* Description */}
-          <div className="h-px bg-gray-100 mx-6" />
-          <div className="px-6 py-6">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Description</p>
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{req.description}</p>
-          </div>
-
-          {/* Reopened notice */}
+        {/* Description */}
+        <div className="p-6 sm:p-8">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Description</h3>
           {req.reopened_at && (
-            <>
-              <div className="h-px bg-gray-100 mx-6" />
-              <div className="px-6 py-4">
-                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                  <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-0.5">Reopened</p>
-                    <p className="text-xs text-red-600">Last reopened: {formatDateTime(req.reopened_at)}</p>
-                    {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
-                  </div>
-                </div>
+            <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+              <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-0.5">Reopened</p>
+                <p className="text-xs text-red-600">Last reopened: {formatDateTime(req.reopened_at)}</p>
+                {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
               </div>
-            </>
-          )}
-
-          {/* Attachments */}
-          {allAttachments.length > 0 && (
-            <>
-              <div className="h-px bg-gray-100 mx-6" />
-              <div className="px-6 py-6">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Attachments</p>
-                <div className="space-y-4">
-                  {renderAttachmentGroup(origItems, "Original Request")}
-                  {renderAttachmentGroup(reopenedItems, "Reopened Request")}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Updates & Activity */}
-          <div className="h-px bg-gray-100 mx-6" />
-          <div className="px-6 py-6">
-            <div className="flex items-center gap-2 mb-5">
-              <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Updates & Activity</p>
             </div>
+          )}
+          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{req.description}</p>
+        </div>
+
+        {/* Attachments */}
+        {allAttachments.length > 0 && (
+          <div className="p-6 sm:p-8">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Attachments</h3>
+            <div className="space-y-4">
+              {renderAttachmentGroup(origItems, "Original Request")}
+              {renderAttachmentGroup(reopenedItems, "Reopened Request")}
+            </div>
+          </div>
+        )}
+
+        {/* Updates & Activity */}
+        <div className="p-6 sm:p-8">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Updates & Activity</h3>
 
             <div className="space-y-1">
               {groups.length === 0 && (
@@ -533,13 +517,11 @@ export default function LandlordMaintenanceRequestDetail() {
             )}
           </div>
 
-          {/* Resolution History */}
-          {resArr.length > 0 && (
-            <>
-              <div className="h-px bg-gray-100 mx-6" />
-              <div className="px-6 py-6">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Resolution History</p>
-                <div className="flex flex-col gap-3">
+        {/* Resolution History */}
+        {resArr.length > 0 && (
+          <div className="p-6 sm:p-8">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Resolution History</h3>
+            <div className="flex flex-col gap-3">
                   {[...resArr].reverse().map((attempt, revIdx) => {
                     const origIdx = resArr.length - 1 - revIdx;
                     const attemptNum = origIdx + 1;
@@ -606,13 +588,11 @@ export default function LandlordMaintenanceRequestDetail() {
                       </div>
                     );
                   })}
-                </div>
-              </div>
-            </>
-          )}
+            </div>
+          </div>
+        )}
 
-        </div>{/* end white frame */}
-      </div>{/* end max-w container */}
+      </div>{/* end white frame */}
 
       {/* Lightbox */}
       {lightbox && (
