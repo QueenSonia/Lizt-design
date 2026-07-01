@@ -136,6 +136,11 @@ export const screenMap: ScreenMap = {
         default: withLandlordMobileProps(module.default),
       })),
     ),
+    "maintenance-request-detail": lazy(() =>
+      import("@/components/LandlordMaintenanceRequestDetail").then((module) => ({
+        default: module.default,
+      })),
+    ),
     communications: lazy(() =>
       import("@/components/LandlordCommunications").then((module) => ({
         default: withLandlordMobileProps(module.default),
