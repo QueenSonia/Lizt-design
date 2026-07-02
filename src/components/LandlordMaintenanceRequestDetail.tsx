@@ -261,9 +261,8 @@ export default function LandlordMaintenanceRequestDetail() {
         )}
       </div>
 
-      {/* ── Single unified white content frame ──────────────────────── */}
       {/* ── Two-column content frame ─────────────────────────────────── */}
-      <div className="bg-white rounded-lg shadow-sm">
+      <div className="max-w-5xl bg-white rounded-lg shadow-sm">
         <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100">
 
           {/* ── Left column (primary) — 70% ────────────────────────────── */}
