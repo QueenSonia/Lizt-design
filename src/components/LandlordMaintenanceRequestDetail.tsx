@@ -587,7 +587,6 @@ export default function LandlordMaintenanceRequestDetail() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-slate-400 mt-1.5">Sends a WhatsApp notification.</p>
                   </>
                 )}
               </div>
