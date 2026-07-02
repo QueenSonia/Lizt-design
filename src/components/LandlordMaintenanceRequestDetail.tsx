@@ -202,8 +202,8 @@ export default function LandlordMaintenanceRequestDetail() {
   return (
     <div className="page-container">
 
-      {/* ── Header card ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-lg shadow-sm mb-4 overflow-hidden">
+      {/* ── Header card — flush to top and left edge of content area ── */}
+      <div className="bg-white shadow-sm mb-4 overflow-hidden -mt-4 -mx-4 sm:-mt-6 sm:-mx-6 lg:-mt-8 lg:-mx-8">
 
         {/* Row 1 — back nav only */}
         <div className="px-6 sm:px-8 py-4">
