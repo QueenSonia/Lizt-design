@@ -203,21 +203,29 @@ export default function LandlordMaintenanceRequestDetail() {
     <div className="page-container">
 
       {/* ── Header card ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 mb-4">
-        <button
-          type="button"
-          onClick={() => router.push(`/${userRole}/facility`)}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors mb-4"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Maintenance Requests
-        </button>
+      <div className="bg-white rounded-lg shadow-sm mb-4 overflow-hidden">
 
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        {/* Row 1 — back nav only */}
+        <div className="px-6 sm:px-8 py-4">
+          <button
+            type="button"
+            onClick={() => router.push(`/${userRole}/facility`)}
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Maintenance Request
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-gray-100" />
+
+        {/* Row 2 — request title + actions */}
+        <div className="px-6 sm:px-8 py-5 flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-slate-900 leading-snug">{req.description}</h1>
-            {isApproved && assignee && (
-              <p className="text-sm text-[#FF5000] mt-1 font-medium">Assigned to {assignee.name}</p>
+            <h1 className="text-xl font-semibold text-slate-900 leading-snug">{req.description}</h1>
+            {assignee && (
+              <p className="text-sm text-slate-500 mt-0.5">{req.property_name} · Assigned to {assignee.name}</p>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap shrink-0">
@@ -247,11 +255,13 @@ export default function LandlordMaintenanceRequestDetail() {
           </div>
         </div>
 
-        {/* Assign-first warning — inside header card */}
+        {/* Assign-first warning */}
         {!isApproved && !assignee && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            Assign a facility manager before approving this request.
+          <div className="px-6 sm:px-8 pb-5">
+            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              Assign a facility manager before approving this request.
+            </div>
           </div>
         )}
       </div>
