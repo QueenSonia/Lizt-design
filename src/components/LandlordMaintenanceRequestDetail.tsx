@@ -542,52 +542,59 @@ export default function LandlordMaintenanceRequestDetail() {
                         const pyIsDeclined = entry.status === "declined";
                         const taskId = req.id;
                         return (
-                          <div key={entry.id} className="border border-gray-200 rounded-lg bg-white divide-y divide-gray-100">
-                            {/* Fields */}
-                            <div className="p-3 space-y-3">
-                              <div>
-                                <p className="text-xs font-medium text-slate-500 mb-0.5">Amount</p>
-                                <p className="text-sm font-semibold text-slate-900 tabular-nums">{entry.amount}</p>
+                          <div key={entry.id} className="border border-gray-200 rounded-lg bg-white divide-y divide-gray-100 overflow-hidden">
+                            {/* Card header */}
+                            <div className="px-3 py-2.5 bg-gray-50">
+                              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Payment Request</p>
+                            </div>
+                            {/* Amount */}
+                            <div className="px-3 py-3">
+                              <p className="text-xs font-medium text-slate-500 mb-0.5">Amount</p>
+                              <p className="text-sm font-semibold text-slate-900 tabular-nums">{entry.amount}</p>
+                            </div>
+                            {/* Requested by */}
+                            <div className="px-3 py-3">
+                              <p className="text-xs font-medium text-slate-500 mb-0.5">Requested by</p>
+                              <p className="text-sm text-slate-900">{assigneeName}</p>
+                            </div>
+                            {/* Category */}
+                            {entry.category && (
+                              <div className="px-3 py-3">
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Category</p>
+                                <p className="text-sm text-slate-900">{entry.category}</p>
                               </div>
-                              <div>
-                                <p className="text-xs font-medium text-slate-500 mb-0.5">Requested by</p>
-                                <p className="text-sm text-slate-900">{assigneeName}</p>
+                            )}
+                            {/* Reason */}
+                            <div className="px-3 py-3">
+                              <p className="text-xs font-medium text-slate-500 mb-0.5">Reason</p>
+                              <p className="text-sm text-slate-700 leading-snug">{entry.reason}</p>
+                            </div>
+                            {/* Attachment */}
+                            {entry.attachmentName && (
+                              <div className="px-3 py-3">
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Attachment</p>
+                                <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer transition-colors">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  {entry.attachmentName}
+                                </span>
                               </div>
-                              {entry.category && (
-                                <div>
-                                  <p className="text-xs font-medium text-slate-500 mb-0.5">Category</p>
-                                  <p className="text-sm text-slate-900">{entry.category}</p>
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-xs font-medium text-slate-500 mb-0.5">Reason</p>
-                                <p className="text-sm text-slate-700 leading-snug">{entry.reason}</p>
-                              </div>
-                              {entry.attachmentName && (
-                                <div>
-                                  <p className="text-xs font-medium text-slate-500 mb-0.5">Attachment</p>
-                                  <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer transition-colors">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                    {entry.attachmentName}
-                                  </span>
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-xs font-medium text-slate-500 mb-0.5">Status</p>
-                                <p className={`text-sm ${pyIsApproved ? "text-emerald-700" : pyIsDeclined ? "text-red-600" : "text-slate-700"}`}>
-                                  {pyIsApproved ? "Approved" : pyIsDeclined ? "Declined" : "Pending Approval"}
-                                </p>
-                              </div>
+                            )}
+                            {/* Status */}
+                            <div className="px-3 py-3">
+                              <p className="text-xs font-medium text-slate-500 mb-0.5">Status</p>
+                              <p className={`text-sm ${pyIsApproved ? "text-emerald-700" : pyIsDeclined ? "text-red-600" : "text-slate-700"}`}>
+                                {pyIsApproved ? "Approved" : pyIsDeclined ? "Declined" : "Pending Approval"}
+                              </p>
                               {pyIsApproved && entry.approvedBy && (
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-slate-400 mt-1">
                                   Approved by {entry.approvedBy}
                                   {entry.approvedAt && <> · {fmtThreadTime(entry.approvedAt)}</>}
                                 </p>
                               )}
                               {pyIsDeclined && (
-                                <div>
-                                  {entry.declinedReason && <p className="text-xs text-slate-500 mb-0.5">Reason: {entry.declinedReason}</p>}
-                                  <p className="text-xs text-slate-500">Declined by Tunji Oginni</p>
+                                <div className="mt-1">
+                                  {entry.declinedReason && <p className="text-xs text-slate-400 mb-0.5">Reason: {entry.declinedReason}</p>}
+                                  <p className="text-xs text-slate-400">Declined by Tunji Oginni</p>
                                 </div>
                               )}
                             </div>
