@@ -135,7 +135,7 @@ export default function PaymentPlansPage() {
           {plans.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-center bg-white rounded-xl border border-gray-200">
               <CreditCard className="w-9 h-9 text-gray-300" />
-              <p className="text-sm text-gray-400">No payment plans created yet</p>
+              <p className="text-sm text-gray-400">No active payment plan has been created for this tenancy.</p>
               <Button
                 variant="outline"
                 size="sm"

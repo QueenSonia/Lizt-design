@@ -87,7 +87,7 @@ export function PaymentPlansModal({
           {plans.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
               <CreditCard className="w-10 h-10 text-gray-300" />
-              <p className="text-sm text-gray-400">No payment plans created</p>
+              <p className="text-sm text-gray-400">No active payment plan has been created for this tenancy.</p>
               <Button
                 variant="outline"
                 size="sm"

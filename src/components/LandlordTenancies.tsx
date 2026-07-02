@@ -29,6 +29,7 @@ import { TenancyReminderSettings, InvoiceDrawer, MOCK_INVOICES, type Invoice } f
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { GlobalSearchDropdown } from "./GlobalSearch";
+import { getPaymentPlans } from "@/lib/paymentPlanStore";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -920,29 +921,57 @@ function TenancyDetailScreen({
             </div>
 
             {/* Payment Plans */}
-            <div className="pt-8 border-t border-gray-100">
-              <p className="text-xl font-bold text-gray-900 mb-3">Payment Plans</p>
-              <button
-                type="button"
-                onClick={() => {
-                  const charges = [
-                    { name: "Rent", amount: effectiveRent },
-                    ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
-                    { name: "Legal Fee", amount: 30000 },
-                  ];
-                  const params = new URLSearchParams({
-                    property: tenancy.propertyName,
-                    tenant: tenancy.tenantId,
-                    charges: JSON.stringify(charges),
-                  });
-                  router.push(`/landlord/payment-plans?${params.toString()}`);
-                }}
-                className="flex items-center gap-1 text-left group cursor-pointer"
-              >
-                <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">View Payment Plans</span>
-                <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-              </button>
-            </div>
+            {(() => {
+              const plans = getPaymentPlans(tenancy.propertyName, tenancy.tenantId);
+              // Find next pending installment across all plans
+              const nextInstallment = plans.flatMap((p) =>
+                p.installments
+                  .filter((i) => i.status === "pending")
+                  .map((i, _, arr) => ({
+                    plan: p,
+                    inst: i,
+                    installmentNumber: p.installments.indexOf(i) + 1,
+                    total: p.installments.length,
+                  }))
+              ).sort((a, b) => a.inst.dueDate.localeCompare(b.inst.dueDate))[0];
+              const fmtInstDate = (iso: string) =>
+                new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+              return (
+                <div className="pt-8 border-t border-gray-100">
+                  <p className="text-xl font-bold text-gray-900 mb-3">Payment Plans</p>
+                  {nextInstallment ? (
+                    <p className="text-sm text-gray-900 mb-3">
+                      The tenant is expected to pay{" "}
+                      <span className="font-semibold">{fmtCurrency(nextInstallment.inst.amount)}</span>
+                      {" "}representing Installment {nextInstallment.installmentNumber} of {nextInstallment.total} by{" "}
+                      {fmtInstDate(nextInstallment.inst.dueDate)}.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500 mb-3">No active payment plan has been created for this tenancy.</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const charges = [
+                        { name: "Rent", amount: effectiveRent },
+                        ...(effectiveServiceCharge > 0 ? [{ name: "Service Charge", amount: effectiveServiceCharge }] : []),
+                        { name: "Legal Fee", amount: 30000 },
+                      ];
+                      const params = new URLSearchParams({
+                        property: tenancy.propertyName,
+                        tenant: tenancy.tenantId,
+                        charges: JSON.stringify(charges),
+                      });
+                      router.push(`/landlord/payment-plans?${params.toString()}`);
+                    }}
+                    className="flex items-center gap-1 text-left group cursor-pointer"
+                  >
+                    <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">View Payment Plans</span>
+                    <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         )}
 
