@@ -334,95 +334,11 @@ export default function LandlordMaintenanceRequestDetail() {
                         }
 
                         if (entry.type === "payment_request") {
-                          const pyIsPending = entry.status === "pending";
-                          const pyIsApproved = entry.status === "approved";
-                          const pyIsDeclined = entry.status === "declined";
-                          const taskId = req.id;
                           return (
-                            <div key={entry.id} className="border border-amber-200/60 rounded-xl overflow-hidden bg-amber-50/30">
-                              <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-amber-100 bg-amber-50/60">
-                                <div className="flex items-center gap-2">
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
-                                  </svg>
-                                  <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wide">Payment Request</span>
-                                </div>
-                                <span className="text-[10px] text-amber-700/70">
-                                  {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · {fmtThreadTime(entry.timestamp)}
-                                </span>
-                              </div>
-                              <div className="px-3.5 py-3 flex flex-col gap-2.5">
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <p className="text-[10px] text-gray-400 mb-0.5">Requested by</p>
-                                    <p className="text-sm font-medium text-gray-800">{assigneeName}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-[10px] text-gray-400 mb-0.5">Amount</p>
-                                    <p className="text-xl font-bold text-gray-900 tabular-nums leading-tight">{entry.amount}</p>
-                                  </div>
-                                </div>
-                                {entry.category && (
-                                  <div>
-                                    <p className="text-[10px] text-gray-400 mb-0.5">Category</p>
-                                    <p className="text-sm text-gray-700">{entry.category}</p>
-                                  </div>
-                                )}
-                                <div>
-                                  <p className="text-[10px] text-gray-400 mb-0.5">Reason</p>
-                                  <p className="text-sm text-gray-700 leading-snug">{entry.reason}</p>
-                                </div>
-                                {entry.attachmentName && (
-                                  <div>
-                                    <p className="text-[10px] text-gray-400 mb-0.5">Attachment</p>
-                                    <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-medium">
-                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                                      View {entry.attachmentName}
-                                    </span>
-                                  </div>
-                                )}
-                                <div className="pt-1">
-                                  <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
-                                    pyIsApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
-                                    pyIsDeclined ? "bg-red-50 border-red-200 text-red-800" :
-                                    "bg-amber-50 border-amber-200 text-amber-800"
-                                  }`}>
-                                    {pyIsApproved ? "✅ Approved" : pyIsDeclined ? "❌ Declined" : "⏳ Pending Approval"}
-                                  </span>
-                                </div>
-                                {pyIsApproved && entry.approvedBy && (
-                                  <div className="border-t border-emerald-100 pt-2 mt-0.5">
-                                    <p className="text-[11px] text-emerald-700">
-                                      Approved by <strong>{entry.approvedBy}</strong>
-                                      {entry.approvedAt && <> · {new Date(entry.approvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} {fmtThreadTime(entry.approvedAt)}</>}
-                                    </p>
-                                  </div>
-                                )}
-                                {pyIsDeclined && (
-                                  <div className="border-t border-red-100 pt-2 mt-0.5">
-                                    {entry.declinedReason && (
-                                      <p className="text-[11px] text-red-700 mb-1"><strong>Reason:</strong> {entry.declinedReason}</p>
-                                    )}
-                                    <p className="text-[11px] text-red-600">Declined by <strong>Tunji Oginni</strong></p>
-                                  </div>
-                                )}
-                                {pyIsPending && (
-                                  <div className="flex gap-2 pt-2 mt-0.5 border-t border-amber-100">
-                                    <button
-                                      onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason })}
-                                      className="flex-1 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
-                                    >
-                                      Approve Payment
-                                    </button>
-                                    <button
-                                      onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason }); setDeclineReason(""); }}
-                                      className="flex-1 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors"
-                                    >
-                                      Decline
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
+                            <div key={entry.id} className="flex items-center gap-2 py-0.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0" />
+                              <p className="text-xs text-gray-400 flex-1">Payment request submitted · {entry.amount}</p>
+                              <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
                             </div>
                           );
                         }
@@ -590,6 +506,101 @@ export default function LandlordMaintenanceRequestDetail() {
                   </>
                 )}
               </div>
+
+              {/* Payment Requests */}
+              {(() => {
+                const paymentEntries = thread.filter(e => e.type === "payment_request") as import("@/lib/taskThreadStore").ThreadPaymentRequest[];
+                if (paymentEntries.length === 0) return null;
+                return (
+                  <>
+                    <div className="h-px bg-gray-100" />
+                    <div className="space-y-4">
+                      <p className="text-xs font-medium text-slate-500">Payment Request{paymentEntries.length > 1 ? "s" : ""}</p>
+                      {paymentEntries.map((entry) => {
+                        const pyIsPending = entry.status === "pending";
+                        const pyIsApproved = entry.status === "approved";
+                        const pyIsDeclined = entry.status === "declined";
+                        const taskId = req.id;
+                        return (
+                          <div key={entry.id} className="border border-amber-200/60 rounded-xl overflow-hidden bg-amber-50/20">
+                            {/* Header */}
+                            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-amber-100 bg-amber-50/50">
+                              <div className="flex items-center gap-1.5">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                                </svg>
+                                <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wide">{entry.amount}</span>
+                              </div>
+                              <span className="text-[10px] text-amber-700/60">
+                                {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                              </span>
+                            </div>
+                            {/* Body */}
+                            <div className="px-3 py-2.5 flex flex-col gap-2">
+                              <div>
+                                <p className="text-[10px] text-gray-400 mb-0.5">Requested by</p>
+                                <p className="text-xs font-medium text-gray-800">{assigneeName}</p>
+                              </div>
+                              {entry.category && (
+                                <div>
+                                  <p className="text-[10px] text-gray-400 mb-0.5">Category</p>
+                                  <p className="text-xs text-gray-700">{entry.category}</p>
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-[10px] text-gray-400 mb-0.5">Reason</p>
+                                <p className="text-xs text-gray-700 leading-snug">{entry.reason}</p>
+                              </div>
+                              {entry.attachmentName && (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-blue-600 font-medium">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                  View {entry.attachmentName}
+                                </span>
+                              )}
+                              {/* Status */}
+                              <span className={`self-start inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                pyIsApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
+                                pyIsDeclined ? "bg-red-50 border-red-200 text-red-800" :
+                                "bg-amber-50 border-amber-200 text-amber-800"
+                              }`}>
+                                {pyIsApproved ? "✅ Approved" : pyIsDeclined ? "❌ Declined" : "⏳ Pending"}
+                              </span>
+                              {pyIsApproved && entry.approvedBy && (
+                                <p className="text-[10px] text-emerald-700 border-t border-emerald-100 pt-1.5">
+                                  Approved by <strong>{entry.approvedBy}</strong>
+                                  {entry.approvedAt && <> · {fmtThreadTime(entry.approvedAt)}</>}
+                                </p>
+                              )}
+                              {pyIsDeclined && (
+                                <div className="border-t border-red-100 pt-1.5">
+                                  {entry.declinedReason && <p className="text-[10px] text-red-700 mb-0.5"><strong>Reason:</strong> {entry.declinedReason}</p>}
+                                  <p className="text-[10px] text-red-600">Declined by <strong>Tunji Oginni</strong></p>
+                                </div>
+                              )}
+                              {pyIsPending && (
+                                <div className="flex gap-1.5 pt-1 border-t border-amber-100">
+                                  <button
+                                    onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason })}
+                                    className="flex-1 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-[11px] font-semibold hover:bg-emerald-100 transition-colors"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason }); setDeclineReason(""); }}
+                                    className="flex-1 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 text-[11px] font-semibold hover:bg-red-100 transition-colors"
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
 
             </div>
           </div>{/* end right column */}
