@@ -309,83 +309,103 @@ export default function LandlordMaintenanceRequestDetail() {
 
             {/* Updates & Activity */}
             <div className="p-6 sm:p-8">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Updates & Activity</h3>
-              <div className="space-y-1">
-                {groups.length === 0 && (
-                  <p className="text-xs text-gray-400 italic py-2">No updates yet.</p>
-                )}
-                {groups.map((group) => (
-                  <div key={group.label}>
-                    <div className="flex items-center gap-3 my-5">
-                      <div className="flex-1 h-px bg-gray-100" />
-                      <span className="text-[10px] text-gray-400 font-medium">{group.label}</span>
-                      <div className="flex-1 h-px bg-gray-100" />
-                    </div>
-                    <div className="space-y-3">
-                      {group.entries.map((entry) => {
-                        if (entry.type === "event") {
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Updates & Activity</h3>
+
+              {/* Chat canvas */}
+              <div className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden">
+
+                {/* Message area */}
+                <div className="px-4 py-5 space-y-1 min-h-[120px]">
+                  {groups.length === 0 && (
+                    <p className="text-xs text-gray-400 italic text-center pt-4">No updates yet.</p>
+                  )}
+                  {groups.map((group) => (
+                    <div key={group.label}>
+                      {/* Date divider */}
+                      <div className="flex items-center gap-3 my-4">
+                        <div className="flex-1 h-px bg-gray-200" />
+                        <span className="text-[10px] text-gray-400 font-medium">{group.label}</span>
+                        <div className="flex-1 h-px bg-gray-200" />
+                      </div>
+                      <div className="space-y-3">
+                        {group.entries.map((entry) => {
+                          /* System event — centred neutral pill */
+                          if (entry.type === "event") {
+                            return (
+                              <div key={entry.id} className="flex justify-center">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-gray-200 text-[11px] text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                                  {entry.body}
+                                  <span className="text-gray-300">·</span>
+                                  <span className="text-gray-400">{fmtThreadTime(entry.timestamp)}</span>
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          /* Payment request reference — centred amber pill */
+                          if (entry.type === "payment_request") {
+                            return (
+                              <div key={entry.id} className="flex justify-center">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-amber-200 text-[11px] text-amber-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+                                  Payment request · {entry.amount}
+                                  <span className="text-amber-300">·</span>
+                                  <span className="text-amber-600/70">{fmtThreadTime(entry.timestamp)}</span>
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          /* Chat messages */
+                          const isLandlord = entry.author === "landlord";
                           return (
-                            <div key={entry.id} className="flex items-center gap-2 py-0.5">
-                              <div className="w-1.5 h-1.5 rounded-full bg-gray-200 shrink-0" />
-                              <p className="text-xs text-gray-400 flex-1">{entry.body}</p>
-                              <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
+                            <div key={entry.id} className={`flex flex-col gap-1 ${isLandlord ? "items-end" : "items-start"}`}>
+                              {/* Sender label */}
+                              <span className="text-[10px] text-gray-400 font-medium px-1">
+                                {isLandlord ? "You" : entry.authorName}
+                              </span>
+                              {/* Bubble */}
+                              <div className={`max-w-[78%] px-3.5 py-2.5 text-sm leading-relaxed shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
+                                isLandlord
+                                  ? "bg-[#FF5000] text-white rounded-2xl rounded-br-sm"
+                                  : "bg-white text-gray-900 rounded-2xl rounded-bl-sm border border-gray-100"
+                              }`}>
+                                {entry.body}
+                              </div>
+                              {/* Timestamp */}
+                              <span className="text-[10px] text-gray-400 px-1">{fmtThreadTime(entry.timestamp)}</span>
                             </div>
                           );
-                        }
-
-                        if (entry.type === "payment_request") {
-                          return (
-                            <div key={entry.id} className="flex items-center gap-2 py-0.5">
-                              <div className="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0" />
-                              <p className="text-xs text-gray-400 flex-1">Payment request submitted · {entry.amount}</p>
-                              <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
-                            </div>
-                          );
-                        }
-
-                        const isLandlord = entry.author === "landlord";
-                        return (
-                          <div key={entry.id} className={`flex flex-col gap-1 ${isLandlord ? "items-end" : "items-start"}`}>
-                            <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                              isLandlord ? "bg-[#FF5000] text-white rounded-br-sm" : "bg-gray-100 text-gray-900 rounded-bl-sm"
-                            }`}>
-                              {entry.body}
-                            </div>
-                            <div className={`flex items-center gap-1.5 ${isLandlord ? "flex-row-reverse" : ""}`}>
-                              <span className="text-[10px] text-gray-400 font-medium">{isLandlord ? "You" : entry.authorName}</span>
-                              <span className="text-[10px] text-gray-300">·</span>
-                              <span className="text-[10px] text-gray-400">{fmtThreadTime(entry.timestamp)}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              {/* Thread composer — only after approval */}
-              {isApproved && (
-                <div className="flex items-end gap-2 mt-5 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/60 focus-within:border-gray-300 focus-within:bg-white transition-colors">
-                  <textarea
-                    ref={threadTextareaRef}
-                    rows={1}
-                    value={threadInput}
-                    onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                    placeholder="Add an update…"
-                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
-                    style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={sendMessage}
-                    disabled={!threadInput.trim()}
-                    className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
-                  >
-                    <Send className="w-3.5 h-3.5 text-white" />
-                  </button>
+                  ))}
                 </div>
-              )}
+
+                {/* Composer — docked inside the canvas */}
+                {isApproved && (
+                  <div className="border-t border-gray-200 bg-white px-3 py-2.5 flex items-end gap-2">
+                    <textarea
+                      ref={threadTextareaRef}
+                      rows={1}
+                      value={threadInput}
+                      onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                      placeholder="Add an update…"
+                      className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
+                      style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={sendMessage}
+                      disabled={!threadInput.trim()}
+                      className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
+                    >
+                      <Send className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Resolution History */}
