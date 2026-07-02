@@ -202,56 +202,59 @@ export default function LandlordMaintenanceRequestDetail() {
   return (
     <div className="page-container">
 
-      {/* ── Page header ─────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
-        <div className="min-w-0">
-          <button
-            type="button"
-            onClick={() => router.push(`/${userRole}/facility`)}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors mb-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Maintenance Requests
-          </button>
-          <h1 className="text-2xl font-bold text-slate-900 leading-snug">{req.description}</h1>
-          {isApproved && assignee && (
-            <p className="text-sm text-[#FF5000] mt-1 font-medium">Assigned to {assignee.name}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap shrink-0 pt-7">
-          <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${statusColors[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
-            {formatStatusLabel(currentStatus)}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={togglePriority}
-            className={isPriority ? "border-orange-300 text-orange-700 hover:bg-orange-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}
-          >
-            <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
-            {isPriority ? "Remove Priority" : "Add Priority"}
-          </Button>
-          <Button
-            size="sm"
-            disabled={!canApprove}
-            className="bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50"
-            onClick={() => {
-              setStatus("in_progress", `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp; tenant updated.`);
-              appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() });
-            }}
-          >
-            {isApproved ? "Approved" : "Approve Request"}
-          </Button>
-        </div>
-      </div>
+      {/* ── Header card ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 mb-4">
+        <button
+          type="button"
+          onClick={() => router.push(`/${userRole}/facility`)}
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors mb-4"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Maintenance Requests
+        </button>
 
-      {/* Assign-first warning */}
-      {!isApproved && !assignee && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          Assign a facility manager before approving this request.
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold text-slate-900 leading-snug">{req.description}</h1>
+            {isApproved && assignee && (
+              <p className="text-sm text-[#FF5000] mt-1 font-medium">Assigned to {assignee.name}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${statusColors[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
+              {formatStatusLabel(currentStatus)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={togglePriority}
+              className={isPriority ? "border-orange-300 text-orange-700 hover:bg-orange-50" : "border-gray-200 text-gray-600 hover:bg-gray-50"}
+            >
+              <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+              {isPriority ? "Remove Priority" : "Add Priority"}
+            </Button>
+            <Button
+              size="sm"
+              disabled={!canApprove}
+              className="bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50"
+              onClick={() => {
+                setStatus("in_progress", `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp; tenant updated.`);
+                appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() });
+              }}
+            >
+              {isApproved ? "Approved" : "Approve Request"}
+            </Button>
+          </div>
         </div>
-      )}
+
+        {/* Assign-first warning — inside header card */}
+        {!isApproved && !assignee && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            Assign a facility manager before approving this request.
+          </div>
+        )}
+      </div>
 
       {/* ── Single unified white content frame ──────────────────────── */}
       <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-100">
