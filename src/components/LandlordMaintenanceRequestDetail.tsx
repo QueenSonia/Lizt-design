@@ -268,11 +268,10 @@ export default function LandlordMaintenanceRequestDetail() {
           {/* ── Left column (primary) — 70% ────────────────────────────── */}
           <div className="flex-1 min-w-0 divide-y divide-gray-100">
 
-            {/* Description */}
-            <div className="p-6 sm:p-8">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Description</h3>
-              {req.reopened_at && (
-                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+            {/* Reopened notice */}
+            {req.reopened_at && (
+              <div className="p-6 sm:p-8">
+                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                   <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-0.5">Reopened</p>
@@ -280,9 +279,8 @@ export default function LandlordMaintenanceRequestDetail() {
                     {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
                   </div>
                 </div>
-              )}
-              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{req.description}</p>
-            </div>
+              </div>
+            )}
 
             {/* Attachments */}
             {allAttachments.length > 0 && (
