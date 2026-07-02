@@ -522,78 +522,75 @@ export default function LandlordMaintenanceRequestDetail() {
                         const pyIsDeclined = entry.status === "declined";
                         const taskId = req.id;
                         return (
-                          <div key={entry.id} className="border border-amber-200/60 rounded-xl overflow-hidden bg-amber-50/20">
-                            {/* Header */}
-                            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-amber-100 bg-amber-50/50">
-                              <div className="flex items-center gap-1.5">
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
-                                </svg>
-                                <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wide">{entry.amount}</span>
-                              </div>
-                              <span className="text-[10px] text-amber-700/60">
-                                {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                              </span>
-                            </div>
-                            {/* Body */}
-                            <div className="px-3 py-2.5 flex flex-col gap-2">
+                          <div key={entry.id} className="border border-gray-200 rounded-lg bg-white divide-y divide-gray-100">
+                            {/* Fields */}
+                            <div className="p-3 space-y-3">
                               <div>
-                                <p className="text-[10px] text-gray-400 mb-0.5">Requested by</p>
-                                <p className="text-xs font-medium text-gray-800">{assigneeName}</p>
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Amount</p>
+                                <p className="text-sm font-semibold text-slate-900 tabular-nums">{entry.amount}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Requested by</p>
+                                <p className="text-sm text-slate-900">{assigneeName}</p>
                               </div>
                               {entry.category && (
                                 <div>
-                                  <p className="text-[10px] text-gray-400 mb-0.5">Category</p>
-                                  <p className="text-xs text-gray-700">{entry.category}</p>
+                                  <p className="text-xs font-medium text-slate-500 mb-0.5">Category</p>
+                                  <p className="text-sm text-slate-900">{entry.category}</p>
                                 </div>
                               )}
                               <div>
-                                <p className="text-[10px] text-gray-400 mb-0.5">Reason</p>
-                                <p className="text-xs text-gray-700 leading-snug">{entry.reason}</p>
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Reason</p>
+                                <p className="text-sm text-slate-700 leading-snug">{entry.reason}</p>
                               </div>
                               {entry.attachmentName && (
-                                <span className="inline-flex items-center gap-1 text-[11px] text-blue-600 font-medium">
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                                  View {entry.attachmentName}
-                                </span>
+                                <div>
+                                  <p className="text-xs font-medium text-slate-500 mb-0.5">Attachment</p>
+                                  <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer transition-colors">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    {entry.attachmentName}
+                                  </span>
+                                </div>
                               )}
-                              {/* Status */}
-                              <span className={`self-start inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                                pyIsApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
-                                pyIsDeclined ? "bg-red-50 border-red-200 text-red-800" :
-                                "bg-amber-50 border-amber-200 text-amber-800"
-                              }`}>
-                                {pyIsApproved ? "✅ Approved" : pyIsDeclined ? "❌ Declined" : "⏳ Pending"}
-                              </span>
+                              <div>
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Status</p>
+                                <p className={`text-sm ${pyIsApproved ? "text-emerald-700" : pyIsDeclined ? "text-red-600" : "text-slate-700"}`}>
+                                  {pyIsApproved ? "Approved" : pyIsDeclined ? "Declined" : "Pending Approval"}
+                                </p>
+                              </div>
                               {pyIsApproved && entry.approvedBy && (
-                                <p className="text-[10px] text-emerald-700 border-t border-emerald-100 pt-1.5">
-                                  Approved by <strong>{entry.approvedBy}</strong>
+                                <p className="text-xs text-slate-500">
+                                  Approved by {entry.approvedBy}
                                   {entry.approvedAt && <> · {fmtThreadTime(entry.approvedAt)}</>}
                                 </p>
                               )}
                               {pyIsDeclined && (
-                                <div className="border-t border-red-100 pt-1.5">
-                                  {entry.declinedReason && <p className="text-[10px] text-red-700 mb-0.5"><strong>Reason:</strong> {entry.declinedReason}</p>}
-                                  <p className="text-[10px] text-red-600">Declined by <strong>Tunji Oginni</strong></p>
-                                </div>
-                              )}
-                              {pyIsPending && (
-                                <div className="flex gap-1.5 pt-1 border-t border-amber-100">
-                                  <button
-                                    onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason })}
-                                    className="flex-1 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-[11px] font-semibold hover:bg-emerald-100 transition-colors"
-                                  >
-                                    Approve
-                                  </button>
-                                  <button
-                                    onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason }); setDeclineReason(""); }}
-                                    className="flex-1 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 text-[11px] font-semibold hover:bg-red-100 transition-colors"
-                                  >
-                                    Decline
-                                  </button>
+                                <div>
+                                  {entry.declinedReason && <p className="text-xs text-slate-500 mb-0.5">Reason: {entry.declinedReason}</p>}
+                                  <p className="text-xs text-slate-500">Declined by Tunji Oginni</p>
                                 </div>
                               )}
                             </div>
+                            {/* Actions */}
+                            {pyIsPending && (
+                              <div className="flex gap-2 p-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 border-gray-200 text-slate-700 hover:bg-gray-50 text-xs"
+                                  onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason }); setDeclineReason(""); }}
+                                >
+                                  Decline
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white text-xs"
+                                  onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason })}
+                                >
+                                  Approve
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
