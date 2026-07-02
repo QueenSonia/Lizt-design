@@ -268,6 +268,20 @@ export default function LandlordMaintenanceRequestDetail() {
           {/* ── Left column (primary) — 70% ────────────────────────────── */}
           <div className="flex-1 min-w-0 divide-y divide-gray-100">
 
+            {/* Date metadata row */}
+            <div className="p-6 sm:p-8">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                <div>
+                  <p className="text-xs font-medium text-slate-500 mb-1">Date Reported</p>
+                  <p className="text-sm text-slate-900">{formatDateTime(req.date_reported)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-500 mb-1">Last Updated</p>
+                  <p className="text-sm text-slate-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
+                </div>
+              </div>
+            </div>
+
             {/* Reopened notice */}
             {req.reopened_at && (
               <div className="p-6 sm:p-8">
@@ -578,19 +592,6 @@ export default function LandlordMaintenanceRequestDetail() {
                 )}
               </div>
 
-              <div className="h-px bg-gray-100" />
-
-              {/* Date Reported */}
-              <div>
-                <p className="text-xs font-medium text-slate-500 mb-1">Date Reported</p>
-                <p className="text-sm text-slate-900">{formatDateTime(req.date_reported)}</p>
-              </div>
-
-              {/* Last Updated */}
-              <div>
-                <p className="text-xs font-medium text-slate-500 mb-1">Last Updated</p>
-                <p className="text-sm text-slate-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
-              </div>
             </div>
           </div>{/* end right column */}
 
