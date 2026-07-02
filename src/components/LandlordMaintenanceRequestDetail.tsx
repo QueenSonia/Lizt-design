@@ -224,9 +224,7 @@ export default function LandlordMaintenanceRequestDetail() {
         <div className="px-6 sm:px-8 py-5 flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold text-slate-900 leading-snug">{req.description}</h1>
-            {assignee && (
-              <p className="text-sm text-slate-500 mt-0.5">{req.property_name} · Assigned to {assignee.name}</p>
-            )}
+            <p className="text-sm text-slate-500 mt-0.5">Reported by {SOURCE_LABEL[source]} – {reporterName(req)}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Button
@@ -270,10 +268,6 @@ export default function LandlordMaintenanceRequestDetail() {
         <div className="p-6 sm:p-8">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Request Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
-            <div>
-              <p className="text-xs font-medium text-slate-500 mb-1">Reported by</p>
-              <p className="text-slate-900">{SOURCE_LABEL[source]} – {reporterName(req)}</p>
-            </div>
             <div>
               <p className="text-xs font-medium text-slate-500 mb-1">Date Reported</p>
               <p className="text-slate-900">{formatDateTime(req.date_reported)}</p>
