@@ -229,9 +229,6 @@ export default function LandlordMaintenanceRequestDetail() {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${statusColors[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-700 border-gray-200"}`}>
-              {formatStatusLabel(currentStatus)}
-            </span>
             <Button
               variant="outline"
               size="sm"
@@ -273,14 +270,6 @@ export default function LandlordMaintenanceRequestDetail() {
         <div className="p-6 sm:p-8">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Request Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
-            <div>
-              <p className="text-xs font-medium text-slate-500 mb-1">Property</p>
-              <p className="text-slate-900">{req.property_name}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500 mb-1">Category</p>
-              <p className="text-slate-900">{req.issue_category}</p>
-            </div>
             <div>
               <p className="text-xs font-medium text-slate-500 mb-1">Reported by</p>
               <p className="text-slate-900">{SOURCE_LABEL[source]} – {reporterName(req)}</p>
