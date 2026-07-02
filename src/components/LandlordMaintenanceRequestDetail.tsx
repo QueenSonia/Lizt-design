@@ -262,262 +262,210 @@ export default function LandlordMaintenanceRequestDetail() {
       </div>
 
       {/* ── Single unified white content frame ──────────────────────── */}
-      <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-100">
+      {/* ── Two-column content frame ─────────────────────────────────── */}
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100">
 
-        {/* Request information */}
-        <div className="p-6 sm:p-8">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Request Information</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
-            <div>
-              <p className="text-xs font-medium text-slate-500 mb-1">Date Reported</p>
-              <p className="text-slate-900">{formatDateTime(req.date_reported)}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500 mb-1">Last Updated</p>
-              <p className="text-slate-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
-            </div>
-            {(isApproved && assignee) && (
-              <div>
-                <p className="text-xs font-medium text-slate-500 mb-1">Assigned Facility Manager</p>
-                <p className="text-slate-900">{assignee.name}</p>
-              </div>
-            )}
-          </div>
-        </div>
+          {/* ── Left column (primary) — 70% ────────────────────────────── */}
+          <div className="flex-1 min-w-0 divide-y divide-gray-100">
 
-        {/* Assigned FM selector — only before approval */}
-        {!isApproved && (
-          <div className="p-6 sm:p-8">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Assigned Facility Manager</h3>
-            <Select
-              value={assignee?.id ?? "unassigned"}
-              onValueChange={(value) => {
-                const nextId = value === "unassigned" ? null : value;
-                assignRequestToManager(req.id, nextId);
-                fmStoreTick((n) => n + 1);
-                if (nextId) {
-                  const fm = managers.find((m) => m.id === nextId);
-                  toast.success(`Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`);
-                  appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${fm?.name ?? "facility manager"}`, timestamp: new Date().toISOString() });
-                } else {
-                  toast.success("Request unassigned");
-                  appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() });
-                }
-              }}
-            >
-              <SelectTrigger className="w-full sm:max-w-xs">
-                <SelectValue placeholder="Choose a facility manager" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {managers.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-slate-400 mt-2">Assigning sends a WhatsApp notification to the facility manager.</p>
-          </div>
-        )}
-
-        {/* Description */}
-        <div className="p-6 sm:p-8">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Description</h3>
-          {req.reopened_at && (
-            <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
-              <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-0.5">Reopened</p>
-                <p className="text-xs text-red-600">Last reopened: {formatDateTime(req.reopened_at)}</p>
-                {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
-              </div>
-            </div>
-          )}
-          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{req.description}</p>
-        </div>
-
-        {/* Attachments */}
-        {allAttachments.length > 0 && (
-          <div className="p-6 sm:p-8">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Attachments</h3>
-            <div className="space-y-4">
-              {renderAttachmentGroup(origItems, "Original Request")}
-              {renderAttachmentGroup(reopenedItems, "Reopened Request")}
-            </div>
-          </div>
-        )}
-
-        {/* Updates & Activity */}
-        <div className="p-6 sm:p-8">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Updates & Activity</h3>
-
-            <div className="space-y-1">
-              {groups.length === 0 && (
-                <p className="text-xs text-gray-400 italic py-2">No updates yet.</p>
-              )}
-              {groups.map((group) => (
-                <div key={group.label}>
-                  <div className="flex items-center gap-3 my-5">
-                    <div className="flex-1 h-px bg-gray-100" />
-                    <span className="text-[10px] text-gray-400 font-medium">{group.label}</span>
-                    <div className="flex-1 h-px bg-gray-100" />
-                  </div>
-                  <div className="space-y-3">
-                    {group.entries.map((entry) => {
-                      if (entry.type === "event") {
-                        return (
-                          <div key={entry.id} className="flex items-center gap-2 py-0.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-gray-200 shrink-0" />
-                            <p className="text-xs text-gray-400 flex-1">{entry.body}</p>
-                            <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
-                          </div>
-                        );
-                      }
-
-                      if (entry.type === "payment_request") {
-                        const pyIsPending = entry.status === "pending";
-                        const pyIsApproved = entry.status === "approved";
-                        const pyIsDeclined = entry.status === "declined";
-                        const taskId = req.id;
-                        return (
-                          <div key={entry.id} className="border border-amber-200/60 rounded-xl overflow-hidden bg-amber-50/30">
-                            <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-amber-100 bg-amber-50/60">
-                              <div className="flex items-center gap-2">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
-                                </svg>
-                                <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wide">Payment Request</span>
-                              </div>
-                              <span className="text-[10px] text-amber-700/70">
-                                {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · {fmtThreadTime(entry.timestamp)}
-                              </span>
-                            </div>
-                            <div className="px-3.5 py-3 flex flex-col gap-2.5">
-                              <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <p className="text-[10px] text-gray-400 mb-0.5">Requested by</p>
-                                  <p className="text-sm font-medium text-gray-800">{assigneeName}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-[10px] text-gray-400 mb-0.5">Amount</p>
-                                  <p className="text-xl font-bold text-gray-900 tabular-nums leading-tight">{entry.amount}</p>
-                                </div>
-                              </div>
-                              {entry.category && (
-                                <div>
-                                  <p className="text-[10px] text-gray-400 mb-0.5">Category</p>
-                                  <p className="text-sm text-gray-700">{entry.category}</p>
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-[10px] text-gray-400 mb-0.5">Reason</p>
-                                <p className="text-sm text-gray-700 leading-snug">{entry.reason}</p>
-                              </div>
-                              {entry.attachmentName && (
-                                <div>
-                                  <p className="text-[10px] text-gray-400 mb-0.5">Attachment</p>
-                                  <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-medium">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                                    View {entry.attachmentName}
-                                  </span>
-                                </div>
-                              )}
-                              <div className="pt-1">
-                                <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
-                                  pyIsApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
-                                  pyIsDeclined ? "bg-red-50 border-red-200 text-red-800" :
-                                  "bg-amber-50 border-amber-200 text-amber-800"
-                                }`}>
-                                  {pyIsApproved ? "✅ Approved" : pyIsDeclined ? "❌ Declined" : "⏳ Pending Approval"}
-                                </span>
-                              </div>
-                              {pyIsApproved && entry.approvedBy && (
-                                <div className="border-t border-emerald-100 pt-2 mt-0.5">
-                                  <p className="text-[11px] text-emerald-700">
-                                    Approved by <strong>{entry.approvedBy}</strong>
-                                    {entry.approvedAt && <> · {new Date(entry.approvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} {fmtThreadTime(entry.approvedAt)}</>}
-                                  </p>
-                                </div>
-                              )}
-                              {pyIsDeclined && (
-                                <div className="border-t border-red-100 pt-2 mt-0.5">
-                                  {entry.declinedReason && (
-                                    <p className="text-[11px] text-red-700 mb-1"><strong>Reason:</strong> {entry.declinedReason}</p>
-                                  )}
-                                  <p className="text-[11px] text-red-600">Declined by <strong>Tunji Oginni</strong></p>
-                                </div>
-                              )}
-                              {pyIsPending && (
-                                <div className="flex gap-2 pt-2 mt-0.5 border-t border-amber-100">
-                                  <button
-                                    onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason })}
-                                    className="flex-1 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
-                                  >
-                                    Approve Payment
-                                  </button>
-                                  <button
-                                    onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason }); setDeclineReason(""); }}
-                                    className="flex-1 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors"
-                                  >
-                                    Decline
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      const isLandlord = entry.author === "landlord";
-                      return (
-                        <div key={entry.id} className={`flex flex-col gap-1 ${isLandlord ? "items-end" : "items-start"}`}>
-                          <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                            isLandlord ? "bg-[#FF5000] text-white rounded-br-sm" : "bg-gray-100 text-gray-900 rounded-bl-sm"
-                          }`}>
-                            {entry.body}
-                          </div>
-                          <div className={`flex items-center gap-1.5 ${isLandlord ? "flex-row-reverse" : ""}`}>
-                            <span className="text-[10px] text-gray-400 font-medium">{isLandlord ? "You" : entry.authorName}</span>
-                            <span className="text-[10px] text-gray-300">·</span>
-                            <span className="text-[10px] text-gray-400">{fmtThreadTime(entry.timestamp)}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+            {/* Description */}
+            <div className="p-6 sm:p-8">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Description</h3>
+              {req.reopened_at && (
+                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-0.5">Reopened</p>
+                    <p className="text-xs text-red-600">Last reopened: {formatDateTime(req.reopened_at)}</p>
+                    {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
                   </div>
                 </div>
-              ))}
+              )}
+              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{req.description}</p>
             </div>
 
-            {/* Thread composer — only after approval */}
-            {isApproved && (
-              <div className="flex items-end gap-2 mt-5 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/60 focus-within:border-gray-300 focus-within:bg-white transition-colors">
-                <textarea
-                  ref={threadTextareaRef}
-                  rows={1}
-                  value={threadInput}
-                  onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder="Add an update…"
-                  className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
-                  style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
-                />
-                <button
-                  type="button"
-                  onClick={sendMessage}
-                  disabled={!threadInput.trim()}
-                  className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
-                >
-                  <Send className="w-3.5 h-3.5 text-white" />
-                </button>
+            {/* Attachments */}
+            {allAttachments.length > 0 && (
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Attachments</h3>
+                <div className="space-y-4">
+                  {renderAttachmentGroup(origItems, "Original Request")}
+                  {renderAttachmentGroup(reopenedItems, "Reopened Request")}
+                </div>
               </div>
             )}
-          </div>
 
-        {/* Resolution History */}
-        {resArr.length > 0 && (
-          <div className="p-6 sm:p-8">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Resolution History</h3>
-            <div className="flex flex-col gap-3">
+            {/* Updates & Activity */}
+            <div className="p-6 sm:p-8">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Updates & Activity</h3>
+              <div className="space-y-1">
+                {groups.length === 0 && (
+                  <p className="text-xs text-gray-400 italic py-2">No updates yet.</p>
+                )}
+                {groups.map((group) => (
+                  <div key={group.label}>
+                    <div className="flex items-center gap-3 my-5">
+                      <div className="flex-1 h-px bg-gray-100" />
+                      <span className="text-[10px] text-gray-400 font-medium">{group.label}</span>
+                      <div className="flex-1 h-px bg-gray-100" />
+                    </div>
+                    <div className="space-y-3">
+                      {group.entries.map((entry) => {
+                        if (entry.type === "event") {
+                          return (
+                            <div key={entry.id} className="flex items-center gap-2 py-0.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-gray-200 shrink-0" />
+                              <p className="text-xs text-gray-400 flex-1">{entry.body}</p>
+                              <span className="text-[10px] text-gray-300 shrink-0">{fmtThreadTime(entry.timestamp)}</span>
+                            </div>
+                          );
+                        }
+
+                        if (entry.type === "payment_request") {
+                          const pyIsPending = entry.status === "pending";
+                          const pyIsApproved = entry.status === "approved";
+                          const pyIsDeclined = entry.status === "declined";
+                          const taskId = req.id;
+                          return (
+                            <div key={entry.id} className="border border-amber-200/60 rounded-xl overflow-hidden bg-amber-50/30">
+                              <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-amber-100 bg-amber-50/60">
+                                <div className="flex items-center gap-2">
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                                  </svg>
+                                  <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wide">Payment Request</span>
+                                </div>
+                                <span className="text-[10px] text-amber-700/70">
+                                  {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · {fmtThreadTime(entry.timestamp)}
+                                </span>
+                              </div>
+                              <div className="px-3.5 py-3 flex flex-col gap-2.5">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-[10px] text-gray-400 mb-0.5">Requested by</p>
+                                    <p className="text-sm font-medium text-gray-800">{assigneeName}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-[10px] text-gray-400 mb-0.5">Amount</p>
+                                    <p className="text-xl font-bold text-gray-900 tabular-nums leading-tight">{entry.amount}</p>
+                                  </div>
+                                </div>
+                                {entry.category && (
+                                  <div>
+                                    <p className="text-[10px] text-gray-400 mb-0.5">Category</p>
+                                    <p className="text-sm text-gray-700">{entry.category}</p>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-[10px] text-gray-400 mb-0.5">Reason</p>
+                                  <p className="text-sm text-gray-700 leading-snug">{entry.reason}</p>
+                                </div>
+                                {entry.attachmentName && (
+                                  <div>
+                                    <p className="text-[10px] text-gray-400 mb-0.5">Attachment</p>
+                                    <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-medium">
+                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                      View {entry.attachmentName}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="pt-1">
+                                  <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                                    pyIsApproved ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
+                                    pyIsDeclined ? "bg-red-50 border-red-200 text-red-800" :
+                                    "bg-amber-50 border-amber-200 text-amber-800"
+                                  }`}>
+                                    {pyIsApproved ? "✅ Approved" : pyIsDeclined ? "❌ Declined" : "⏳ Pending Approval"}
+                                  </span>
+                                </div>
+                                {pyIsApproved && entry.approvedBy && (
+                                  <div className="border-t border-emerald-100 pt-2 mt-0.5">
+                                    <p className="text-[11px] text-emerald-700">
+                                      Approved by <strong>{entry.approvedBy}</strong>
+                                      {entry.approvedAt && <> · {new Date(entry.approvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} {fmtThreadTime(entry.approvedAt)}</>}
+                                    </p>
+                                  </div>
+                                )}
+                                {pyIsDeclined && (
+                                  <div className="border-t border-red-100 pt-2 mt-0.5">
+                                    {entry.declinedReason && (
+                                      <p className="text-[11px] text-red-700 mb-1"><strong>Reason:</strong> {entry.declinedReason}</p>
+                                    )}
+                                    <p className="text-[11px] text-red-600">Declined by <strong>Tunji Oginni</strong></p>
+                                  </div>
+                                )}
+                                {pyIsPending && (
+                                  <div className="flex gap-2 pt-2 mt-0.5 border-t border-amber-100">
+                                    <button
+                                      onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason })}
+                                      className="flex-1 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                                    >
+                                      Approve Payment
+                                    </button>
+                                    <button
+                                      onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason }); setDeclineReason(""); }}
+                                      className="flex-1 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors"
+                                    >
+                                      Decline
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        const isLandlord = entry.author === "landlord";
+                        return (
+                          <div key={entry.id} className={`flex flex-col gap-1 ${isLandlord ? "items-end" : "items-start"}`}>
+                            <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                              isLandlord ? "bg-[#FF5000] text-white rounded-br-sm" : "bg-gray-100 text-gray-900 rounded-bl-sm"
+                            }`}>
+                              {entry.body}
+                            </div>
+                            <div className={`flex items-center gap-1.5 ${isLandlord ? "flex-row-reverse" : ""}`}>
+                              <span className="text-[10px] text-gray-400 font-medium">{isLandlord ? "You" : entry.authorName}</span>
+                              <span className="text-[10px] text-gray-300">·</span>
+                              <span className="text-[10px] text-gray-400">{fmtThreadTime(entry.timestamp)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Thread composer — only after approval */}
+              {isApproved && (
+                <div className="flex items-end gap-2 mt-5 border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/60 focus-within:border-gray-300 focus-within:bg-white transition-colors">
+                  <textarea
+                    ref={threadTextareaRef}
+                    rows={1}
+                    value={threadInput}
+                    onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                    placeholder="Add an update…"
+                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
+                    style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={sendMessage}
+                    disabled={!threadInput.trim()}
+                    className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
+                  >
+                    <Send className="w-3.5 h-3.5 text-white" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Resolution History */}
+            {resArr.length > 0 && (
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Resolution History</h3>
+                <div className="flex flex-col gap-3">
                   {[...resArr].reverse().map((attempt, revIdx) => {
                     const origIdx = resArr.length - 1 - revIdx;
                     const attemptNum = origIdx + 1;
@@ -584,10 +532,72 @@ export default function LandlordMaintenanceRequestDetail() {
                       </div>
                     );
                   })}
-            </div>
-          </div>
-        )}
+                </div>
+              </div>
+            )}
 
+          </div>{/* end left column */}
+
+          {/* ── Right column (sticky details panel) — 30% ───────────────── */}
+          <div className="w-full lg:w-72 xl:w-80 shrink-0">
+            <div className="lg:sticky lg:top-8 p-6 space-y-6">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Request Details</h3>
+
+              {/* Assigned Facility Manager */}
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-2">Assigned Facility Manager</p>
+                {isApproved && assignee ? (
+                  <p className="text-sm font-medium text-slate-900">{assignee.name}</p>
+                ) : (
+                  <>
+                    <Select
+                      value={assignee?.id ?? "unassigned"}
+                      onValueChange={(value) => {
+                        const nextId = value === "unassigned" ? null : value;
+                        assignRequestToManager(req.id, nextId);
+                        fmStoreTick((n) => n + 1);
+                        if (nextId) {
+                          const fm = managers.find((m) => m.id === nextId);
+                          toast.success(`Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`);
+                          appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${fm?.name ?? "facility manager"}`, timestamp: new Date().toISOString() });
+                        } else {
+                          toast.success("Request unassigned");
+                          appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choose a facility manager" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {managers.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-400 mt-1.5">Sends a WhatsApp notification.</p>
+                  </>
+                )}
+              </div>
+
+              <div className="h-px bg-gray-100" />
+
+              {/* Date Reported */}
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-1">Date Reported</p>
+                <p className="text-sm text-slate-900">{formatDateTime(req.date_reported)}</p>
+              </div>
+
+              {/* Last Updated */}
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-1">Last Updated</p>
+                <p className="text-sm text-slate-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
+              </div>
+            </div>
+          </div>{/* end right column */}
+
+        </div>
       </div>{/* end white frame */}
 
       {/* Lightbox */}
