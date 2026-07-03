@@ -61,6 +61,19 @@ interface KYCApplication {
   };
 }
 
+export type HistoryCategory =
+  | "all"
+  | "payments"
+  | "tenancy"
+  | "maintenance"
+  | "payment_plans"
+  | "attachments"
+  | "documents"
+  | "kyc"
+  | "communications"
+  | "system"
+  | "custom_notes";
+
 export interface HistoryEvent {
   id: string;
   title: string;
@@ -74,6 +87,7 @@ export interface HistoryEvent {
   documentType?: "offer_letter" | "invoice" | "receipt";
   documentData?: Record<string, unknown>;
   offerStatus?: string;
+  category?: HistoryCategory;
   tenancyInfo?: {
     property: string;
     submittedDate: string;
@@ -88,11 +102,27 @@ export interface HistoryEvent {
   };
 }
 
+/** Derive a filter category from an event title if none is explicitly set. */
+function deriveCategory(event: HistoryEvent): HistoryCategory {
+  if (event.category) return event.category;
+  const t = event.title.toLowerCase();
+  if (t.includes("payment") || t.includes("receipt") || t.includes("invoice") || t.includes("fee recorded")) return "payments";
+  if (t.includes("offer letter")) return "documents";
+  if (t.includes("tenancy") || t.includes("property")) return "tenancy";
+  if (t.includes("maintenance") || t.includes("facility")) return "maintenance";
+  if (t.includes("payment plan") || t.includes("installment")) return "payment_plans";
+  if (t.includes("upload") || t.includes("attachment") || t.includes("file")) return "attachments";
+  if (t.includes("kyc") || t.includes("application") || t.includes("verified") || t.includes("verification")) return "kyc";
+  if (t.includes("whatsapp") || t.includes("message") || t.includes("reminder") || t.includes("broadcast") || t.includes("chat")) return "communications";
+  return "system";
+}
+
 interface Props {
   application: KYCApplication;
   propertyName: string;
   propertyAddress?: string;
   additionalEvents?: HistoryEvent[];
+  filterCategory?: HistoryCategory;
   onNavigateToTab: (
     tab: "overview" | "documents" | "whatsapp" | "history",
   ) => void;
@@ -108,6 +138,7 @@ export function LandlordKYCApplicationDetailHistory({
   propertyName,
   propertyAddress = "",
   additionalEvents = [],
+  filterCategory = "all",
   onNavigateToTab,
   onOpenDocument,
 }: Props) {
@@ -662,9 +693,13 @@ export function LandlordKYCApplicationDetailHistory({
     return events.sort((a, b) => b.date.getTime() - a.date.getTime());
   };
 
-  const events = [...buildHistoryEvents(), ...additionalEvents].sort(
+  const allEvents = [...buildHistoryEvents(), ...additionalEvents].sort(
     (a, b) => b.date.getTime() - a.date.getTime(),
   );
+
+  const events = filterCategory === "all"
+    ? allEvents
+    : allEvents.filter((e) => deriveCategory(e) === filterCategory);
 
   const formatDate = (date: Date) =>
     date.toLocaleDateString("en-US", {
@@ -723,7 +758,11 @@ export function LandlordKYCApplicationDetailHistory({
       <div className="bg-white rounded-lg shadow-sm">
         <div className="py-12 text-center px-6">
           <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">No activity recorded yet</p>
+          <p className="text-gray-500 text-sm">
+            {filterCategory === "all"
+              ? "No activity recorded yet"
+              : "No history found for this category."}
+          </p>
         </div>
       </div>
     );

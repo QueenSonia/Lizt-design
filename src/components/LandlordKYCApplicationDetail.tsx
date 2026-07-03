@@ -50,6 +50,7 @@ import { DatePickerInput } from "@/components/ui/date-picker-input";
 import {
   LandlordKYCApplicationDetailHistory,
   HistoryEvent,
+  HistoryCategory,
 } from "./LandlordKYCApplicationDetailHistory";
 import { IKycApplication } from "@/types/kyc-application";
 import {
@@ -241,6 +242,7 @@ export function LandlordKYCApplicationDetail({
   // ─── Add History ─────────────────────────────────────────────────────────
   const [showAddHistoryModal, setShowAddHistoryModal] = useState(false);
   const [manualHistoryEvents, setManualHistoryEvents] = useState<HistoryEvent[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<HistoryCategory>("all");
   const [historyForm, setHistoryForm] = useState<{
     type: "" | "Tenancy" | "Payment" | "Fee";
     property: string;
@@ -312,6 +314,7 @@ export function LandlordKYCApplicationDetail({
       }`,
       actionType: "inline",
       nodeColor: "green",
+      category: "payments",
     };
     setManualHistoryEvents((prev) => [event, ...prev]);
     toast.success(
@@ -369,6 +372,7 @@ export function LandlordKYCApplicationDetail({
         description: `Tenancy at ${prop} from ${start} to ${end}${total > 0 ? ` — ₦${total.toLocaleString()}` : ""}`,
         actionType: "inline",
         nodeColor: "orange",
+        category: "tenancy",
       };
     } else if (historyForm.type === "Fee") {
       const amount = parseCurrency(historyForm.feeAmount);
@@ -380,6 +384,7 @@ export function LandlordKYCApplicationDetail({
         description: `Fee: ${historyForm.feeDescription} — ₦${amount.toLocaleString()}`,
         actionType: "inline",
         nodeColor: "red",
+        category: "custom_notes",
       };
     }
 
@@ -1225,7 +1230,28 @@ export function LandlordKYCApplicationDetail({
 
         {activeTab === "history" && (
           <div>
-            <div className="flex justify-end px-4 pt-4 pb-2">
+            <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-2">
+              <Select
+                value={historyFilter}
+                onValueChange={(v) => setHistoryFilter(v as HistoryCategory)}
+              >
+                <SelectTrigger className="w-44 h-8 text-sm">
+                  <SelectValue placeholder="Filter activity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Activity</SelectItem>
+                  <SelectItem value="payments">Payments</SelectItem>
+                  <SelectItem value="tenancy">Tenancy</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="payment_plans">Payment Plans</SelectItem>
+                  <SelectItem value="attachments">Attachments</SelectItem>
+                  <SelectItem value="documents">Documents</SelectItem>
+                  <SelectItem value="kyc">KYC</SelectItem>
+                  <SelectItem value="communications">Communications</SelectItem>
+                  <SelectItem value="system">System Activity</SelectItem>
+                  <SelectItem value="custom_notes">Custom Notes</SelectItem>
+                </SelectContent>
+              </Select>
               <button
                 onClick={() => setShowAddHistoryModal(true)}
                 className="flex items-center gap-1.5 bg-[#FF5000] text-white text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-[#e04500] transition-colors"
@@ -1239,6 +1265,7 @@ export function LandlordKYCApplicationDetail({
               propertyName={propertyName}
               propertyAddress={propertyAddress}
               additionalEvents={manualHistoryEvents}
+              filterCategory={historyFilter}
               onNavigateToTab={setActiveTab}
             onOpenDocument={(type, data) => {
               if (type === "offer_letter") {
