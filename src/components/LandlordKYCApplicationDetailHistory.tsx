@@ -808,18 +808,18 @@ export function LandlordKYCApplicationDetailHistory({
 
                   <button
                     onClick={() => handleEventClick(event)}
-                    className="relative flex items-start gap-4 w-full text-left group cursor-pointer hover:bg-neutral-50 rounded-lg p-3 -m-3 transition-all duration-200"
+                    className="relative inline-flex items-start gap-1.5 max-w-xl text-left group cursor-pointer hover:bg-neutral-50 rounded-lg p-3 -m-3 transition-all duration-200"
                   >
                     {/* Event content */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900">
                         {event.title}
                         {event.context && (
                           <span className="text-gray-500 font-normal">
-                            {" "}
-                            — {event.context}
+                            {" "}— {event.context}
                           </span>
                         )}
+                        <span className="ml-1 text-gray-400 text-sm group-hover:text-gray-600 transition-colors">→</span>
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {formatDate(event.date)}
