@@ -39,8 +39,9 @@ export interface ProposalRevision {
 }
 
 export type ThreadEventType =
-  | "proposal_created"
-  | "proposal_updated"
+  | "proposal_requested"   // tenant's initial ask
+  | "proposal_created"     // landlord's initial proposal (thread opened by landlord)
+  | "proposal_revised"     // either party edits/counters the proposal
   | "proposal_accepted"
   | "proposal_declined"
   | "plan_approved"
@@ -51,16 +52,40 @@ export type ThreadEventType =
   | "installment_overdue"
   | "reminder_sent";
 
+/** A read-only snapshot of a proposal's shape, captured at the moment of a timeline event. */
+export interface ProposalSnapshot {
+  installmentCount: number;
+  installmentAmount: number; // amount of a single installment (first one, for unequal splits)
+  totalAmount: number;
+  frequencyLabel?: string; // e.g. "Monthly" — omitted when installments aren't evenly spaced
+}
+
 export interface ThreadEvent {
   id: string;
   type: ThreadEventType;
   actor: "landlord" | "tenant" | "system";
-  message: string;
+  headline: string;
   createdAt: string; // ISO
-  // Present only for type === "proposal_updated"
-  previousProposalSummary?: string;
-  currentProposalSummary?: string;
+
+  // Proposal snapshot(s) — what existed and/or what it changed to.
+  proposal?: ProposalSnapshot;
+  previousProposal?: ProposalSnapshot;
+
+  // Optional context supplied by the actor.
+  reason?: string;
+
+  // Resulting/contextual status shown on the card. Prefer resultingStatus when it maps onto
+  // a real ThreadStatus; use resultingStatusLabel for card-only states like "Negotiation Continues"
+  // that don't correspond to a thread-level status.
   resultingStatus?: ThreadStatus;
+  resultingStatusLabel?: string;
+  effectiveDate?: string; // ISO — for plan_approved
+
+  // installment_paid / installment_overdue context
+  installmentIndex?: number;
+  installmentTotal?: number;
+  installmentAmount?: number;
+  installmentDueDate?: string;
 }
 
 export interface PaymentPlanThread {
@@ -93,6 +118,30 @@ function generateId(prefix: string) {
 
 function actorLabel(actor: "landlord" | "tenant"): string {
   return actor === "landlord" ? "Property Manager" : "Tenant";
+}
+
+/** Detects a regular monthly/weekly/quarterly/annual cadence from installment due dates. */
+function deriveFrequencyLabel(installments: ProposalInstallment[]): string | undefined {
+  if (installments.length < 2) return undefined;
+  const dates = installments.map((i) => new Date(i.dueDate + "T00:00:00").getTime());
+  const dayMs = 86400000;
+  const deltasDays = dates.slice(1).map((d, i) => Math.round((d - dates[i]) / dayMs));
+  const first = deltasDays[0];
+  if (!deltasDays.every((d) => d === first)) return undefined;
+  if (first >= 27 && first <= 31) return "Monthly";
+  if (first === 7) return "Weekly";
+  if (first >= 89 && first <= 92) return "Quarterly";
+  if (first >= 364 && first <= 366) return "Annually";
+  return undefined;
+}
+
+function snapshotFromInstallments(installments: ProposalInstallment[]): ProposalSnapshot {
+  return {
+    installmentCount: installments.length,
+    installmentAmount: installments[0]?.amount ?? 0,
+    totalAmount: installments.reduce((sum, i) => sum + i.amount, 0),
+    frequencyLabel: deriveFrequencyLabel(installments),
+  };
 }
 
 const _threads: PaymentPlanThread[] = [
@@ -144,23 +193,78 @@ const _threads: PaymentPlanThread[] = [
       },
     ],
     events: [
-      { id: "evt-t-1", type: "proposal_created", actor: "tenant", message: "Tenant requested a payment plan", createdAt: "2026-04-12T10:30:00.000Z" },
-      { id: "evt-t-2", type: "proposal_declined", actor: "landlord", message: "Property Manager declined the proposal", createdAt: "2026-04-18T11:15:00.000Z" },
+      {
+        id: "evt-t-1",
+        type: "proposal_requested",
+        actor: "tenant",
+        headline: "Tenant requested a payment plan",
+        createdAt: "2026-04-12T10:30:00.000Z",
+        proposal: { installmentCount: 6, installmentAmount: 418333, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        resultingStatus: "awaiting_landlord_approval",
+      },
+      {
+        id: "evt-t-2",
+        type: "proposal_declined",
+        actor: "landlord",
+        headline: "Property Manager declined the proposal",
+        createdAt: "2026-04-18T11:15:00.000Z",
+        proposal: { installmentCount: 6, installmentAmount: 418333, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        reason: "6 installments extends beyond the property's maximum payment plan window.",
+        resultingStatus: "declined",
+      },
       {
         id: "evt-t-3",
-        type: "proposal_updated",
+        type: "proposal_revised",
         actor: "landlord",
-        message: "Property Manager edited the proposal",
+        headline: "Property Manager revised the proposal",
         createdAt: "2026-04-20T14:00:00.000Z",
-        previousProposalSummary: "6 Installments",
-        currentProposalSummary: "4 Installments",
+        previousProposal: { installmentCount: 6, installmentAmount: 418333, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        proposal: { installmentCount: 4, installmentAmount: 627500, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        reason: "Adjusted to comply with the property's payment policy.",
         resultingStatus: "awaiting_tenant_response",
       },
-      { id: "evt-t-4", type: "proposal_accepted", actor: "tenant", message: "Tenant accepted the revised proposal", createdAt: "2026-04-21T09:00:00.000Z" },
-      { id: "evt-t-5", type: "plan_approved", actor: "system", message: "Payment plan approved", createdAt: "2026-04-21T09:05:00.000Z" },
-      { id: "evt-t-6", type: "installment_paid", actor: "system", message: "Installment 1 paid", createdAt: "2026-05-01T08:00:00.000Z" },
-      { id: "evt-t-7", type: "reminder_sent", actor: "system", message: "Reminder sent", createdAt: "2026-05-28T09:00:00.000Z" },
-      { id: "evt-t-8", type: "installment_overdue", actor: "system", message: "Installment 2 overdue", createdAt: "2026-06-02T09:00:00.000Z" },
+      {
+        id: "evt-t-4",
+        type: "proposal_accepted",
+        actor: "tenant",
+        headline: "Tenant accepted the revised proposal",
+        createdAt: "2026-04-21T09:00:00.000Z",
+        proposal: { installmentCount: 4, installmentAmount: 627500, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        resultingStatus: "approved",
+      },
+      {
+        id: "evt-t-5",
+        type: "plan_approved",
+        actor: "system",
+        headline: "Property Manager approved the payment plan",
+        createdAt: "2026-04-21T09:05:00.000Z",
+        proposal: { installmentCount: 4, installmentAmount: 627500, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        effectiveDate: "2026-04-21",
+        resultingStatus: "approved",
+      },
+      {
+        id: "evt-t-6",
+        type: "installment_paid",
+        actor: "system",
+        headline: "Installment 1 Paid",
+        createdAt: "2026-05-01T08:00:00.000Z",
+        installmentIndex: 1,
+        installmentTotal: 4,
+        installmentAmount: 627500,
+        installmentDueDate: "2026-05-01",
+      },
+      { id: "evt-t-7", type: "reminder_sent", actor: "system", headline: "Reminder sent", createdAt: "2026-05-28T09:00:00.000Z" },
+      {
+        id: "evt-t-8",
+        type: "installment_overdue",
+        actor: "system",
+        headline: "Installment 2 Overdue",
+        createdAt: "2026-06-02T09:00:00.000Z",
+        installmentIndex: 2,
+        installmentTotal: 4,
+        installmentAmount: 627500,
+        installmentDueDate: "2026-06-01",
+      },
     ],
   },
   {
@@ -190,8 +294,25 @@ const _threads: PaymentPlanThread[] = [
       },
     ],
     events: [
-      { id: "evt-r-1", type: "proposal_created", actor: "landlord", message: "Property Manager proposed 3 Installments", createdAt: "2026-05-01T00:00:00.000Z" },
-      { id: "evt-r-2", type: "plan_approved", actor: "system", message: "Payment plan approved", createdAt: "2026-05-01T00:05:00.000Z" },
+      {
+        id: "evt-r-1",
+        type: "proposal_created",
+        actor: "landlord",
+        headline: "Property Manager proposed a payment plan",
+        createdAt: "2026-05-01T00:00:00.000Z",
+        proposal: { installmentCount: 3, installmentAmount: 600000, totalAmount: 1800000, frequencyLabel: "Monthly" },
+        resultingStatus: "awaiting_tenant_response",
+      },
+      {
+        id: "evt-r-2",
+        type: "plan_approved",
+        actor: "system",
+        headline: "Property Manager approved the payment plan",
+        createdAt: "2026-05-01T00:05:00.000Z",
+        proposal: { installmentCount: 3, installmentAmount: 600000, totalAmount: 1800000, frequencyLabel: "Monthly" },
+        effectiveDate: "2026-05-01",
+        resultingStatus: "approved",
+      },
     ],
   },
   {
@@ -220,11 +341,56 @@ const _threads: PaymentPlanThread[] = [
       },
     ],
     events: [
-      { id: "evt-sc-1", type: "proposal_created", actor: "landlord", message: "Property Manager proposed 2 Installments", createdAt: "2026-05-01T00:00:00.000Z" },
-      { id: "evt-sc-2", type: "plan_approved", actor: "system", message: "Payment plan approved", createdAt: "2026-05-01T00:05:00.000Z" },
-      { id: "evt-sc-3", type: "installment_paid", actor: "system", message: "Installment 1 paid", createdAt: "2026-06-01T08:00:00.000Z" },
-      { id: "evt-sc-4", type: "installment_paid", actor: "system", message: "Installment 2 paid", createdAt: "2026-07-01T08:00:00.000Z" },
-      { id: "evt-sc-5", type: "plan_completed", actor: "system", message: "Payment plan completed", createdAt: "2026-07-01T08:05:00.000Z" },
+      {
+        id: "evt-sc-1",
+        type: "proposal_created",
+        actor: "landlord",
+        headline: "Property Manager proposed a payment plan",
+        createdAt: "2026-05-01T00:00:00.000Z",
+        proposal: { installmentCount: 2, installmentAmount: 125000, totalAmount: 250000, frequencyLabel: "Monthly" },
+        resultingStatus: "awaiting_tenant_response",
+      },
+      {
+        id: "evt-sc-2",
+        type: "plan_approved",
+        actor: "system",
+        headline: "Property Manager approved the payment plan",
+        createdAt: "2026-05-01T00:05:00.000Z",
+        proposal: { installmentCount: 2, installmentAmount: 125000, totalAmount: 250000, frequencyLabel: "Monthly" },
+        effectiveDate: "2026-05-01",
+        resultingStatus: "approved",
+      },
+      {
+        id: "evt-sc-3",
+        type: "installment_paid",
+        actor: "system",
+        headline: "Installment 1 Paid",
+        createdAt: "2026-06-01T08:00:00.000Z",
+        installmentIndex: 1,
+        installmentTotal: 2,
+        installmentAmount: 125000,
+        installmentDueDate: "2026-06-01",
+      },
+      {
+        id: "evt-sc-4",
+        type: "installment_paid",
+        actor: "system",
+        headline: "Installment 2 Paid",
+        createdAt: "2026-07-01T08:00:00.000Z",
+        installmentIndex: 2,
+        installmentTotal: 2,
+        installmentAmount: 125000,
+        installmentDueDate: "2026-07-01",
+      },
+      {
+        id: "evt-sc-5",
+        type: "plan_completed",
+        actor: "system",
+        headline: "Payment Plan Completed",
+        createdAt: "2026-07-01T08:05:00.000Z",
+        proposal: { installmentCount: 2, installmentAmount: 125000, totalAmount: 250000, frequencyLabel: "Monthly" },
+        resultingStatus: "completed",
+      },
     ],
   },
 ];
@@ -281,8 +447,9 @@ export function createPaymentPlanThread(input: {
     createdAt: now,
     installments: input.installments,
   };
-  const n = input.installments.length;
-  const summary = n === 1 ? "One-time Payment" : `${n} Installments`;
+  const snapshot = snapshotFromInstallments(input.installments);
+  const resultingStatus: ThreadStatus =
+    input.proposedBy === "landlord" ? "awaiting_tenant_response" : "awaiting_landlord_approval";
   const thread: PaymentPlanThread = {
     id: generateId("thr"),
     propertyName: input.propertyName,
@@ -292,20 +459,22 @@ export function createPaymentPlanThread(input: {
     tenancyStartDate: input.tenancyStartDate,
     tenancyEndDate: input.tenancyEndDate,
     amountDue: input.amountDue,
-    status: input.proposedBy === "landlord" ? "awaiting_tenant_response" : "awaiting_landlord_approval",
+    status: resultingStatus,
     createdAt: now,
     lastActivityAt: now,
     revisions: [revision],
     events: [
       {
         id: generateId("evt"),
-        type: "proposal_created",
+        type: input.proposedBy === "tenant" ? "proposal_requested" : "proposal_created",
         actor: input.proposedBy,
-        message:
+        headline:
           input.proposedBy === "tenant"
             ? "Tenant requested a payment plan"
-            : `Property Manager proposed ${summary}`,
+            : "Property Manager proposed a payment plan",
         createdAt: now,
+        proposal: snapshot,
+        resultingStatus,
       },
     ],
   };
@@ -330,8 +499,7 @@ export function addProposalRevision(
   const totalAmount = input.installments.reduce((sum, i) => sum + i.amount, 0);
   const nextNumber = thread.revisions.length + 1;
   const previousRevision = thread.revisions[thread.revisions.length - 1];
-  const previousN = previousRevision?.installments.length ?? 0;
-  const previousSummary = previousN === 1 ? "One-time Payment" : `${previousN} Installments`;
+  const previousSnapshot = snapshotFromInstallments(previousRevision?.installments ?? []);
 
   thread.revisions.push({
     id: generateId("rev"),
@@ -345,19 +513,19 @@ export function addProposalRevision(
     installments: input.installments,
   });
 
-  const n = input.installments.length;
-  const summary = n === 1 ? "One-time Payment" : `${n} Installments`;
+  const snapshot = snapshotFromInstallments(input.installments);
   const resultingStatus: ThreadStatus =
     input.proposedBy === "landlord" ? "awaiting_tenant_response" : "awaiting_landlord_approval";
 
   thread.events.push({
     id: generateId("evt"),
-    type: "proposal_updated",
+    type: "proposal_revised",
     actor: input.proposedBy,
-    message: `${actorLabel(input.proposedBy)} edited the proposal`,
+    headline: `${actorLabel(input.proposedBy)} revised the proposal`,
     createdAt: now,
-    previousProposalSummary: previousSummary,
-    currentProposalSummary: summary,
+    previousProposal: previousSnapshot,
+    proposal: snapshot,
+    reason: input.note,
     resultingStatus,
   });
   thread.status = resultingStatus;
@@ -371,54 +539,91 @@ export function approveProposal(threadId: string, revisionId: string, actor: "la
   if (!thread) return;
   const now = new Date().toISOString();
   const revision = thread.revisions.find((r) => r.id === revisionId);
-  const isRevised = (revision?.revisionNumber ?? 1) > 1;
+  if (!revision) return;
+  const isRevised = revision.revisionNumber > 1;
+  const snapshot = snapshotFromInstallments(revision.installments);
+
   thread.revisions = thread.revisions.map((r) => {
     if (r.id === revisionId) return { ...r, status: "current" as ProposalStatus };
     if (r.status === "current") return { ...r, status: "accepted" as ProposalStatus };
     return r;
   });
-  thread.events.push({
-    id: generateId("evt"),
-    type: "proposal_accepted",
-    actor,
-    message:
-      actor === "landlord"
-        ? "Property Manager approved the proposal"
-        : `Tenant accepted the ${isRevised ? "revised " : ""}proposal`,
-    createdAt: now,
-  });
-  thread.events.push({
-    id: generateId("evt"),
-    type: "plan_approved",
-    actor: "system",
-    message: "Payment plan approved",
-    createdAt: now,
-  });
+
+  if (actor === "landlord") {
+    // Property Manager approving = final approval of the payment plan.
+    thread.events.push({
+      id: generateId("evt"),
+      type: "plan_approved",
+      actor,
+      headline: "Property Manager approved the payment plan",
+      createdAt: now,
+      proposal: snapshot,
+      effectiveDate: now.slice(0, 10),
+      resultingStatus: "approved",
+    });
+  } else {
+    // Tenant accepting a proposal from the Property Manager.
+    thread.events.push({
+      id: generateId("evt"),
+      type: "proposal_accepted",
+      actor,
+      headline: `Tenant accepted the ${isRevised ? "revised " : ""}proposal`,
+      createdAt: now,
+      proposal: snapshot,
+      resultingStatus: "approved",
+    });
+    thread.events.push({
+      id: generateId("evt"),
+      type: "plan_approved",
+      actor: "system",
+      headline: "Property Manager approved the payment plan",
+      createdAt: now,
+      proposal: snapshot,
+      effectiveDate: now.slice(0, 10),
+      resultingStatus: "approved",
+    });
+  }
   thread.status = "approved";
   touch(thread, now);
   _notify();
 }
 
-export function declineProposal(threadId: string, revisionId: string, actor: "landlord" | "tenant" = "landlord") {
+export function declineProposal(
+  threadId: string,
+  revisionId: string,
+  actor: "landlord" | "tenant" = "landlord",
+  reason?: string
+) {
   const thread = _threads.find((t) => t.id === threadId);
   if (!thread) return;
   const now = new Date().toISOString();
   const revision = thread.revisions.find((r) => r.id === revisionId);
-  const isRevised = (revision?.revisionNumber ?? 1) > 1;
+  if (!revision) return;
+  const isRevised = revision.revisionNumber > 1;
+  const snapshot = snapshotFromInstallments(revision.installments);
+
   thread.revisions = thread.revisions.map((r) =>
     r.id === revisionId ? { ...r, status: "declined" as ProposalStatus } : r
   );
+
+  // A tenant declining keeps the negotiation open; a Property Manager decline is definitive.
+  const resultingStatus: ThreadStatus = actor === "tenant" ? "awaiting_landlord_approval" : "declined";
+
   thread.events.push({
     id: generateId("evt"),
     type: "proposal_declined",
     actor,
-    message:
+    headline:
       actor === "landlord"
         ? "Property Manager declined the proposal"
         : `Tenant declined the ${isRevised ? "revised " : ""}proposal`,
     createdAt: now,
+    proposal: snapshot,
+    reason,
+    resultingStatus: actor === "landlord" ? "declined" : undefined,
+    resultingStatusLabel: actor === "tenant" ? "Negotiation Continues" : undefined,
   });
-  thread.status = "declined";
+  thread.status = resultingStatus;
   touch(thread, now);
   _notify();
 }
@@ -432,7 +637,7 @@ export function cancelThread(threadId: string) {
     id: generateId("evt"),
     type: "plan_cancelled",
     actor: "system",
-    message: "Payment plan cancelled",
+    headline: "Payment plan cancelled",
     createdAt: now,
   });
   touch(thread, now);
@@ -449,12 +654,17 @@ export function markInstallmentPaid(threadId: string, revisionId: string, instal
   installment.status = "paid";
   const now = new Date().toISOString();
   const idx = revision.installments.indexOf(installment) + 1;
+  const total = revision.installments.length;
   thread.events.push({
     id: generateId("evt"),
     type: "installment_paid",
     actor: "system",
-    message: `Installment ${idx} paid`,
+    headline: `Installment ${idx} Paid`,
     createdAt: now,
+    installmentIndex: idx,
+    installmentTotal: total,
+    installmentAmount: installment.amount,
+    installmentDueDate: installment.dueDate,
   });
   const allPaid = revision.installments.every((i) => i.status === "paid");
   if (allPaid && getCurrentRevision(thread)?.id === revision.id) {
@@ -463,8 +673,10 @@ export function markInstallmentPaid(threadId: string, revisionId: string, instal
       id: generateId("evt"),
       type: "plan_completed",
       actor: "system",
-      message: "Payment plan completed",
+      headline: "Payment Plan Completed",
       createdAt: now,
+      proposal: snapshotFromInstallments(revision.installments),
+      resultingStatus: "completed",
     });
   }
   touch(thread, now);
@@ -479,7 +691,7 @@ export function sendReminder(threadId: string) {
     id: generateId("evt"),
     type: "reminder_sent",
     actor: "system",
-    message: "Reminder sent",
+    headline: "Reminder sent",
     createdAt: now,
   });
   touch(thread, now);
