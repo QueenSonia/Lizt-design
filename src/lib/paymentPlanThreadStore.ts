@@ -61,6 +61,12 @@ export interface ProposalSnapshot {
   frequencyLabel?: string; // e.g. "Monthly" — omitted when installments aren't evenly spaced
 }
 
+/** A single named charge line, e.g. "Rent (Annually) — ₦3,000". Used on the tenant's original request card. */
+export interface ChargeLine {
+  label: string;
+  amount: number;
+}
+
 export interface ThreadEvent {
   id: string;
   type: ThreadEventType;
@@ -87,6 +93,15 @@ export interface ThreadEvent {
   installmentTotal?: number;
   installmentAmount?: number;
   installmentDueDate?: string;
+
+  // Rich free-form context on the tenant's original request (proposal_requested only)
+  chargesBreakdown?: ChargeLine[];
+  preferredScheduleText?: string;
+  tenantNote?: string;
+
+  // Field-level "before → after" changes on a revision, beyond the installment schedule itself
+  // (e.g. charges added/removed, due dates shifted). Rendered as extra Before/After rows.
+  fieldChanges?: { label: string; before: string; after: string }[];
 }
 
 export interface PaymentPlanThread {
@@ -202,6 +217,12 @@ const _threads: PaymentPlanThread[] = [
         createdAt: "2026-04-12T10:30:00.000Z",
         proposal: { installmentCount: 6, installmentAmount: 418333, totalAmount: 2510000, frequencyLabel: "Monthly" },
         resultingStatus: "awaiting_landlord_approval",
+        chargesBreakdown: [
+          { label: "Rent (Annually)", amount: 2260000 },
+          { label: "Service Charge", amount: 250000 },
+        ],
+        preferredScheduleText: "₦418,333 for 6 months",
+        tenantNote: "Please help me spread this out, it's a lot to pay at once.",
       },
       {
         id: "evt-t-2",
@@ -223,6 +244,9 @@ const _threads: PaymentPlanThread[] = [
         proposal: { installmentCount: 4, installmentAmount: 627500, totalAmount: 2510000, frequencyLabel: "Monthly" },
         reason: "Adjusted to comply with the property's payment policy.",
         resultingStatus: "awaiting_tenant_response",
+        fieldChanges: [
+          { label: "Preferred Schedule", before: "₦418,333 × 6 months", after: "₦627,500 × 4 months" },
+        ],
       },
       {
         id: "evt-t-4",
@@ -808,4 +832,12 @@ export function formatLastActivity(iso: string): string {
   if (isYesterday) return "Yesterday";
   if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** Full history-card timestamp, e.g. "21 Apr 2026 • 09:15 AM". */
+export function formatFullTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const datePart = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const timePart = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${datePart} • ${timePart}`;
 }

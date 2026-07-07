@@ -156,11 +156,6 @@ export const screenMap: ScreenMap = {
         default: withLandlordMobileProps(module.default),
       })),
     ),
-    "payment-plan-thread": lazy(() =>
-      import("@/components/PaymentPlanThreadDetail").then((module) => ({
-        default: withLandlordMobileProps(module.default),
-      })),
-    ),
     "invoices": lazy(() =>
       import("@/components/InvoicesPage").then((module) => ({
         default: withLandlordMobileProps(module.default),
