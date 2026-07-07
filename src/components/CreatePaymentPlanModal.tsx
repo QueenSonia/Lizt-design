@@ -20,8 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { addPaymentPlan, updatePaymentPlan, type PaymentPlan } from "@/lib/paymentPlanStore";
 import type { PlanScope } from "./PlanScopePickerModal";
+import type { ProposalInstallment } from "@/lib/paymentPlanThreadStore";
 
 export interface ChargeOption {
   name: string;
@@ -36,6 +36,19 @@ interface Installment {
 
 type Frequency = "weekly" | "monthly" | "quarterly" | "annually";
 
+export interface CreatePaymentPlanResult {
+  chargeName: string;
+  totalAmount: number;
+  planType: "equal" | "custom";
+  installments: ProposalInstallment[];
+}
+
+export interface ExistingPlanValues {
+  chargeName: string;
+  planType: "equal" | "custom";
+  installments: { id: string; amount: number; dueDate: string }[];
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -44,7 +57,8 @@ interface Props {
   tenantId: string;
   charges: ChargeOption[];
   scope: PlanScope;
-  existingPlan?: PaymentPlan; // when set, modal is in edit mode
+  existingPlan?: ExistingPlanValues; // when set, modal is in edit/revise mode
+  onCreate: (result: CreatePaymentPlanResult) => void;
 }
 
 function generateId() {
@@ -101,6 +115,7 @@ export function CreatePaymentPlanModal({
   charges,
   scope,
   existingPlan,
+  onCreate,
 }: Props) {
   const isEditMode = !!existingPlan;
   const [selectedCharge, setSelectedCharge] = useState<string>("");
@@ -215,18 +230,12 @@ export function CreatePaymentPlanModal({
       dueDate: row.dueDate,
       status: "pending" as const,
     }));
-    if (isEditMode && existingPlan) {
-      updatePaymentPlan(existingPlan.id, { planType, installments: mappedInstallments });
-    } else {
-      addPaymentPlan({
-        propertyName,
-        tenantId,
-        chargeName: scope === "tenancy" ? "Entire Tenancy" : selectedCharge,
-        totalAmount: total,
-        planType,
-        installments: mappedInstallments,
-      });
-    }
+    onCreate({
+      chargeName: isEditMode && existingPlan ? existingPlan.chargeName : (scope === "tenancy" ? "Entire Tenancy" : selectedCharge),
+      totalAmount: total > 0 ? total : mappedInstallments.reduce((sum, i) => sum + i.amount, 0),
+      planType,
+      installments: mappedInstallments,
+    });
     handleClose();
   }
 

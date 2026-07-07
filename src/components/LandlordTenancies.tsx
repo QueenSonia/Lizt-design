@@ -29,7 +29,7 @@ import { TenancyReminderSettings, InvoiceDrawer, MOCK_INVOICES, type Invoice } f
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { GlobalSearchDropdown } from "./GlobalSearch";
-import { getPaymentPlans } from "@/lib/paymentPlanStore";
+import { getPaymentPlanThreads, getCurrentRevision } from "@/lib/paymentPlanThreadStore";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -922,18 +922,19 @@ function TenancyDetailScreen({
 
             {/* Payment Plans */}
             {(() => {
-              const plans = getPaymentPlans(tenancy.propertyName, tenancy.tenantId);
-              // Find next pending installment across all plans
-              const nextInstallment = plans.flatMap((p) =>
-                p.installments
+              const threads = getPaymentPlanThreads(tenancy.propertyName, tenancy.tenantId);
+              // Find next pending installment across all threads' current revisions
+              const nextInstallment = threads.flatMap((t) => {
+                const revision = getCurrentRevision(t);
+                if (!revision) return [];
+                return revision.installments
                   .filter((i) => i.status === "pending")
-                  .map((i, _, arr) => ({
-                    plan: p,
+                  .map((i) => ({
                     inst: i,
-                    installmentNumber: p.installments.indexOf(i) + 1,
-                    total: p.installments.length,
-                  }))
-              ).sort((a, b) => a.inst.dueDate.localeCompare(b.inst.dueDate))[0];
+                    installmentNumber: revision.installments.indexOf(i) + 1,
+                    total: revision.installments.length,
+                  }));
+              }).sort((a, b) => a.inst.dueDate.localeCompare(b.inst.dueDate))[0];
               const fmtInstDate = (iso: string) =>
                 new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
               return (

@@ -63,6 +63,7 @@ import { subscribeToFMStore } from "@/lib/facilityManagerStore";
 import { getRecurringCharges, subscribeToRecurringCharges, type RecurringCharge } from "@/lib/recurringChargesStore";
 import { CreatePaymentPlanModal, type ChargeOption } from "./CreatePaymentPlanModal";
 import { PlanScopePickerModal, type PlanScope } from "./PlanScopePickerModal";
+import { createPaymentPlanThread } from "@/lib/paymentPlanThreadStore";
 import {
   PropertyDetailWithHistory,
   KYCApplicationSummary,
@@ -2517,6 +2518,25 @@ export default function LandlordPropertyDetail({
               ...getRecurringCharges(propertyData.name || "").map((c) => ({ name: c.feeName, amount: c.amount })),
             ].filter((c) => { if (seen.has(c.name)) return false; seen.add(c.name); return true; });
           })()}
+          onCreate={(result) => {
+            const thread = createPaymentPlanThread({
+              propertyName: propertyData.name || "",
+              tenantId: propertyData.currentTenant!.id,
+              tenantName: propertyData.currentTenant!.name || "",
+              title: result.chargeName,
+              amountDue: result.totalAmount,
+              proposedBy: "landlord",
+              planType: result.planType,
+              installments: result.installments,
+            });
+            setShowPaymentPlanModal(false);
+            const params = new URLSearchParams({
+              id: thread.id,
+              property: propertyData.name || "",
+              tenant: propertyData.currentTenant!.id,
+            });
+            router.push(`/landlord/payment-plan-thread?${params.toString()}`);
+          }}
         />
       )}
 
