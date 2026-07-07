@@ -1,18 +1,11 @@
 /* eslint-disable */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Send, Bell, Check, X, Plus } from "lucide-react";
+import { ArrowLeft, ArrowDown, Bell, Check, X, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
 import {
   getPaymentPlanThread,
   subscribeToPaymentPlanThreads,
@@ -22,11 +15,9 @@ import {
   declineProposal,
   markInstallmentPaid,
   sendReminder,
-  postMessage,
   THREAD_STATUS_LABELS,
   THREAD_STATUS_STYLES,
   type PaymentPlanThread,
-  type ProposalRevision,
   type ThreadEvent,
 } from "@/lib/paymentPlanThreadStore";
 import { CreatePaymentPlanModal, type CreatePaymentPlanResult } from "./CreatePaymentPlanModal";
@@ -59,6 +50,7 @@ function fmtThreadDate(iso: string) {
 
 const EVENT_STYLES: Record<string, string> = {
   proposal_created: "border-gray-200 text-gray-600",
+  proposal_updated: "border-gray-200 text-gray-600",
   proposal_accepted: "border-green-200 text-green-700",
   proposal_declined: "border-red-200 text-red-600",
   plan_approved: "border-green-200 text-green-700",
@@ -70,30 +62,13 @@ const EVENT_STYLES: Record<string, string> = {
   reminder_sent: "border-amber-200 text-amber-700",
 };
 
-const REVISION_STATUS_LABELS: Record<ProposalRevision["status"], string> = {
-  pending: "Pending Response",
-  accepted: "Accepted",
-  declined: "Declined",
-  current: "Current Proposal",
-};
-
-const REVISION_STATUS_STYLES: Record<ProposalRevision["status"], string> = {
-  pending: "bg-blue-50 text-blue-600",
-  accepted: "bg-green-100 text-green-700",
-  declined: "bg-red-50 text-red-500",
-  current: "bg-[#FFF3EB] text-[#FF5000]",
-};
-
 export default function PaymentPlanThreadDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const threadId = searchParams.get("id") || "";
 
   const [thread, setThread] = useState<PaymentPlanThread | null>(null);
-  const [messageInput, setMessageInput] = useState("");
   const [showReviseModal, setShowReviseModal] = useState(false);
-  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     function sync() { setThread(getPaymentPlanThread(threadId) ?? null); }
@@ -116,12 +91,6 @@ export default function PaymentPlanThreadDetail() {
   const latestRevision = thread.revisions[thread.revisions.length - 1];
   const latestIsPending = latestRevision?.status === "pending";
 
-  function handleSendMessage() {
-    if (!messageInput.trim()) return;
-    postMessage(thread!.id, "You", "landlord", messageInput.trim());
-    setMessageInput("");
-  }
-
   function handleApprove() {
     if (!latestRevision) return;
     approveProposal(thread!.id, latestRevision.id, "landlord");
@@ -141,7 +110,7 @@ export default function PaymentPlanThreadDetail() {
     setShowReviseModal(false);
   }
 
-  // Build a merged, chronological list of proposal + message/system events
+  // Negotiation timeline — the complete chronological history of the thread
   const timeline: ThreadEvent[] = [...thread.events].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   const groups: { label: string; events: ThreadEvent[] }[] = [];
@@ -233,6 +202,46 @@ export default function PaymentPlanThreadDetail() {
             </div>
           </div>
 
+          {/* Current proposal's installment schedule */}
+          {currentRevision && (
+            <div className="border-t border-gray-100 pt-3">
+              <div className="rounded-lg border border-gray-100 overflow-hidden">
+                <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-400">
+                  <span>Due Date</span>
+                  <span className="text-right">Amount</span>
+                  <span className="text-right w-16">Status</span>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {currentRevision.installments.map((inst) => (
+                    <button
+                      key={inst.id}
+                      type="button"
+                      disabled={inst.status === "paid"}
+                      onClick={() => markInstallmentPaid(thread!.id, currentRevision.id, inst.id)}
+                      className={`w-full grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2.5 items-center text-left ${
+                        inst.status !== "paid" ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
+                      }`}
+                    >
+                      <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
+                      <span className="text-sm font-medium text-gray-900 text-right">
+                        {formatCurrency(inst.amount)}
+                      </span>
+                      <div className="w-16 flex justify-end">
+                        <Badge
+                          className={`text-xs border-0 rounded-full px-2 py-0.5 ${
+                            inst.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-50 text-amber-600"
+                          }`}
+                        >
+                          {inst.status === "paid" ? "Paid" : "Pending"}
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Approve/Decline actions for the latest pending proposal */}
           {latestIsPending && (isAwaitingLandlord || isAwaitingTenant) && (
             <div className="flex gap-2 pt-2 border-t border-gray-100">
@@ -257,79 +266,10 @@ export default function PaymentPlanThreadDetail() {
           )}
         </div>
 
-        {/* ── Proposal Revisions ─────────────────────────────── */}
+        {/* ── Negotiation Timeline ───────────────────────────── */}
         <div>
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Proposal Revisions
-          </h2>
-          <div className="space-y-3">
-            {thread.revisions.map((rev) => {
-              const paid = rev.installments.filter((i) => i.status === "paid").length;
-              const total = rev.installments.length;
-              const isActiveRevision = currentRevision?.id === rev.id;
-              return (
-                <div key={rev.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gray-500">Revision {rev.revisionNumber}</span>
-                      <span className="text-xs text-gray-300">·</span>
-                      <span className="text-xs text-gray-400">
-                        Proposed by {rev.proposedBy === "landlord" ? "Landlord" : "Tenant"}
-                      </span>
-                    </div>
-                    <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 ${REVISION_STATUS_STYLES[rev.status]}`}>
-                      {REVISION_STATUS_LABELS[rev.status]}
-                    </Badge>
-                  </div>
-                  <div className="px-4 py-2.5">
-                    <p className="text-sm font-medium text-gray-900">
-                      {total === 1 ? "One-time Payment" : `${total} Installments`}
-                      <span className="text-gray-400 font-normal"> · {formatCurrency(rev.totalAmount)}</span>
-                    </p>
-                    {rev.note && <p className="text-xs text-gray-500 mt-1 italic">"{rev.note}"</p>}
-                  </div>
-                  <div className="border-t border-gray-100 divide-y divide-gray-50">
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-4 py-2 bg-gray-50 text-xs text-gray-400">
-                      <span>Due Date</span>
-                      <span className="text-right">Amount</span>
-                      <span className="text-right w-16">Status</span>
-                    </div>
-                    {rev.installments.map((inst, idx) => (
-                      <button
-                        key={inst.id}
-                        type="button"
-                        disabled={inst.status === "paid" || !isActiveRevision}
-                        onClick={() => markInstallmentPaid(thread!.id, rev.id, inst.id)}
-                        className={`w-full grid grid-cols-[1fr_auto_auto] gap-3 px-4 py-2.5 items-center text-left ${
-                          isActiveRevision && inst.status !== "paid" ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
-                        }`}
-                      >
-                        <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
-                        <span className="text-sm font-medium text-gray-900 text-right">
-                          {formatCurrency(inst.amount)}
-                        </span>
-                        <div className="w-16 flex justify-end">
-                          <Badge
-                            className={`text-xs border-0 rounded-full px-2 py-0.5 ${
-                              inst.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-50 text-amber-600"
-                            }`}
-                          >
-                            {inst.status === "paid" ? "Paid" : "Pending"}
-                          </Badge>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── Activity Timeline (events + messages) ─────────── */}
-        <div>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Activity Timeline
+            Negotiation Timeline
           </h2>
           <div className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden">
             <div className="px-4 py-5 space-y-1 min-h-[120px]">
@@ -345,23 +285,39 @@ export default function PaymentPlanThreadDetail() {
                   </div>
                   <div className="space-y-3">
                     {group.events.map((event) => {
-                      if (event.type === "message") {
-                        const isLandlord = event.actor === "landlord";
+                      // Proposal edits — richer card with previous → current proposal
+                      if (event.type === "proposal_updated") {
                         return (
-                          <div key={event.id} className={`flex flex-col gap-1 ${isLandlord ? "items-end" : "items-start"}`}>
-                            <span className="text-[10px] text-gray-400 font-medium px-1">
-                              {isLandlord ? "You" : event.authorName ?? "Tenant"}
-                            </span>
-                            <div
-                              className={`max-w-[78%] px-3.5 py-2.5 text-sm leading-relaxed shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
-                                isLandlord
-                                  ? "bg-[#FF5000] text-white rounded-2xl rounded-br-sm"
-                                  : "bg-white text-gray-900 rounded-2xl rounded-bl-sm border border-gray-100"
-                              }`}
-                            >
-                              {event.message}
+                          <div key={event.id} className="flex justify-center">
+                            <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                              <div className="flex items-center justify-between px-3.5 py-2 bg-gray-50 border-b border-gray-100">
+                                <span className="text-xs font-semibold text-gray-600">Proposal Updated</span>
+                                <span className="text-[10px] text-gray-400">{fmtThreadTime(event.createdAt)}</span>
+                              </div>
+                              <div className="px-3.5 py-3 space-y-1.5">
+                                <div>
+                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide">Previous Proposal</p>
+                                  <p className="text-sm text-gray-500 line-through decoration-gray-300">
+                                    {event.previousProposalSummary}
+                                  </p>
+                                </div>
+                                <div className="flex justify-center">
+                                  <ArrowDown className="w-3.5 h-3.5 text-gray-300" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide">Current Proposal</p>
+                                  <p className="text-sm font-medium text-gray-900">{event.currentProposalSummary}</p>
+                                </div>
+                                {event.resultingStatus && (
+                                  <div className="pt-1.5 mt-1.5 border-t border-gray-100">
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                                    <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 ${THREAD_STATUS_STYLES[event.resultingStatus]}`}>
+                                      {THREAD_STATUS_LABELS[event.resultingStatus]}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <span className="text-[10px] text-gray-400 px-1">{fmtThreadTime(event.createdAt)}</span>
                           </div>
                         );
                       }
@@ -383,33 +339,6 @@ export default function PaymentPlanThreadDetail() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Composer */}
-            <div className="border-t border-gray-200 bg-white px-3 py-2.5 flex items-end gap-2">
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="Send a message…"
-                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none"
-                style={{ maxHeight: 120, overflowY: "auto", lineHeight: "1.5" }}
-              />
-              <button
-                type="button"
-                onClick={handleSendMessage}
-                disabled={!messageInput.trim()}
-                className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
-              >
-                <Send className="w-3.5 h-3.5 text-white" />
-              </button>
             </div>
           </div>
         </div>
