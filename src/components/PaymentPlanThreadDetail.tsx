@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowDown, Bell, Check, X, Plus, User, Building2 } from "lucide-react";
+import { ArrowLeft, ArrowDown, Bell, Check, X, Plus, User, Building2, MoreVertical, Pencil, Trash2, Ban } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
@@ -15,12 +15,21 @@ import {
   DialogFooter,
 } from "./ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
   getPaymentPlanThread,
   subscribeToPaymentPlanThreads,
   getCurrentRevision,
+  canDeleteCurrentProposal,
   addProposalRevision,
   approveProposal,
   declineProposal,
+  deleteCurrentProposal,
+  cancelThread,
   markInstallmentPaid,
   sendReminder,
   THREAD_STATUS_LABELS,
@@ -68,10 +77,11 @@ const EVENT_CARD_ACCENT: Record<string, string> = {
   proposal_revised: "border-l-gray-300",
   proposal_accepted: "border-l-green-400",
   proposal_declined: "border-l-red-400",
+  proposal_deleted: "border-l-gray-300",
   plan_approved: "border-l-green-400",
   plan_declined: "border-l-red-400",
   plan_completed: "border-l-green-400",
-  plan_cancelled: "border-l-gray-300",
+  plan_cancelled: "border-l-gray-400",
   installment_paid: "border-l-green-400",
   installment_overdue: "border-l-red-400",
   reminder_sent: "border-l-amber-400",
@@ -127,10 +137,14 @@ function EventCard({ event }: { event: ThreadEvent }) {
                 ? "Accepted Proposal"
                 : event.type === "proposal_declined"
                 ? "Rejected Proposal"
+                : event.type === "proposal_deleted"
+                ? "Deleted Proposal"
                 : event.type === "plan_approved"
                 ? "Approved Proposal"
                 : event.type === "plan_completed"
                 ? "Final Proposal"
+                : event.type === "plan_cancelled"
+                ? "Cancelled Proposal"
                 : "Proposal"}
             </p>
             <p className="text-sm font-medium text-gray-900">{proposalLine(event.proposal)}</p>
@@ -211,6 +225,9 @@ export default function PaymentPlanThreadDetail() {
   const [showReviseModal, setShowReviseModal] = useState(false);
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   useEffect(() => {
     function sync() { setThread(getPaymentPlanThread(threadId) ?? null); }
@@ -232,6 +249,8 @@ export default function PaymentPlanThreadDetail() {
   const isActive = thread.status !== "cancelled" && thread.status !== "declined" && thread.status !== "completed";
   const latestRevision = thread.revisions[thread.revisions.length - 1];
   const latestIsPending = latestRevision?.status === "pending";
+  const canDelete = canDeleteCurrentProposal(thread);
+  const canCancel = isActive && currentRevision && !canDelete;
 
   function handleApprove() {
     if (!latestRevision) return;
@@ -252,6 +271,17 @@ export default function PaymentPlanThreadDetail() {
       installments: result.installments,
     });
     setShowReviseModal(false);
+  }
+
+  function handleDeleteConfirm() {
+    deleteCurrentProposal(thread!.id, "landlord");
+    setShowDeleteDialog(false);
+  }
+
+  function handleCancelConfirm() {
+    cancelThread(thread!.id, "landlord", cancelReason.trim() || undefined);
+    setShowCancelDialog(false);
+    setCancelReason("");
   }
 
   // Negotiation timeline — the complete chronological history of the thread
@@ -329,7 +359,7 @@ export default function PaymentPlanThreadDetail() {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-4 pt-2 border-t border-gray-100 items-start">
             <div>
               <p className="text-xs text-gray-400 mb-0.5">Amount Due</p>
               <p className="text-sm font-semibold text-gray-900">{formatCurrency(thread.amountDue)}</p>
@@ -344,6 +374,42 @@ export default function PaymentPlanThreadDetail() {
                   : "—"}
               </p>
             </div>
+            {currentRevision && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="p-1.5 -mr-1.5 -mt-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                    aria-label="Payment plan actions"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowReviseModal(true)}>
+                    <Pencil className="w-3.5 h-3.5 mr-2" />
+                    Edit Payment Plan
+                  </DropdownMenuItem>
+                  {canDelete ? (
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => setShowDeleteDialog(true)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-2" />
+                      Delete Payment Plan
+                    </DropdownMenuItem>
+                  ) : canCancel ? (
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => setShowCancelDialog(true)}
+                    >
+                      <Ban className="w-3.5 h-3.5 mr-2" />
+                      Cancel Payment Plan
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Current proposal's installment schedule */}
@@ -484,6 +550,61 @@ export default function PaymentPlanThreadDetail() {
               onClick={handleDeclineConfirm}
             >
               Decline Proposal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete payment plan confirmation */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Payment Plan?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 py-2">
+            This will remove the current proposal from the thread. This action cannot be undone.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleDeleteConfirm}
+            >
+              Delete Payment Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel payment plan dialog (for already-active plans / payment history) */}
+      <Dialog open={showCancelDialog} onOpenChange={(v) => { if (!v) { setShowCancelDialog(false); setCancelReason(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cancel Payment Plan?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 py-2">
+            This plan has already been approved or has recorded payments, so it will be cancelled rather than deleted. Its full history stays in the timeline.
+          </p>
+          <div className="space-y-1.5 pb-2">
+            <label className="text-xs font-medium text-gray-500">Reason (optional)</label>
+            <Textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Explain why this payment plan is being cancelled…"
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowCancelDialog(false); setCancelReason(""); }}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleCancelConfirm}
+            >
+              Cancel Payment Plan
             </Button>
           </DialogFooter>
         </DialogContent>

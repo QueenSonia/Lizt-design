@@ -17,7 +17,7 @@ export type ThreadStatus =
   | "completed"
   | "cancelled";
 
-export type ProposalStatus = "pending" | "accepted" | "declined" | "current";
+export type ProposalStatus = "pending" | "accepted" | "declined" | "current" | "deleted";
 
 export interface ProposalInstallment {
   id: string;
@@ -44,10 +44,11 @@ export type ThreadEventType =
   | "proposal_revised"     // either party edits/counters the proposal
   | "proposal_accepted"
   | "proposal_declined"
+  | "proposal_deleted"     // Property Manager deletes a not-yet-accepted proposal
   | "plan_approved"
   | "plan_declined"
   | "plan_completed"
-  | "plan_cancelled"
+  | "plan_cancelled"       // Property Manager cancels an already-active plan
   | "installment_paid"
   | "installment_overdue"
   | "reminder_sent";
@@ -412,11 +413,24 @@ export function getPaymentPlanThread(threadId: string): PaymentPlanThread | unde
 }
 
 export function getCurrentRevision(thread: PaymentPlanThread): ProposalRevision | undefined {
+  // The most recently created revision determines what's "active" right now. If it was
+  // deleted, there is no current proposal — deletion is not meant to reveal older history.
+  const latest = thread.revisions[thread.revisions.length - 1];
+  if (!latest || latest.status === "deleted") return undefined;
   return (
     thread.revisions.find((r) => r.status === "current") ??
     [...thread.revisions].reverse().find((r) => r.status === "accepted" || r.status === "pending") ??
-    thread.revisions[thread.revisions.length - 1]
+    latest
   );
+}
+
+/** Whether the thread's active proposal can be deleted outright (never accepted, no payments made). */
+export function canDeleteCurrentProposal(thread: PaymentPlanThread): boolean {
+  const revision = getCurrentRevision(thread);
+  if (!revision) return false;
+  if (revision.status !== "pending") return false;
+  if (revision.installments.some((i) => i.status === "paid")) return false;
+  return thread.status === "awaiting_landlord_approval" || thread.status === "awaiting_tenant_response";
 }
 
 function touch(thread: PaymentPlanThread, at?: string) {
@@ -628,17 +642,59 @@ export function declineProposal(
   _notify();
 }
 
-export function cancelThread(threadId: string) {
+/**
+ * Delete the current proposal outright. Only allowed while it has never been
+ * accepted and no installment on it has been paid (canDeleteCurrentProposal()).
+ * Removes it from "Current Proposal" and records the deletion in the timeline —
+ * the proposal itself stays in thread.revisions for history, just marked deleted.
+ */
+export function deleteCurrentProposal(threadId: string, actor: "landlord" | "tenant" = "landlord") {
+  const thread = _threads.find((t) => t.id === threadId);
+  if (!thread) return;
+  if (!canDeleteCurrentProposal(thread)) return;
+  const revision = getCurrentRevision(thread);
+  if (!revision) return;
+  const now = new Date().toISOString();
+  const snapshot = snapshotFromInstallments(revision.installments);
+
+  thread.revisions = thread.revisions.map((r) =>
+    r.id === revision.id ? { ...r, status: "deleted" as ProposalStatus } : r
+  );
+
+  thread.events.push({
+    id: generateId("evt"),
+    type: "proposal_deleted",
+    actor,
+    headline: `${actorLabel(actor)} deleted the payment plan proposal`,
+    createdAt: now,
+    proposal: snapshot,
+    resultingStatusLabel: "Deleted",
+  });
+  thread.status = "cancelled";
+  touch(thread, now);
+  _notify();
+}
+
+/**
+ * Cancel a payment plan that has already been accepted/approved or has payment
+ * history. Unlike deleteCurrentProposal, the plan and its history remain fully
+ * visible — only its status changes.
+ */
+export function cancelThread(threadId: string, actor: "landlord" | "tenant" = "landlord", reason?: string) {
   const thread = _threads.find((t) => t.id === threadId);
   if (!thread) return;
   const now = new Date().toISOString();
+  const revision = getCurrentRevision(thread);
   thread.status = "cancelled";
   thread.events.push({
     id: generateId("evt"),
     type: "plan_cancelled",
-    actor: "system",
-    headline: "Payment plan cancelled",
+    actor,
+    headline: `${actorLabel(actor)} cancelled the payment plan`,
     createdAt: now,
+    proposal: revision ? snapshotFromInstallments(revision.installments) : undefined,
+    reason,
+    resultingStatusLabel: "Cancelled",
   });
   touch(thread, now);
   _notify();
