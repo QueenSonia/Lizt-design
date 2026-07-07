@@ -155,7 +155,7 @@ const _threads: PaymentPlanThread[] = [
     tenancyStartDate: "2026-05-01",
     tenancyEndDate: "2027-04-30",
     amountDue: 2510000,
-    status: "awaiting_landlord_approval",
+    status: "approved",
     createdAt: "2026-04-12T10:30:00.000Z",
     lastActivityAt: "2026-06-02T09:00:00.000Z",
     revisions: [
