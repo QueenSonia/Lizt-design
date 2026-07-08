@@ -2519,7 +2519,7 @@ export default function LandlordPropertyDetail({
             ].filter((c) => { if (seen.has(c.name)) return false; seen.add(c.name); return true; });
           })()}
           onCreate={(result) => {
-            createPaymentPlanThread({
+            const thread = createPaymentPlanThread({
               propertyName: propertyData.name || "",
               tenantId: propertyData.currentTenant!.id,
               tenantName: propertyData.currentTenant!.name || "",
@@ -2531,10 +2531,11 @@ export default function LandlordPropertyDetail({
             });
             setShowPaymentPlanModal(false);
             const params = new URLSearchParams({
+              id: thread.id,
               property: propertyData.name || "",
               tenant: propertyData.currentTenant!.id,
             });
-            router.push(`/landlord/payment-plans?${params.toString()}`);
+            router.push(`/landlord/payment-plan-thread?${params.toString()}`);
           }}
         />
       )}
