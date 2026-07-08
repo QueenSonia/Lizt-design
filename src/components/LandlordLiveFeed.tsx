@@ -445,7 +445,7 @@ export default function LandlordLiveFeed({
   const activitySections = getSectionedActivities();
 
   const searchBar = (
-    <div className="relative w-56 lg:w-72">
+    <div className="relative w-full max-w-md lg:max-w-lg">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
       <input
         type="text"
@@ -478,10 +478,10 @@ export default function LandlordLiveFeed({
         isMobile={isMobile}
         showAddNew={showAddButton}
         isMenuOpen={isMenuOpen}
-        headerAccessory={searchBar}
+        belowHeader={searchBar}
       />
 
-      <div className="pt-4 lg:pt-28 px-4 lg:px-8 pb-8 space-y-6">
+      <div className="pt-4 lg:pt-40 px-4 lg:px-8 pb-8 space-y-6">
         <Card className="border-slate-200 mt-4 lg:mt-10">
           <CardHeader>
             <div className="flex items-center justify-between gap-4">

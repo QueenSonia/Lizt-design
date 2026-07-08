@@ -193,7 +193,12 @@ export const LandlordTopNav = memo(function LandlordTopNav({
             </>
           )}
         </div>
-        {belowHeader && <div className="mt-4">{belowHeader}</div>}
+        {belowHeader && (
+          <>
+            <div className="mt-4 border-t border-slate-100" aria-hidden="true" />
+            <div className="mt-4">{belowHeader}</div>
+          </>
+        )}
       </div>
     </div>
   );
