@@ -401,9 +401,6 @@ export default function PaymentPlanThreadDetail() {
         {/* Payment Plan Thread — one continuous version history. The first entry IS the current
             active payment plan; every card beneath it is an earlier version of the same plan. */}
         <div>
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Payment Plan Thread
-          </h3>
           <div className="relative pl-6">
             <div className="absolute left-[5px] top-2 bottom-2 w-0.5 bg-gray-200" aria-hidden="true" />
             <div className="space-y-5">
