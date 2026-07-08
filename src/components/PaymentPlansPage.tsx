@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, ChevronRight, MessagesSquare } from "lucide-react";
+import { ArrowLeft, Plus, ChevronRight, MessagesSquare } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
@@ -53,11 +53,20 @@ export default function PaymentPlansPage() {
       {/* Top bar */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-3xl px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-semibold text-gray-900">Payment Plans</h1>
-            {propertyName && (
-              <p className="text-xs text-gray-400 leading-none mt-0.5">{propertyName}</p>
-            )}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="text-gray-400 hover:text-gray-700 transition-colors p-1 -ml-1 rounded"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-base font-semibold text-gray-900">Payment Plans</h1>
+              {propertyName && (
+                <p className="text-xs text-gray-400 leading-none mt-0.5">{propertyName}</p>
+              )}
+            </div>
           </div>
           <Button
             size="sm"
