@@ -639,14 +639,15 @@ export default function PaymentPlansPage() {
             </Button>
           </div>
         ) : (
-          <Accordion type="multiple" value={openItems} onValueChange={setOpenItems} className="space-y-3">
+          <Accordion
+            type="multiple"
+            value={openItems}
+            onValueChange={setOpenItems}
+            className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100"
+          >
             {threads.map((thread) => (
-              <AccordionItem
-                key={thread.id}
-                value={thread.id}
-                className="bg-white border border-gray-200 rounded-xl px-4 border-b-0 overflow-hidden"
-              >
-                <AccordionTrigger className="hover:no-underline py-3.5">
+              <AccordionItem key={thread.id} value={thread.id} className="border-b-0 px-4">
+                <AccordionTrigger className="hover:no-underline py-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-sm font-medium text-gray-900 truncate">{thread.title}</span>
                     <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 shrink-0 ${THREAD_STATUS_STYLES[thread.status]}`}>
