@@ -436,7 +436,7 @@ export default function PaymentPlanThreadDetail() {
             active payment plan; every card beneath it is an earlier version of the same plan. */}
         <div>
           <div className="relative pl-6">
-            <div className="absolute left-[5px] top-2 bottom-2 w-0.5 bg-gray-200" aria-hidden="true" />
+            <div className="absolute left-[5px] top-5 bottom-2 w-0.5 bg-gray-200" aria-hidden="true" />
             <div className="space-y-5">
               {/* Newest entry — the Active Payment Plan, interactive (mark paid, approve/decline, edit menu) */}
               <div className="relative">
