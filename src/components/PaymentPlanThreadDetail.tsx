@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowDown, Bell, Check, X, Plus, User, Building2, MoreVertical, Pencil, Trash2, Ban } from "lucide-react";
+import { ArrowLeft, Bell, Check, X, Plus, MoreVertical, Pencil, Trash2, Ban } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
@@ -62,6 +62,16 @@ function proposalLine(p: ProposalSnapshot): string {
   return p.installmentCount === 1 ? "One-time Payment" : `${p.installmentCount} Installments`;
 }
 
+/** One-line "N × ₦amount" shorthand used inside the concise change summary sentence. */
+function proposalShorthand(p: ProposalSnapshot): string {
+  return `${p.installmentCount} × ${formatCurrency(p.installmentAmount)}`;
+}
+
+/** A single concise sentence describing what changed between two proposal snapshots. */
+function buildChangeSummary(before: ProposalSnapshot, after: ProposalSnapshot): string {
+  return `Payment schedule revised from ${proposalShorthand(before)} to ${proposalShorthand(after)}.`;
+}
+
 const PAYMENT_EVENT_TYPES = new Set<ThreadEvent["type"]>([
   "installment_paid",
   "installment_overdue",
@@ -98,7 +108,7 @@ function versionLabel(event: ThreadEvent): string {
     case "proposal_created":
       return "Payment Plan Was Edited";
     case "proposal_revised":
-      return `${who} Edited Payment Plan`;
+      return "Payment Plan Edited";
     case "proposal_accepted":
       return `${who} Accepted Revised Plan`;
     case "proposal_declined":
@@ -199,20 +209,13 @@ function VersionCard({ event }: { event: ThreadEvent }) {
         )}
       </div>
 
-      {/* What changed on a revision — Before → After */}
-      {event.fieldChanges && event.fieldChanges.length > 0 &&
-        event.fieldChanges.map((change) => (
-          <div key={change.label} className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2.5">
-            <p className="text-xs font-medium text-gray-600 mb-1.5">{change.label} Changed</p>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide">From</p>
-            <p className="text-sm text-gray-500 line-through decoration-gray-300">{change.before}</p>
-            <div className="flex justify-center py-0.5">
-              <ArrowDown className="w-3.5 h-3.5 text-gray-300" />
-            </div>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide">To</p>
-            <p className="text-sm font-medium text-gray-900">{change.after}</p>
-          </div>
-        ))}
+      {/* What changed on a revision — one concise sentence instead of a Before/After block per field */}
+      {event.previousProposal && event.proposal && (
+        <div>
+          <p className="text-xs text-gray-400 mb-0.5">Changes Made</p>
+          <p className="text-sm text-gray-900">{buildChangeSummary(event.previousProposal, event.proposal)}</p>
+        </div>
+      )}
 
       {/* Total Amount — always shown; the schedule table only once a structured plan exists */}
       {event.proposal && (

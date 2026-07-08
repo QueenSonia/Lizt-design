@@ -101,10 +101,6 @@ export interface ThreadEvent {
   chargesBreakdown?: ChargeLine[];
   preferredScheduleText?: string;
   tenantNote?: string;
-
-  // Field-level "before → after" changes on a revision, beyond the installment schedule itself
-  // (e.g. charges added/removed, due dates shifted). Rendered as extra Before/After rows.
-  fieldChanges?: { label: string; before: string; after: string }[];
 }
 
 export interface PaymentPlanThread {
@@ -271,9 +267,6 @@ const _threads: PaymentPlanThread[] = [
         proposal: snapshotFromInstallments(_tenancySchedule2),
         reason: "Adjusted to comply with the property's payment policy.",
         resultingStatus: "awaiting_tenant_response",
-        fieldChanges: [
-          { label: "Preferred Schedule", before: "₦418,333 × 6 months", after: "₦627,500 × 4 months" },
-        ],
       },
       {
         id: "evt-t-4",
@@ -421,10 +414,6 @@ const _threads: PaymentPlanThread[] = [
         proposal: snapshotFromInstallments(_serviceChargeSchedule),
         reason: "Consolidated into 2 installments to align with the property's billing cycle.",
         resultingStatus: "awaiting_tenant_response",
-        fieldChanges: [
-          { label: "Schedule", before: "5 Installments", after: "2 Installments" },
-          { label: "Installment Amount", before: "₦50,000", after: "₦125,000" },
-        ],
       },
       {
         id: "evt-sc-2",
