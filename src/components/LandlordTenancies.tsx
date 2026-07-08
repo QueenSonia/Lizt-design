@@ -216,7 +216,142 @@ const MOCK_TENANCIES: Tenancy[] = [
       { id: "inv-006", ref: "INV-2024-009", date: "2024-08-01", amount: 1200000, status: "paid", description: "Annual Rent – Aug 2024 to Jul 2025" },
     ],
   },
+  ...generateMockTenancies(),
 ];
+
+// Generates additional varied, realistic-looking tenancy records so the list is long enough to
+// require vertical scrolling — used to exercise the sticky table header. Kept separate from the
+// hand-authored records above (which carry richer nested history for the detail screen) since
+// these only need to be valid, not narratively rich.
+function generateMockTenancies(): Tenancy[] {
+  const firstNames = [
+    "Tunde", "Ifeoma", "Bola", "Segun", "Ngozi", "Yusuf", "Amaka", "Kunle", "Halima", "Chinedu",
+    "Funmi", "Damilola", "Aisha", "Obinna", "Blessing", "Tayo", "Chiamaka", "Ibrahim", "Zainab", "Uche",
+    "Femi", "Grace", "Emeka", "Ronke", "Musa", "Nkechi", "Wale", "Patience", "Suleiman", "Adaobi",
+    "Kayode", "Rita", "Bashir", "Chioma", "Seun", "Maryam", "Chukwuemeka", "Folasade", "Ahmed", "Ijeoma",
+    "Tobiloba", "Comfort", "Nnamdi", "Aminat", "Gbenga", "Ogechi", "Salisu", "Temitope", "Chinwe", "Lekan",
+  ];
+  const lastNames = [
+    "Adewale", "Okoro", "Balogun", "Ibrahim", "Eze", "Yusuf", "Nwachukwu", "Fashola", "Musa", "Okonkwo",
+    "Adeyinka", "Chukwu", "Bello", "Igwe", "Suleiman", "Afolabi", "Umeh", "Garba", "Nnaji", "Adekunle",
+  ];
+  const properties: { name: string; address: string }[] = [
+    { name: "Parkview Terrace – Block A", address: "5 Gerrard Road, Ikoyi, Lagos" },
+    { name: "Marina Heights – Unit 12", address: "18 Marina Street, Lagos Island" },
+    { name: "Oceanview Court", address: "27 Kofo Abayomi Street, Victoria Island" },
+    { name: "Chevron Drive Duplex", address: "11 Chevron Drive, Lekki" },
+    { name: "Banana Island Villa", address: "6 Ocean Parade, Banana Island, Ikoyi" },
+    { name: "Magodo Phase 2 Terrace", address: "42 CMD Road, Magodo, Lagos" },
+    { name: "Surulere Court – Flat 3B", address: "9 Adeniran Ogunsanya St, Surulere" },
+    { name: "Yaba Tech Residences", address: "31 Herbert Macaulay Way, Yaba" },
+    { name: "Ajah Garden Estate", address: "Block 14, Abraham Adesanya Estate, Ajah" },
+    { name: "GRA Heights", address: "7 Osborne Road, Ikoyi" },
+    { name: "Ikeja City Mall Annex", address: "23 Obafemi Awolowo Way, Ikeja" },
+    { name: "Lekki Gardens Phase 3", address: "15 Chisco Bus Stop, Lekki" },
+    { name: "Ogudu GRA Duplex", address: "8 Ogudu Road, Ogudu GRA" },
+    { name: "Festac Town Block 220", address: "220 22 Road, Festac Town" },
+    { name: "Maryland Mall View", address: "4 Mobolaji Bank Anthony Way, Maryland" },
+    { name: "Chevy View Estate", address: "Plot 9, Chevy View Estate, Lekki" },
+    { name: "Admiralty Way Flats", address: "36 Admiralty Way, Lekki Phase 1" },
+    { name: "Awolowo Road Suites", address: "13 Awolowo Road, Ikoyi" },
+    { name: "Allen Avenue Residences", address: "52 Allen Avenue, Ikeja" },
+    { name: "Ilupeju Court", address: "6 Town Planning Way, Ilupeju" },
+  ];
+  const landlords = [
+    "Michael Adeyemi", "Sarah Johnson", "Adeyemi Holdings Ltd", "Funke Balogun",
+    "Emeka Okonkwo", "Adaeze Properties Ltd", "Ibrahim Sanni", "Chuka Realty Group",
+    "Blessing Nwafor", "Kola Adeyanju",
+  ];
+  const rentFrequencies: Tenancy["rentFrequency"][] = ["year", "month"];
+  const statuses: Tenancy["status"][] = ["active", "expiring_soon", "ended", "outstanding"];
+
+  function seededRand(seed: number) {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+
+  const records: Tenancy[] = [];
+  const count = 55;
+  for (let i = 0; i < count; i++) {
+    const n = i + 5; // continue numbering after tn-001..tn-004
+    const first = firstNames[i % firstNames.length];
+    const last = lastNames[(i * 3 + 7) % lastNames.length];
+    const property = properties[i % properties.length];
+    const landlord = landlords[i % landlords.length];
+    const rentFrequency = rentFrequencies[i % 2];
+    const status = statuses[i % statuses.length];
+
+    const rentAmount = rentFrequency === "year"
+      ? 600000 + Math.floor(seededRand(i * 13.1) * 24) * 100000 // 600k .. 3M
+      : 80000 + Math.floor(seededRand(i * 13.1) * 20) * 10000; // 80k .. 280k
+
+    const outstandingBalance =
+      status === "outstanding" ? 30000 + Math.floor(seededRand(i * 7.7) * 25) * 10000 : 0;
+
+    const startYear = 2023 + (i % 3);
+    const startMonth = String(1 + (i % 12)).padStart(2, "0");
+    const startDate = `${startYear}-${startMonth}-01`;
+    const endYear = status === "ended" ? startYear + 1 : 2026 + (i % 2);
+    const endMonth = String(((i + 11) % 12) + 1).padStart(2, "0");
+    const endDay = ["04", "06", "09", "11"].includes(endMonth) ? "30" : endMonth === "02" ? "28" : "31";
+    const endDate = `${endYear}-${endMonth}-${endDay}`;
+
+    const tenantId = `t-gen-${String(n).padStart(3, "0")}`;
+    const propertyId = `p-gen-${String((i % properties.length) + 1).padStart(3, "0")}`;
+    const phoneMid = 700 + (i % 99);
+    const phoneEnd = 1000 + ((i * 37) % 8999);
+
+    records.push({
+      id: `tn-${String(n).padStart(3, "0")}`,
+      tenantName: `${first} ${last}`,
+      tenantPhone: `+234 ${phoneMid} ${String(phoneEnd).padStart(4, "0")}`,
+      propertyName: property.name,
+      propertyAddress: property.address,
+      landlordName: landlord,
+      tenancyType: i % 6 === 0 ? "Commercial" : "Residential",
+      startDate,
+      endDate,
+      rentAmount,
+      rentFrequency,
+      outstandingBalance,
+      status,
+      tenantId,
+      propertyId,
+      paymentHistory: [
+        {
+          id: `pay-gen-${n}`,
+          date: startDate,
+          amount: rentAmount,
+          type: "rent",
+          label: `${rentFrequency === "year" ? "Annual" : "Monthly"} Rent – ${startDate.slice(0, 7)}`,
+          method: i % 2 === 0 ? "Bank Transfer" : "Mobile Transfer",
+        },
+      ],
+      documents: [
+        { id: `doc-gen-${n}`, name: `Lease Agreement – ${startYear}.pdf`, type: "lease", date: startDate },
+      ],
+      whatsappHistory: [
+        {
+          id: `wa-gen-${n}`,
+          direction: "sent",
+          body: `Hi ${first}, this is a confirmation regarding your tenancy at ${property.name}.`,
+          timestamp: `${startDate}T09:00:00Z`,
+        },
+      ],
+      invoices: [
+        {
+          id: `inv-gen-${n}`,
+          ref: `INV-${startYear}-${String(100 + n)}`,
+          date: startDate,
+          amount: rentAmount,
+          status: status === "outstanding" ? "overdue" : "paid",
+          description: `${rentFrequency === "year" ? "Annual" : "Monthly"} Rent – ${property.name}`,
+        },
+      ],
+    });
+  }
+  return records;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -419,6 +554,14 @@ function TenancyListScreen({
       setColumnsPos({ top: rect.bottom + 8, left: Math.max(8, rect.right - 224) });
     }
     setColumnsOpen(true);
+  };
+
+  // Tracks whether the table body has scrolled beneath the sticky header, so we can add a
+  // subtle border/shadow to visually separate the header from rows once scrolling begins.
+  const [tableScrolled, setTableScrolled] = useState(false);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const handleTableScroll = () => {
+    setTableScrolled((tableScrollRef.current?.scrollTop ?? 0) > 0);
   };
 
   const handleSort = (col: SortColumn) => {
@@ -685,8 +828,17 @@ function TenancyListScreen({
           <>
             {/* ── Desktop table ── */}
             <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div
+                ref={tableScrollRef}
+                onScroll={handleTableScroll}
+                className="max-h-[70vh] overflow-y-auto"
+              >
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                <thead
+                  className={`bg-gray-50 border-b sticky top-0 z-10 transition-shadow duration-150 ${
+                    tableScrolled ? "border-gray-300 shadow-sm" : "border-gray-200"
+                  }`}
+                >
                   <tr>
                     {columnVisibility.landlord && (
                       <th className="text-left px-6 py-3">
@@ -786,6 +938,7 @@ function TenancyListScreen({
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {/* ── Mobile cards ── */}
