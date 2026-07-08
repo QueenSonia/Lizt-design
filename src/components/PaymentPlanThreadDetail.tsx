@@ -169,6 +169,9 @@ function InstallmentScheduleTable({
  */
 function VersionCard({ event }: { event: ThreadEvent }) {
   const label = versionLabel(event);
+  // The tenant's original ask is a request, not yet a structured plan — no installment
+  // schedule or "preferred schedule" line exists until the Property Manager turns it into one.
+  const isTenantRequest = event.type === "proposal_requested";
 
   const dateLabel =
     event.type === "proposal_requested"
@@ -189,9 +192,11 @@ function VersionCard({ event }: { event: ThreadEvent }) {
     <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
       <div>
         <p className="text-sm font-semibold text-gray-900">{label}</p>
-        <p className="text-xs text-gray-400 mt-0.5">
-          {dateLabel} {formatFullTimestamp(event.createdAt)}
-        </p>
+        {!isTenantRequest && (
+          <p className="text-xs text-gray-400 mt-0.5">
+            {dateLabel} {formatFullTimestamp(event.createdAt)}
+          </p>
+        )}
       </div>
 
       {/* What changed on a revision — Before → After */}
@@ -209,25 +214,22 @@ function VersionCard({ event }: { event: ThreadEvent }) {
           </div>
         ))}
 
-      {/* The payment plan itself, exactly as it stood at this moment — same layout as Active Payment Plan */}
+      {/* Total Amount — always shown; the schedule table only once a structured plan exists */}
       {event.proposal && (
         <div className="space-y-2">
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Total Amount</p>
             <p className="text-lg font-semibold text-gray-900">{formatCurrency(event.proposal.totalAmount)}</p>
-            <p className="text-sm text-gray-700 mt-0.5">{proposalLine(event.proposal)}</p>
+            {!isTenantRequest && <p className="text-sm text-gray-700 mt-0.5">{proposalLine(event.proposal)}</p>}
           </div>
-          <InstallmentScheduleTable
-            installments={event.proposal.installments}
-            isProposal={event.type === "proposal_requested"}
-          />
+          {!isTenantRequest && <InstallmentScheduleTable installments={event.proposal.installments} />}
         </div>
       )}
 
       {/* Charges breakdown — tenant's original request only */}
       {event.chargesBreakdown && event.chargesBreakdown.length > 0 && (
-        <div className="pt-1 border-t border-gray-100">
-          <p className="text-xs text-gray-400 mb-1 mt-2">Charges</p>
+        <div className={isTenantRequest ? "" : "pt-1 border-t border-gray-100"}>
+          <p className={`text-xs text-gray-400 mb-1 ${isTenantRequest ? "" : "mt-2"}`}>Charges</p>
           <div className="space-y-0.5">
             {event.chargesBreakdown.map((c) => (
               <div key={c.label} className="flex items-center justify-between text-sm">
@@ -239,20 +241,31 @@ function VersionCard({ event }: { event: ThreadEvent }) {
         </div>
       )}
 
-      {/* Preferred schedule (free text from the tenant) */}
-      {event.preferredScheduleText && (
+      {/* Preferred schedule (free text from the tenant) — not shown on the initial request itself */}
+      {event.preferredScheduleText && !isTenantRequest && (
         <div>
           <p className="text-xs text-gray-400 mb-0.5">Preferred Schedule</p>
           <p className="text-sm text-gray-900">"{event.preferredScheduleText}"</p>
         </div>
       )}
 
-      {/* Tenant note */}
+      {/* Tenant note — the primary content on the tenant's original request card */}
       {event.tenantNote && (
-        <div>
-          <p className="text-xs text-gray-400 mb-0.5">Tenant Note</p>
-          <p className="text-sm text-gray-900">"{event.tenantNote}"</p>
+        <div className={isTenantRequest ? "pt-1 border-t border-gray-100" : ""}>
+          <p className={`text-gray-400 mb-1 ${isTenantRequest ? "text-xs mt-2 font-medium" : "text-xs mb-0.5"}`}>
+            Tenant Note
+          </p>
+          <p className={isTenantRequest ? "text-sm text-gray-900 leading-relaxed" : "text-sm text-gray-900"}>
+            "{event.tenantNote}"
+          </p>
         </div>
+      )}
+
+      {/* Requested On — repeated at the bottom of the tenant-request card per its own field order */}
+      {isTenantRequest && (
+        <p className="text-xs text-gray-400 pt-1 border-t border-gray-100 mt-2">
+          {dateLabel} {formatFullTimestamp(event.createdAt)}
+        </p>
       )}
 
       {/* Reason (decline / cancel context) */}
