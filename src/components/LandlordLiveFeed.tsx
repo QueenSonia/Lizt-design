@@ -444,6 +444,29 @@ export default function LandlordLiveFeed({
 
   const activitySections = getSectionedActivities();
 
+  const searchBar = (
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <input
+        type="text"
+        value={feedSearch}
+        onChange={(e) => setFeedSearch(e.target.value)}
+        placeholder="Search tenants, properties, landlords or activities..."
+        className="w-full h-10 pl-9 pr-9 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400"
+      />
+      {feedSearch && (
+        <button
+          type="button"
+          onClick={() => setFeedSearch("")}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+          aria-label="Clear search"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <>
       <LandlordTopNav
@@ -455,9 +478,10 @@ export default function LandlordLiveFeed({
         isMobile={isMobile}
         showAddNew={showAddButton}
         isMenuOpen={isMenuOpen}
+        belowHeader={searchBar}
       />
 
-      <div className="pt-4 lg:pt-28 px-4 lg:px-8 pb-8 space-y-6">
+      <div className="pt-4 lg:pt-40 px-4 lg:px-8 pb-8 space-y-6">
         <Card className="border-slate-200 mt-4 lg:mt-10">
           <CardHeader>
             <div className="flex items-center justify-between gap-4">
@@ -487,27 +511,6 @@ export default function LandlordLiveFeed({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={feedSearch}
-                onChange={(e) => setFeedSearch(e.target.value)}
-                placeholder="Search tenants, properties, landlords or activities..."
-                className="w-full h-10 pl-9 pr-9 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400"
-              />
-              {feedSearch && (
-                <button
-                  type="button"
-                  onClick={() => setFeedSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
             {isLoading ? (
               <LiveFeedSkeletonLoader />
             ) : isError ? (

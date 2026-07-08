@@ -1,7 +1,7 @@
 import { ArrowLeft, Menu, X, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 // import LandlordAddNewModal from "@/components/LandlordAddNewModal";
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 
 interface LandlordTopNavProps {
   title: string;
@@ -22,6 +22,8 @@ interface LandlordTopNavProps {
   buttonText?: string;
   secondaryAction?: () => void;
   secondaryButtonText?: string;
+  /** Optional content rendered as its own row beneath the title/subtitle/action row — e.g. a page-level search bar. */
+  belowHeader?: ReactNode;
 }
 
 export const LandlordTopNav = memo(function LandlordTopNav({
@@ -42,6 +44,7 @@ export const LandlordTopNav = memo(function LandlordTopNav({
   buttonText = "Add Property",
   secondaryAction,
   secondaryButtonText,
+  belowHeader,
 }: LandlordTopNavProps) {
   return (
     <div className="lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white border-b border-slate-200 shadow-sm transition-none">
@@ -180,6 +183,7 @@ export const LandlordTopNav = memo(function LandlordTopNav({
             </>
           )}
         </div>
+        {belowHeader && <div className="mt-4">{belowHeader}</div>}
       </div>
     </div>
   );
