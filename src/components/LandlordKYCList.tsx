@@ -47,7 +47,7 @@ interface KYCApplicationWithFlatFields extends KYCApplication {
   };
 }
 
-const mockKYCApplications: KYCApplicationWithFlatFields[] = [
+export const mockKYCApplications: KYCApplicationWithFlatFields[] = [
   {
     id: "mock-1",
     propertyId: "prop-1",
@@ -76,6 +76,7 @@ const mockKYCApplications: KYCApplicationWithFlatFields[] = [
     updatedAt: "2024-12-01T14:30:00",
     proposedRentAmount: "450000",
     rentPaymentFrequency: "Annually",
+    referralAgent: { fullName: "Tobi Adenuga", phoneNumber: "+234 813 555 0192" },
   },
   {
     id: "mock-2",
@@ -119,6 +120,7 @@ const mockKYCApplications: KYCApplicationWithFlatFields[] = [
       amountPaid: 0,
       sentAt: "2024-11-30T10:00:00",
     },
+    referralAgent: { fullName: "Tobi Adenuga", phoneNumber: "+234 813 555 0192" },
   },
   {
     id: "mock-3",
@@ -148,6 +150,7 @@ const mockKYCApplications: KYCApplicationWithFlatFields[] = [
     updatedAt: "2024-11-25T16:45:00",
     proposedRentAmount: "350000",
     rentPaymentFrequency: "Annually",
+    referralAgent: { fullName: "Ngozi Umeh", phoneNumber: "+234 704 220 8871" },
   },
 ];
 

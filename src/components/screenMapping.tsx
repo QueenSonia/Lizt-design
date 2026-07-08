@@ -106,6 +106,11 @@ export const screenMap: ScreenMap = {
         default: withLandlordMobileProps(module.default),
       })),
     ),
+    agents: lazy(() =>
+      import("@/components/LandlordAgents").then((module) => ({
+        default: withLandlordMobileProps(module.default),
+      })),
+    ),
     tenancies: lazy(() =>
       import("@/components/LandlordTenancies").then((module) => ({
         default: withLandlordMobileProps(module.default),

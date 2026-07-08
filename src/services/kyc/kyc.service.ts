@@ -70,6 +70,11 @@ export interface KYCApplication {
     phoneNumber: string;
     email?: string;
   };
+  // Agent the tenant credits with referring them, entered during KYC (optional)
+  referralAgent?: {
+    fullName: string;
+    phoneNumber: string;
+  };
   tenantOffer: {
     proposedRentAmount: string;
     rentPaymentFrequency: string;
