@@ -314,6 +314,49 @@ function DaysLeftCell({ endDate }: { endDate: string }) {
   return <span className="text-gray-700">{days} Days</span>;
 }
 
+// ── Column visibility ────────────────────────────────────────────────────────
+
+type ColumnId = "landlord" | "tenant" | "property" | "rent" | "outstanding" | "endDate" | "daysLeft";
+
+const COLUMN_DEFS: { id: ColumnId; label: string }[] = [
+  { id: "landlord", label: "Landlord" },
+  { id: "tenant", label: "Tenant" },
+  { id: "property", label: "Property" },
+  { id: "rent", label: "Rent" },
+  { id: "outstanding", label: "Outstanding" },
+  { id: "endDate", label: "End Date" },
+  { id: "daysLeft", label: "Days Left" },
+];
+
+// At least one of these must always stay visible — the table needs a primary identifying column.
+const PRIMARY_COLUMNS: ColumnId[] = ["tenant", "property"];
+
+const ALL_COLUMNS_VISIBLE: Record<ColumnId, boolean> = {
+  landlord: true, tenant: true, property: true, rent: true, outstanding: true, endDate: true, daysLeft: true,
+};
+
+const COLUMN_VISIBILITY_STORAGE_KEY = "lizt.tenancies.columnVisibility";
+
+function loadColumnVisibility(): Record<ColumnId, boolean> {
+  if (typeof window === "undefined") return ALL_COLUMNS_VISIBLE;
+  try {
+    const raw = window.localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY);
+    if (!raw) return ALL_COLUMNS_VISIBLE;
+    const parsed = JSON.parse(raw);
+    return { ...ALL_COLUMNS_VISIBLE, ...parsed };
+  } catch {
+    return ALL_COLUMNS_VISIBLE;
+  }
+}
+
+function saveColumnVisibility(visibility: Record<ColumnId, boolean>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(visibility));
+  } catch {
+    // localStorage unavailable (private mode, quota, etc.) — visibility just won't persist
+  }
+}
 
 function TenancyListScreen({
   onSelect,
@@ -338,6 +381,45 @@ function TenancyListScreen({
   const [filterPos, setFilterPos] = useState({ top: 0, left: 0 });
   const [sortCol, setSortCol] = useState<SortColumn>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const [columnVisibility, setColumnVisibility] = useState<Record<ColumnId, boolean>>(ALL_COLUMNS_VISIBLE);
+  const [columnsLoaded, setColumnsLoaded] = useState(false);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const columnsBtnRef = useRef<HTMLButtonElement>(null);
+  const [columnsPos, setColumnsPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    setColumnVisibility(loadColumnVisibility());
+    setColumnsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (columnsLoaded) saveColumnVisibility(columnVisibility);
+  }, [columnVisibility, columnsLoaded]);
+
+  const visibleCount = COLUMN_DEFS.filter((c) => columnVisibility[c.id]).length;
+
+  const toggleColumn = (id: ColumnId) => {
+    setColumnVisibility((prev) => {
+      const nextValue = !prev[id];
+      // Block hiding a primary column if it's the last one still visible.
+      if (!nextValue) {
+        const stillVisiblePrimary = PRIMARY_COLUMNS.some(
+          (p) => p !== id && prev[p]
+        );
+        if (PRIMARY_COLUMNS.includes(id) && !stillVisiblePrimary) return prev;
+      }
+      return { ...prev, [id]: nextValue };
+    });
+  };
+
+  const openColumns = () => {
+    if (columnsBtnRef.current) {
+      const rect = columnsBtnRef.current.getBoundingClientRect();
+      setColumnsPos({ top: rect.bottom + 8, left: Math.max(8, rect.right - 224) });
+    }
+    setColumnsOpen(true);
+  };
 
   const handleSort = (col: SortColumn) => {
     if (sortCol === col) {
@@ -514,6 +596,64 @@ function TenancyListScreen({
               document.body
             )}
           </div>
+
+          <div className="relative">
+            <button
+              ref={columnsBtnRef}
+              type="button"
+              onClick={openColumns}
+              title="Manage columns"
+              className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-sm font-medium transition-colors ${
+                visibleCount < COLUMN_DEFS.length
+                  ? "border-[#FF5000] text-[#FF5000] bg-[#FFF3EB]"
+                  : "border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-white"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Columns</span>
+            </button>
+
+            {/* Columns popover — rendered via portal to escape overflow:hidden containers */}
+            {columnsOpen && typeof document !== "undefined" && createPortal(
+              <>
+                <div className="fixed inset-0 z-[90]" onClick={() => setColumnsOpen(false)} />
+                <div className="fixed z-[100] w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+                  style={{ top: columnsPos.top, left: columnsPos.left }}>
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-900">Columns</p>
+                    <button onClick={() => setColumnsOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                  </div>
+                  <div className="px-2 py-2 max-h-72 overflow-y-auto">
+                    {COLUMN_DEFS.map((col) => {
+                      const isLastPrimary =
+                        PRIMARY_COLUMNS.includes(col.id) &&
+                        columnVisibility[col.id] &&
+                        !PRIMARY_COLUMNS.some((p) => p !== col.id && columnVisibility[p]);
+                      return (
+                        <label
+                          key={col.id}
+                          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm ${
+                            isLastPrimary ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+                          }`}
+                          title={isLastPrimary ? "At least one of Tenant or Property must stay visible" : undefined}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={columnVisibility[col.id]}
+                            disabled={isLastPrimary}
+                            onChange={() => toggleColumn(col.id)}
+                            className="w-4 h-4 rounded border-gray-300 text-[#FF5000] focus:ring-[#FF5000] focus:ring-offset-0 disabled:opacity-50"
+                          />
+                          {col.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>,
+              document.body
+            )}
+          </div>
         </div>
 
         {/* Active filter chips */}
@@ -548,34 +688,48 @@ function TenancyListScreen({
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
-                    <th className="text-left px-6 py-3">
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Landlord</span>
-                    </th>
-                    <th className="text-left px-4 py-3">
-                      <button onClick={() => handleSort("tenant")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Tenant                      </button>
-                    </th>
-                    <th className="text-left px-4 py-3">
-                      <button onClick={() => handleSort("property")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Property                      </button>
-                    </th>
-                    <th className="text-left px-4 py-3">
-                      <button onClick={() => handleSort("rent")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Rent                      </button>
-                    </th>
-                    <th className="text-left px-4 py-3">
-                      <button onClick={() => handleSort("outstanding")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Outstanding                      </button>
-                    </th>
-                    <th className="text-left px-4 py-3">
-                      <button onClick={() => handleSort("endDate")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        End Date                      </button>
-                    </th>
-                    <th className="text-left px-4 py-3 pr-6">
-                      <button onClick={() => handleSort("daysLeft")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
-                        Days Left
-                      </button>
-                    </th>
+                    {columnVisibility.landlord && (
+                      <th className="text-left px-6 py-3">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Landlord</span>
+                      </th>
+                    )}
+                    {columnVisibility.tenant && (
+                      <th className="text-left px-4 py-3 first:pl-6">
+                        <button onClick={() => handleSort("tenant")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                          Tenant                      </button>
+                      </th>
+                    )}
+                    {columnVisibility.property && (
+                      <th className="text-left px-4 py-3 first:pl-6">
+                        <button onClick={() => handleSort("property")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                          Property                      </button>
+                      </th>
+                    )}
+                    {columnVisibility.rent && (
+                      <th className="text-left px-4 py-3 first:pl-6">
+                        <button onClick={() => handleSort("rent")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                          Rent                      </button>
+                      </th>
+                    )}
+                    {columnVisibility.outstanding && (
+                      <th className="text-left px-4 py-3 first:pl-6">
+                        <button onClick={() => handleSort("outstanding")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                          Outstanding                      </button>
+                      </th>
+                    )}
+                    {columnVisibility.endDate && (
+                      <th className="text-left px-4 py-3 first:pl-6">
+                        <button onClick={() => handleSort("endDate")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                          End Date                      </button>
+                      </th>
+                    )}
+                    {columnVisibility.daysLeft && (
+                      <th className="text-left px-4 py-3 pr-6 first:pl-6">
+                        <button onClick={() => handleSort("daysLeft")} className="flex items-center gap-0.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-[#FF5000] transition-colors">
+                          Days Left
+                        </button>
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -585,35 +739,49 @@ function TenancyListScreen({
                       onClick={() => onSelect(t)}
                       className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <td className="px-6 py-4 text-gray-600 text-sm">{t.landlordName}</td>
-                      <td className="px-4 py-4">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); router.push(`/${userRole}/kyc-application-detail/${t.tenantId}`); }}
-                          className="font-medium text-gray-900 hover:text-[#FF5000] hover:underline transition-colors text-left"
-                        >
-                          {t.tenantName}
-                        </button>
-                      </td>
-                      <td className="px-4 py-4">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); router.push(`/${userRole}/property-detail/${t.propertyId}`); }}
-                          className="text-gray-600 hover:text-[#FF5000] hover:underline transition-colors text-left"
-                        >
-                          {t.propertyName}
-                        </button>
-                      </td>
-                      <td className="px-4 py-4 text-gray-900 tabular-nums">{fmtCurrency(t.rentAmount)}</td>
-                      <td className="px-4 py-4 tabular-nums">
-                        {t.outstandingBalance > 0
-                          ? <span className="text-red-600 font-medium">{fmtCurrency(t.outstandingBalance)}</span>
-                          : <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="px-4 py-4 text-gray-900 whitespace-nowrap">
-                        {fmtDate(t.endDate)}
-                      </td>
-                      <td className="px-4 py-4 pr-6 text-sm whitespace-nowrap">
-                        <DaysLeftCell endDate={t.endDate} />
-                      </td>
+                      {columnVisibility.landlord && (
+                        <td className="px-6 py-4 text-gray-600 text-sm">{t.landlordName}</td>
+                      )}
+                      {columnVisibility.tenant && (
+                        <td className="px-4 py-4 first:pl-6">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); router.push(`/${userRole}/kyc-application-detail/${t.tenantId}`); }}
+                            className="font-medium text-gray-900 hover:text-[#FF5000] hover:underline transition-colors text-left"
+                          >
+                            {t.tenantName}
+                          </button>
+                        </td>
+                      )}
+                      {columnVisibility.property && (
+                        <td className="px-4 py-4 first:pl-6">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); router.push(`/${userRole}/property-detail/${t.propertyId}`); }}
+                            className="text-gray-600 hover:text-[#FF5000] hover:underline transition-colors text-left"
+                          >
+                            {t.propertyName}
+                          </button>
+                        </td>
+                      )}
+                      {columnVisibility.rent && (
+                        <td className="px-4 py-4 first:pl-6 text-gray-900 tabular-nums">{fmtCurrency(t.rentAmount)}</td>
+                      )}
+                      {columnVisibility.outstanding && (
+                        <td className="px-4 py-4 first:pl-6 tabular-nums">
+                          {t.outstandingBalance > 0
+                            ? <span className="text-red-600 font-medium">{fmtCurrency(t.outstandingBalance)}</span>
+                            : <span className="text-gray-400">—</span>}
+                        </td>
+                      )}
+                      {columnVisibility.endDate && (
+                        <td className="px-4 py-4 first:pl-6 text-gray-900 whitespace-nowrap">
+                          {fmtDate(t.endDate)}
+                        </td>
+                      )}
+                      {columnVisibility.daysLeft && (
+                        <td className="px-4 py-4 pr-6 first:pl-6 text-sm whitespace-nowrap">
+                          <DaysLeftCell endDate={t.endDate} />
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
