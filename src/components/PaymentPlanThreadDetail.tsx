@@ -73,207 +73,185 @@ function isPaymentEvent(event: ThreadEvent): boolean {
   return PAYMENT_EVENT_TYPES.has(event.type);
 }
 
-const EVENT_CARD_ACCENT: Record<string, string> = {
-  proposal_requested: "border-l-gray-300",
-  proposal_created: "border-l-gray-300",
-  proposal_revised: "border-l-gray-300",
-  proposal_accepted: "border-l-green-400",
-  proposal_declined: "border-l-red-400",
-  proposal_deleted: "border-l-gray-300",
-  plan_approved: "border-l-green-400",
-  plan_declined: "border-l-red-400",
-  plan_cancelled: "border-l-gray-400",
-  installment_paid: "border-l-green-400",
-  installment_overdue: "border-l-red-400",
-  reminder_sent: "border-l-amber-400",
+/** Only version events carry a full payment-plan snapshot worth its own history card. */
+const VERSION_EVENT_TYPES = new Set<ThreadEvent["type"]>([
+  "proposal_requested",
+  "proposal_created",
+  "proposal_revised",
+  "proposal_accepted",
+  "proposal_declined",
+  "proposal_deleted",
+  "plan_approved",
+  "plan_cancelled",
+]);
+
+function isVersionEvent(event: ThreadEvent): boolean {
+  return VERSION_EVENT_TYPES.has(event.type);
+}
+
+/** Actor-aware label — several event types (accept/decline/revise) can be triggered by either party. */
+function versionLabel(event: ThreadEvent): string {
+  const who = event.actor === "landlord" ? "Property Manager" : "Tenant";
+  switch (event.type) {
+    case "proposal_requested":
+      return "Tenant Requested Payment Plan";
+    case "proposal_created":
+      return "Property Manager Proposed Payment Plan";
+    case "proposal_revised":
+      return `${who} Edited Payment Plan`;
+    case "proposal_accepted":
+      return `${who} Accepted Revised Plan`;
+    case "proposal_declined":
+      return `${who} Declined Revised Plan`;
+    case "proposal_deleted":
+      return "Payment Plan Deleted";
+    case "plan_approved":
+      return "Payment Plan Approved";
+    case "plan_cancelled":
+      return "Payment Plan Cancelled";
+    default:
+      return event.headline;
+  }
+}
+
+const VERSION_STATUS_STYLES: Record<string, string> = {
+  Submitted: "bg-blue-50 text-blue-600",
+  Accepted: "bg-green-100 text-green-700",
+  Declined: "bg-red-50 text-red-500",
+  Deleted: "bg-gray-100 text-gray-500",
 };
 
-/** One Payment Plan History card — always shows actor, timestamp, proposal detail, and outcome. */
-function HistoryCard({ event }: { event: ThreadEvent }) {
-  const isTenant = event.actor === "tenant";
-  const isSystem = event.actor === "system";
-  const ActorIcon = isTenant ? User : Building2;
-  const isPayment = isPaymentEvent(event);
+/**
+ * One entry in the versioned Payment Plan History — reuses the same card language as the
+ * Active Payment Plan card (title row, status badge, divider, field rows) so every step reads
+ * as "the payment plan exactly as it existed at that moment," not an abstract activity log.
+ */
+function VersionCard({ event }: { event: ThreadEvent }) {
+  const label = versionLabel(event);
+  const statusLabel = event.resultingStatusLabel ?? (event.resultingStatus ? THREAD_STATUS_LABELS[event.resultingStatus] : undefined);
+  const statusStyle =
+    (statusLabel && VERSION_STATUS_STYLES[statusLabel]) ??
+    (event.resultingStatus ? THREAD_STATUS_STYLES[event.resultingStatus] : "bg-gray-100 text-gray-500");
+
+  const dateLabel =
+    event.type === "proposal_requested"
+      ? "Requested on"
+      : event.type === "proposal_revised"
+      ? "Edited on"
+      : event.type === "proposal_accepted"
+      ? "Accepted on"
+      : event.type === "proposal_declined"
+      ? "Declined on"
+      : event.type === "plan_approved"
+      ? "Approved on"
+      : event.type === "plan_cancelled"
+      ? "Cancelled on"
+      : "Recorded on";
 
   return (
-    <div
-      className={`rounded-lg border border-gray-200 border-l-4 ${
-        EVENT_CARD_ACCENT[event.type] ?? "border-l-gray-300"
-      } bg-white overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)]`}
-    >
-      <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-gray-50 border-b border-gray-100">
-        <div className="flex items-center gap-2 min-w-0">
-          {!isSystem && (
-            <span className="shrink-0 w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center">
-              <ActorIcon className="w-3 h-3 text-gray-500" />
-            </span>
-          )}
-          <span className="text-xs font-semibold text-gray-800 truncate">{event.headline}</span>
-        </div>
-        <span className="text-[11px] text-gray-400 shrink-0">{formatFullTimestamp(event.createdAt)}</span>
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+        <p className="text-sm font-semibold text-gray-900">{label}</p>
+        {statusLabel && (
+          <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 shrink-0 ${statusStyle}`}>
+            {statusLabel}
+          </Badge>
+        )}
       </div>
 
-      <div className="px-3.5 py-3 space-y-2.5">
+      <div className="border-t border-gray-100 px-4 py-3.5 space-y-3">
         {/* Charges breakdown — tenant's original request only */}
         {event.chargesBreakdown && event.chargesBreakdown.length > 0 && (
           <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Charges</p>
+            <p className="text-xs text-gray-400 mb-1">Charges</p>
             <div className="space-y-0.5">
               {event.chargesBreakdown.map((c) => (
-                <p key={c.label} className="text-sm text-gray-700">
-                  {c.label} — {formatCurrency(c.amount)}
-                </p>
+                <div key={c.label} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-700">{c.label}</span>
+                  <span className="text-gray-500 line-through decoration-gray-300">{formatCurrency(c.amount)}</span>
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Preferred schedule / tenant note — free text supplied by the tenant */}
+        {/* Requested schedule (free text from the tenant) */}
         {event.preferredScheduleText && (
           <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Preferred Schedule</p>
-            <p className="text-sm text-gray-700 italic">"{event.preferredScheduleText}"</p>
-          </div>
-        )}
-        {event.tenantNote && (
-          <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Tenant Note</p>
-            <p className="text-sm text-gray-700 italic">"{event.tenantNote}"</p>
+            <p className="text-xs text-gray-400 mb-0.5">
+              {event.type === "proposal_requested" ? "Requested Schedule" : "Preferred Schedule"}
+            </p>
+            <p className="text-sm text-gray-900">"{event.preferredScheduleText}"</p>
           </div>
         )}
 
-        {/* Previous → new proposal (revisions) */}
-        {event.previousProposal && event.proposal && (
-          <>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Previous Proposal</p>
-              <p className="text-sm text-gray-500 line-through decoration-gray-300">{proposalLine(event.previousProposal)}</p>
-            </div>
-            <div className="flex justify-center">
-              <ArrowDown className="w-3.5 h-3.5 text-gray-300" />
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Revised Proposal</p>
-              <p className="text-sm font-medium text-gray-900">{proposalLine(event.proposal)}</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {formatCurrency(event.proposal.installmentAmount)} each
-                {event.proposal.frequencyLabel ? ` · ${event.proposal.frequencyLabel}` : ""}
-              </p>
-            </div>
-          </>
-        )}
-
-        {/* Additional field-level changes, Before → After */}
-        {event.fieldChanges && event.fieldChanges.length > 0 && (
-          <div className="space-y-2 pt-1">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Changes Made</p>
-            {event.fieldChanges.map((change) => (
-              <div key={change.label} className="rounded-md bg-gray-50 border border-gray-100 px-3 py-2">
-                <p className="text-[11px] font-medium text-gray-600 mb-1">{change.label}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">From</p>
-                <p className="text-sm text-gray-500 line-through decoration-gray-300">{change.before}</p>
-                <div className="flex justify-center py-0.5">
-                  <ArrowDown className="w-3 h-3 text-gray-300" />
-                </div>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">To</p>
-                <p className="text-sm font-medium text-gray-900">{change.after}</p>
+        {/* Before → After changes on a revision */}
+        {event.fieldChanges && event.fieldChanges.length > 0 &&
+          event.fieldChanges.map((change) => (
+            <div key={change.label}>
+              <p className="text-xs text-gray-400 mb-0.5">{change.label}</p>
+              <p className="text-xs text-gray-400 mt-1">Before</p>
+              <p className="text-sm text-gray-500 line-through decoration-gray-300">{change.before}</p>
+              <div className="flex justify-center py-0.5">
+                <ArrowDown className="w-3.5 h-3.5 text-gray-300" />
               </div>
-            ))}
-          </div>
-        )}
+              <p className="text-xs text-gray-400">After</p>
+              <p className="text-sm font-medium text-gray-900">{change.after}</p>
+            </div>
+          ))}
 
-        {/* Single proposal snapshot — requested / accepted / declined / approved */}
-        {!event.previousProposal && event.proposal && !isPayment && (
+        {/* Updated/Approved/Accepted schedule — the proposal as it stood after this event */}
+        {event.proposal && (
           <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">
-              {event.type === "proposal_requested" || event.type === "proposal_created"
-                ? "Requested Proposal"
+            <p className="text-xs text-gray-400 mb-0.5">
+              {event.type === "proposal_revised"
+                ? "Updated Schedule"
                 : event.type === "proposal_accepted"
-                ? "Accepted Proposal"
-                : event.type === "proposal_declined"
-                ? "Rejected Proposal"
-                : event.type === "proposal_deleted"
-                ? "Deleted Proposal"
+                ? "Approved Schedule"
                 : event.type === "plan_approved"
                 ? "Final Agreed Schedule"
-                : event.type === "plan_cancelled"
-                ? "Cancelled Proposal"
-                : "Proposal"}
+                : event.type === "proposal_declined" || event.type === "proposal_deleted"
+                ? "Proposed Schedule"
+                : "Schedule"}
             </p>
-            <p className="text-sm font-medium text-gray-900">{proposalLine(event.proposal)}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {formatCurrency(event.proposal.installmentAmount)} each
+            <p className="text-sm text-gray-900">
+              {proposalLine(event.proposal)} · {formatCurrency(event.proposal.installmentAmount)} each
               {event.proposal.frequencyLabel ? ` · ${event.proposal.frequencyLabel}` : ""}
             </p>
           </div>
         )}
 
-        {/* Reason (optional context from the actor) */}
+        {/* Tenant note */}
+        {event.tenantNote && (
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">Tenant Note</p>
+            <p className="text-sm text-gray-900">"{event.tenantNote}"</p>
+          </div>
+        )}
+
+        {/* Reason (decline / cancel context) */}
         {event.reason && (
           <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Reason</p>
-            <p className="text-sm text-gray-700">{event.reason}</p>
+            <p className="text-xs text-gray-400 mb-0.5">Reason</p>
+            <p className="text-sm text-gray-900">{event.reason}</p>
           </div>
         )}
 
-        {/* Effective date (plan approval) */}
-        {event.effectiveDate && (
-          <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Effective Date</p>
-            <p className="text-sm text-gray-900">{formatDate(event.effectiveDate)}</p>
-          </div>
-        )}
-
-        {/* Payment-phase context */}
-        {(event.type === "installment_paid" || event.type === "installment_overdue") && (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Amount</p>
-              <p className="text-sm font-medium text-gray-900">{formatCurrency(event.installmentAmount ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">
-                {event.type === "installment_paid" ? "Paid On" : "Due Date"}
-              </p>
-              <p className="text-sm text-gray-900">{formatDate(event.installmentDueDate ?? "")}</p>
-            </div>
-          </div>
-        )}
-        {event.type === "plan_completed" && (
-          <>
-            <p className="text-sm text-gray-600">All installments have been successfully paid.</p>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Completed On</p>
-              <p className="text-sm text-gray-900">{formatDate(event.createdAt.slice(0, 10))}</p>
-            </div>
-          </>
-        )}
-        {event.type === "reminder_sent" && (
-          <p className="text-sm text-gray-600">A payment reminder was sent to the tenant.</p>
-        )}
-
-        {/* Status footer */}
-        {(event.resultingStatus || event.resultingStatusLabel) && (
-          <div className="pt-2 mt-1 border-t border-gray-100">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Status</p>
-            {event.resultingStatus ? (
-              <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 ${THREAD_STATUS_STYLES[event.resultingStatus]}`}>
-                {THREAD_STATUS_LABELS[event.resultingStatus]}
-              </Badge>
-            ) : (
-              <Badge className="text-xs border-0 rounded-full px-2.5 py-0.5 bg-blue-50 text-blue-600">
-                {event.resultingStatusLabel}
-              </Badge>
-            )}
-          </div>
-        )}
-        {event.type === "installment_paid" && (
-          <Badge className="text-xs border-0 rounded-full px-2.5 py-0.5 bg-green-100 text-green-700">Paid</Badge>
-        )}
-        {event.type === "installment_overdue" && (
-          <Badge className="text-xs border-0 rounded-full px-2.5 py-0.5 bg-red-50 text-red-500">Overdue</Badge>
-        )}
+        <p className="text-xs text-gray-400 pt-1 border-t border-gray-100">
+          {dateLabel} {formatFullTimestamp(event.createdAt)}
+        </p>
       </div>
+    </div>
+  );
+}
+
+/** A short, minimal vertical connector between two consecutive history cards. */
+function TimelineConnector() {
+  return (
+    <div className="flex flex-col items-center py-1" aria-hidden="true">
+      <span className="w-px h-3 bg-gray-200" />
+      <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+      <span className="w-px h-3 bg-gray-200" />
     </div>
   );
 }
@@ -317,8 +295,12 @@ export default function PaymentPlanThreadDetail() {
   const proposalSectionTitle =
     thread.status === "completed" ? "Final Payment Plan" : hasBeenApproved ? "Approved Payment Plan" : "Current Proposal";
 
-  // Chronological order — the complete story from request to completion.
-  const history = [...thread.events].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  // Chronological order — the complete story from request to completion. Only version events
+  // (a full payment-plan snapshot: request, edit, response, approval) get their own history
+  // card; payment-execution events (installments, reminders) live in the Active Plan card above.
+  const history = [...thread.events]
+    .filter(isVersionEvent)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   function handleApprove() {
     if (!latestRevision) return;
@@ -516,16 +498,21 @@ export default function PaymentPlanThreadDetail() {
           )}
         </div>
 
-        {/* Payment Plan History — the complete, chronological, permanent negotiation record */}
+        {/* Payment Plan History — the versioned evolution of this payment plan, read top to bottom */}
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
             Payment Plan History
           </h3>
-          <div className="space-y-3">
+          <div>
             {history.length === 0 ? (
               <p className="text-xs text-gray-400 italic text-center py-4">No activity yet.</p>
             ) : (
-              history.map((event) => <HistoryCard key={event.id} event={event} />)
+              history.map((event, i) => (
+                <div key={event.id}>
+                  <VersionCard event={event} />
+                  {i < history.length - 1 && <TimelineConnector />}
+                </div>
+              ))
             )}
           </div>
         </div>
