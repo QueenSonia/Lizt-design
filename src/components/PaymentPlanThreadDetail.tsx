@@ -62,10 +62,11 @@ function proposalLine(p: ProposalSnapshot): string {
   return p.installmentCount === 1 ? "One-time Payment" : `${p.installmentCount} Installments`;
 }
 
+/** Compact receipt-style entries — payment activity, distinct from negotiation snapshots. */
 const PAYMENT_EVENT_TYPES = new Set<ThreadEvent["type"]>([
   "installment_paid",
-  "installment_overdue",
-  "reminder_sent",
+  "payment_failed",
+  "payment_refunded",
   "plan_completed",
 ]);
 
@@ -282,6 +283,97 @@ function VersionCard({ event }: { event: ThreadEvent }) {
   );
 }
 
+function paymentEventLabel(event: ThreadEvent): string {
+  switch (event.type) {
+    case "installment_paid":
+      return `Tenant Paid Installment ${event.installmentIndex} of ${event.installmentTotal}`;
+    case "payment_failed":
+      return `Installment ${event.installmentIndex} of ${event.installmentTotal} Payment Failed`;
+    case "payment_refunded":
+      return `Installment ${event.installmentIndex} of ${event.installmentTotal} Refunded`;
+    case "plan_completed":
+      return "Payment Plan Completed";
+    default:
+      return event.headline;
+  }
+}
+
+function paymentEventStatus(event: ThreadEvent): { label: string; className: string } {
+  switch (event.type) {
+    case "installment_paid":
+      return { label: "Paid", className: "bg-green-100 text-green-700" };
+    case "payment_failed":
+      return { label: "Failed", className: "bg-red-50 text-red-500" };
+    case "payment_refunded":
+      return { label: "Refunded", className: "bg-blue-50 text-blue-600" };
+    case "plan_completed":
+      return { label: "Completed", className: "bg-gray-100 text-gray-600" };
+    default:
+      return { label: "—", className: "bg-gray-100 text-gray-500" };
+  }
+}
+
+/**
+ * A compact payment-receipt entry in the thread — used for installment payments and other
+ * payment-execution milestones. Deliberately simpler than VersionCard: no full schedule table,
+ * just a confirmation-style summary, so payment activity reads distinctly from negotiation history.
+ */
+function PaymentEventCard({ event }: { event: ThreadEvent }) {
+  const label = paymentEventLabel(event);
+  const status = paymentEventStatus(event);
+  const hasInstallmentDetail = event.installmentIndex != null && event.installmentTotal != null;
+  const dateLabel =
+    event.type === "payment_failed"
+      ? "Failed on"
+      : event.type === "payment_refunded"
+      ? "Refunded on"
+      : event.type === "plan_completed"
+      ? "Completed on"
+      : "Paid on";
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+      <div>
+        <p className="text-sm font-semibold text-gray-900">{label}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{dateLabel} {formatFullTimestamp(event.createdAt)}</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+        {event.installmentAmount != null && (
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">Amount Paid</p>
+            <p className="text-sm font-semibold text-gray-900">{formatCurrency(event.installmentAmount)}</p>
+          </div>
+        )}
+        {hasInstallmentDetail && (
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">Installment</p>
+            <p className="text-sm text-gray-900">{event.installmentIndex} of {event.installmentTotal}</p>
+          </div>
+        )}
+        {event.paymentMethod && (
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">Payment Method</p>
+            <p className="text-sm text-gray-900">{event.paymentMethod}</p>
+          </div>
+        )}
+        {event.paymentReference && (
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">Reference</p>
+            <p className="text-sm text-gray-900">{event.paymentReference}</p>
+          </div>
+        )}
+        <div>
+          <p className="text-xs text-gray-400 mb-0.5">Status</p>
+          <Badge className={`text-xs border-0 rounded-full px-2 py-0.5 ${status.className}`}>
+            {status.label}
+          </Badge>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PaymentPlanThreadDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -318,10 +410,12 @@ export default function PaymentPlanThreadDetail() {
   const canDelete = canDeleteCurrentProposal(thread);
   const canCancel = isActive && currentRevision && !canDelete;
   // Newest first — the thread reads top (current) to bottom (oldest / tenant's original request).
-  // Only version events (a full payment-plan snapshot: request, edit, response, approval) get
-  // their own card; payment-execution events (installments, reminders) live in the Active
-  // Payment Plan card above.
-  const history = orderThreadHistory(thread.events.filter(isVersionEvent));
+  // Version events render as full payment-plan snapshots; payment events (installment payments,
+  // completion) render as compact receipt cards. Ambient status events (reminders, overdue
+  // flags) are never shown as their own thread entry.
+  const history = orderThreadHistory(
+    thread.events.filter((e) => isVersionEvent(e) || isPaymentEvent(e))
+  );
 
   function handleApprove() {
     if (!latestRevision) return;
@@ -521,11 +615,11 @@ export default function PaymentPlanThreadDetail() {
                 </div>
               </div>
 
-              {/* Earlier versions — read-only historical snapshots */}
+              {/* Earlier activity — payment receipts and negotiation snapshots, newest first */}
               {history.map((event) => (
                 <div key={event.id} className="relative">
                   <span className="absolute -left-6 top-5 w-2.5 h-2.5 rounded-full bg-gray-400 ring-4 ring-gray-50" aria-hidden="true" />
-                  <VersionCard event={event} />
+                  {isPaymentEvent(event) ? <PaymentEventCard event={event} /> : <VersionCard event={event} />}
                 </div>
               ))}
             </div>

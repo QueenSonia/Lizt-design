@@ -51,7 +51,9 @@ export type ThreadEventType =
   | "plan_cancelled"       // Property Manager cancels an already-active plan
   | "installment_paid"
   | "installment_overdue"
-  | "reminder_sent";
+  | "reminder_sent"
+  | "payment_failed"
+  | "payment_refunded";
 
 /** A read-only snapshot of a proposal's shape, captured at the moment of a timeline event. */
 export interface ProposalSnapshot {
@@ -96,6 +98,8 @@ export interface ThreadEvent {
   installmentTotal?: number;
   installmentAmount?: number;
   installmentDueDate?: string;
+  paymentMethod?: string;
+  paymentReference?: string;
 
   // Rich free-form context on the tenant's original request (proposal_requested only)
   chargesBreakdown?: ChargeLine[];
@@ -297,6 +301,8 @@ const _threads: PaymentPlanThread[] = [
         installmentTotal: 4,
         installmentAmount: 627500,
         installmentDueDate: "2026-05-01",
+        paymentMethod: "Bank Transfer",
+        paymentReference: "TRX-20260501-11207",
       },
       { id: "evt-t-7", type: "reminder_sent", actor: "system", headline: "Reminder sent", createdAt: "2026-05-28T09:00:00.000Z" },
       {
@@ -435,6 +441,8 @@ const _threads: PaymentPlanThread[] = [
         installmentTotal: 2,
         installmentAmount: 125000,
         installmentDueDate: "2026-06-01",
+        paymentMethod: "Bank Transfer",
+        paymentReference: "TRX-20260601-48392",
       },
       {
         id: "evt-sc-4",
@@ -446,6 +454,8 @@ const _threads: PaymentPlanThread[] = [
         installmentTotal: 2,
         installmentAmount: 125000,
         installmentDueDate: "2026-07-01",
+        paymentMethod: "Bank Transfer",
+        paymentReference: "TRX-20260701-93810",
       },
       {
         id: "evt-sc-5",
@@ -775,6 +785,8 @@ export function markInstallmentPaid(threadId: string, revisionId: string, instal
   const now = new Date().toISOString();
   const idx = revision.installments.indexOf(installment) + 1;
   const total = revision.installments.length;
+  const datePart = now.slice(0, 10).replace(/-/g, "");
+  const reference = `TRX-${datePart}-${Math.floor(10000 + Math.random() * 90000)}`;
   thread.events.push({
     id: generateId("evt"),
     type: "installment_paid",
@@ -785,6 +797,8 @@ export function markInstallmentPaid(threadId: string, revisionId: string, instal
     installmentTotal: total,
     installmentAmount: installment.amount,
     installmentDueDate: installment.dueDate,
+    paymentMethod: "Bank Transfer",
+    paymentReference: reference,
   });
   const allPaid = revision.installments.every((i) => i.status === "paid");
   if (allPaid && getCurrentRevision(thread)?.id === revision.id) {
