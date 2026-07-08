@@ -59,6 +59,9 @@ export interface ProposalSnapshot {
   installmentAmount: number; // amount of a single installment (first one, for unequal splits)
   totalAmount: number;
   frequencyLabel?: string; // e.g. "Monthly" — omitted when installments aren't evenly spaced
+  /** The full installment schedule as it stood at this moment — lets history cards render the
+   *  exact same due-date/amount/status table as the Active Payment Plan card. */
+  installments: ProposalInstallment[];
 }
 
 /** A single named charge line, e.g. "Rent (Annually) — ₦3,000". Used on the tenant's original request card. */
@@ -157,8 +160,35 @@ function snapshotFromInstallments(installments: ProposalInstallment[]): Proposal
     installmentAmount: installments[0]?.amount ?? 0,
     totalAmount: installments.reduce((sum, i) => sum + i.amount, 0),
     frequencyLabel: deriveFrequencyLabel(installments),
+    installments,
   };
 }
+
+// Seed installment schedules, defined once and reused so every ThreadEvent snapshot below stays
+// perfectly consistent with the ProposalRevision it corresponds to.
+const _tenancySchedule1: ProposalInstallment[] = [
+  { id: "pi-t1-1", amount: 418333, dueDate: "2026-05-01", status: "pending" },
+  { id: "pi-t1-2", amount: 418333, dueDate: "2026-06-01", status: "pending" },
+  { id: "pi-t1-3", amount: 418333, dueDate: "2026-07-01", status: "pending" },
+  { id: "pi-t1-4", amount: 418333, dueDate: "2026-08-01", status: "pending" },
+  { id: "pi-t1-5", amount: 418334, dueDate: "2026-09-01", status: "pending" },
+  { id: "pi-t1-6", amount: 418334, dueDate: "2026-10-01", status: "pending" },
+];
+const _tenancySchedule2: ProposalInstallment[] = [
+  { id: "pi-003-1", amount: 627500, dueDate: "2026-05-01", status: "paid" },
+  { id: "pi-003-2", amount: 627500, dueDate: "2026-06-01", status: "pending" },
+  { id: "pi-003-3", amount: 627500, dueDate: "2026-07-01", status: "pending" },
+  { id: "pi-003-4", amount: 627500, dueDate: "2026-08-01", status: "pending" },
+];
+const _rentSchedule: ProposalInstallment[] = [
+  { id: "pi-001-1", amount: 600000, dueDate: "2026-06-01", status: "pending" },
+  { id: "pi-001-2", amount: 600000, dueDate: "2026-07-01", status: "pending" },
+  { id: "pi-001-3", amount: 600000, dueDate: "2026-08-01", status: "pending" },
+];
+const _serviceChargeSchedule: ProposalInstallment[] = [
+  { id: "pi-002-1", amount: 125000, dueDate: "2026-06-01", status: "paid" },
+  { id: "pi-002-2", amount: 125000, dueDate: "2026-07-01", status: "paid" },
+];
 
 const _threads: PaymentPlanThread[] = [
   {
@@ -183,14 +213,7 @@ const _threads: PaymentPlanThread[] = [
         status: "declined",
         createdAt: "2026-04-12T10:30:00.000Z",
         note: "I'd like to spread the full tenancy cost over 6 months. Please let me know if this works.",
-        installments: [
-          { id: "pi-t1-1", amount: 418333, dueDate: "2026-05-01", status: "pending" },
-          { id: "pi-t1-2", amount: 418333, dueDate: "2026-06-01", status: "pending" },
-          { id: "pi-t1-3", amount: 418333, dueDate: "2026-07-01", status: "pending" },
-          { id: "pi-t1-4", amount: 418333, dueDate: "2026-08-01", status: "pending" },
-          { id: "pi-t1-5", amount: 418334, dueDate: "2026-09-01", status: "pending" },
-          { id: "pi-t1-6", amount: 418334, dueDate: "2026-10-01", status: "pending" },
-        ],
+        installments: _tenancySchedule1,
       },
       {
         id: "rev-tenancy-2",
@@ -200,12 +223,7 @@ const _threads: PaymentPlanThread[] = [
         planType: "equal",
         status: "accepted",
         createdAt: "2026-04-20T14:00:00.000Z",
-        installments: [
-          { id: "pi-003-1", amount: 627500, dueDate: "2026-05-01", status: "paid" },
-          { id: "pi-003-2", amount: 627500, dueDate: "2026-06-01", status: "pending" },
-          { id: "pi-003-3", amount: 627500, dueDate: "2026-07-01", status: "pending" },
-          { id: "pi-003-4", amount: 627500, dueDate: "2026-08-01", status: "pending" },
-        ],
+        installments: _tenancySchedule2,
       },
     ],
     events: [
@@ -215,7 +233,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "tenant",
         headline: "Tenant requested a payment plan",
         createdAt: "2026-04-12T10:30:00.000Z",
-        proposal: { installmentCount: 6, installmentAmount: 418333, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_tenancySchedule1),
         resultingStatus: "awaiting_landlord_approval",
         chargesBreakdown: [
           { label: "Rent (Annually)", amount: 2260000 },
@@ -230,7 +248,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "landlord",
         headline: "Property Manager declined the proposal",
         createdAt: "2026-04-18T11:15:00.000Z",
-        proposal: { installmentCount: 6, installmentAmount: 418333, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_tenancySchedule1),
         reason: "6 installments extends beyond the property's maximum payment plan window.",
         resultingStatus: "declined",
       },
@@ -240,8 +258,8 @@ const _threads: PaymentPlanThread[] = [
         actor: "landlord",
         headline: "Property Manager revised the proposal",
         createdAt: "2026-04-20T14:00:00.000Z",
-        previousProposal: { installmentCount: 6, installmentAmount: 418333, totalAmount: 2510000, frequencyLabel: "Monthly" },
-        proposal: { installmentCount: 4, installmentAmount: 627500, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        previousProposal: snapshotFromInstallments(_tenancySchedule1),
+        proposal: snapshotFromInstallments(_tenancySchedule2),
         reason: "Adjusted to comply with the property's payment policy.",
         resultingStatus: "awaiting_tenant_response",
         fieldChanges: [
@@ -254,7 +272,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "tenant",
         headline: "Tenant accepted the revised proposal",
         createdAt: "2026-04-21T09:00:00.000Z",
-        proposal: { installmentCount: 4, installmentAmount: 627500, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_tenancySchedule2),
         resultingStatus: "approved",
       },
       {
@@ -263,7 +281,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "system",
         headline: "Property Manager approved the payment plan",
         createdAt: "2026-04-21T09:05:00.000Z",
-        proposal: { installmentCount: 4, installmentAmount: 627500, totalAmount: 2510000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_tenancySchedule2),
         effectiveDate: "2026-04-21",
         resultingStatus: "approved",
       },
@@ -311,11 +329,7 @@ const _threads: PaymentPlanThread[] = [
         planType: "equal",
         status: "accepted",
         createdAt: "2026-05-01T00:00:00.000Z",
-        installments: [
-          { id: "pi-001-1", amount: 600000, dueDate: "2026-06-01", status: "pending" },
-          { id: "pi-001-2", amount: 600000, dueDate: "2026-07-01", status: "pending" },
-          { id: "pi-001-3", amount: 600000, dueDate: "2026-08-01", status: "pending" },
-        ],
+        installments: _rentSchedule,
       },
     ],
     events: [
@@ -325,7 +339,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "landlord",
         headline: "Property Manager proposed a payment plan",
         createdAt: "2026-05-01T00:00:00.000Z",
-        proposal: { installmentCount: 3, installmentAmount: 600000, totalAmount: 1800000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_rentSchedule),
         resultingStatus: "awaiting_tenant_response",
       },
       {
@@ -334,7 +348,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "system",
         headline: "Property Manager approved the payment plan",
         createdAt: "2026-05-01T00:05:00.000Z",
-        proposal: { installmentCount: 3, installmentAmount: 600000, totalAmount: 1800000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_rentSchedule),
         effectiveDate: "2026-05-01",
         resultingStatus: "approved",
       },
@@ -359,10 +373,7 @@ const _threads: PaymentPlanThread[] = [
         planType: "equal",
         status: "accepted",
         createdAt: "2026-05-01T00:00:00.000Z",
-        installments: [
-          { id: "pi-002-1", amount: 125000, dueDate: "2026-06-01", status: "paid" },
-          { id: "pi-002-2", amount: 125000, dueDate: "2026-07-01", status: "paid" },
-        ],
+        installments: _serviceChargeSchedule,
       },
     ],
     events: [
@@ -372,7 +383,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "landlord",
         headline: "Property Manager proposed a payment plan",
         createdAt: "2026-05-01T00:00:00.000Z",
-        proposal: { installmentCount: 2, installmentAmount: 125000, totalAmount: 250000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_serviceChargeSchedule),
         resultingStatus: "awaiting_tenant_response",
       },
       {
@@ -381,7 +392,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "system",
         headline: "Property Manager approved the payment plan",
         createdAt: "2026-05-01T00:05:00.000Z",
-        proposal: { installmentCount: 2, installmentAmount: 125000, totalAmount: 250000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_serviceChargeSchedule),
         effectiveDate: "2026-05-01",
         resultingStatus: "approved",
       },
@@ -413,7 +424,7 @@ const _threads: PaymentPlanThread[] = [
         actor: "system",
         headline: "Payment Plan Completed",
         createdAt: "2026-07-01T08:05:00.000Z",
-        proposal: { installmentCount: 2, installmentAmount: 125000, totalAmount: 250000, frequencyLabel: "Monthly" },
+        proposal: snapshotFromInstallments(_serviceChargeSchedule),
         resultingStatus: "completed",
       },
     ],

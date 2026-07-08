@@ -114,12 +114,42 @@ function versionLabel(event: ThreadEvent): string {
   }
 }
 
+/** The same read-only Due Date / Amount / Status table used on the Active Payment Plan card. */
+function InstallmentScheduleTable({ installments }: { installments: ProposalSnapshot["installments"] }) {
+  return (
+    <div className="rounded-lg border border-gray-100 overflow-hidden">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-400">
+        <span>Due Date</span>
+        <span className="text-right">Amount</span>
+        <span className="text-right w-16">Status</span>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {installments.map((inst) => (
+          <div key={inst.id} className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2.5 items-center">
+            <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
+            <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
+            <div className="w-16 flex justify-end">
+              <Badge
+                className={`text-xs border-0 rounded-full px-2 py-0.5 ${
+                  inst.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-50 text-amber-600"
+                }`}
+              >
+                {inst.status === "paid" ? "Paid" : "Pending"}
+              </Badge>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
- * One entry in the Payment Plan Thread — reuses the same card language as the Active Payment
- * Plan card (title row, divider, field rows) so every step reads as "the payment plan exactly
- * as it existed at that moment," not an abstract activity log. No status pill here — the
- * content and timestamp alone communicate progression; the only status badge in this page
- * lives on the Active Payment Plan card.
+ * One entry in the Payment Plan Thread — a complete historical snapshot reusing the exact same
+ * layout as the Active Payment Plan card (total amount, installment count, full schedule table).
+ * Only the header and metadata describing what happened change; everything below is the payment
+ * plan exactly as it existed at that moment. No status pill here — the only status badge on this
+ * page lives on the Active Payment Plan card.
  */
 function VersionCard({ event }: { event: ThreadEvent }) {
   const label = versionLabel(event);
@@ -140,93 +170,79 @@ function VersionCard({ event }: { event: ThreadEvent }) {
       : "Recorded on";
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div className="px-4 py-3.5">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+      <div>
         <p className="text-sm font-semibold text-gray-900">{label}</p>
-      </div>
-
-      <div className="border-t border-gray-100 px-4 py-3.5 space-y-3">
-        {/* Charges breakdown — tenant's original request only */}
-        {event.chargesBreakdown && event.chargesBreakdown.length > 0 && (
-          <div>
-            <p className="text-xs text-gray-400 mb-1">Charges</p>
-            <div className="space-y-0.5">
-              {event.chargesBreakdown.map((c) => (
-                <div key={c.label} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-700">{c.label}</span>
-                  <span className="text-gray-500 line-through decoration-gray-300">{formatCurrency(c.amount)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Requested schedule (free text from the tenant) */}
-        {event.preferredScheduleText && (
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">
-              {event.type === "proposal_requested" ? "Requested Schedule" : "Preferred Schedule"}
-            </p>
-            <p className="text-sm text-gray-900">"{event.preferredScheduleText}"</p>
-          </div>
-        )}
-
-        {/* Before → After changes on a revision */}
-        {event.fieldChanges && event.fieldChanges.length > 0 &&
-          event.fieldChanges.map((change) => (
-            <div key={change.label}>
-              <p className="text-xs text-gray-400 mb-0.5">{change.label}</p>
-              <p className="text-xs text-gray-400 mt-1">Before</p>
-              <p className="text-sm text-gray-500 line-through decoration-gray-300">{change.before}</p>
-              <div className="flex justify-center py-0.5">
-                <ArrowDown className="w-3.5 h-3.5 text-gray-300" />
-              </div>
-              <p className="text-xs text-gray-400">After</p>
-              <p className="text-sm font-medium text-gray-900">{change.after}</p>
-            </div>
-          ))}
-
-        {/* Updated/Approved/Accepted schedule — the proposal as it stood after this event */}
-        {event.proposal && (
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">
-              {event.type === "proposal_revised"
-                ? "Updated Schedule"
-                : event.type === "proposal_accepted"
-                ? "Approved Schedule"
-                : event.type === "plan_approved"
-                ? "Final Agreed Schedule"
-                : event.type === "proposal_declined" || event.type === "proposal_deleted"
-                ? "Proposed Schedule"
-                : "Schedule"}
-            </p>
-            <p className="text-sm text-gray-900">
-              {proposalLine(event.proposal)} · {formatCurrency(event.proposal.installmentAmount)} each
-              {event.proposal.frequencyLabel ? ` · ${event.proposal.frequencyLabel}` : ""}
-            </p>
-          </div>
-        )}
-
-        {/* Tenant note */}
-        {event.tenantNote && (
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Tenant Note</p>
-            <p className="text-sm text-gray-900">"{event.tenantNote}"</p>
-          </div>
-        )}
-
-        {/* Reason (decline / cancel context) */}
-        {event.reason && (
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Reason</p>
-            <p className="text-sm text-gray-900">{event.reason}</p>
-          </div>
-        )}
-
-        <p className="text-xs text-gray-400 pt-1 border-t border-gray-100">
+        <p className="text-xs text-gray-400 mt-0.5">
           {dateLabel} {formatFullTimestamp(event.createdAt)}
         </p>
       </div>
+
+      {/* Charges breakdown — tenant's original request only */}
+      {event.chargesBreakdown && event.chargesBreakdown.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-400 mb-1">Charges</p>
+          <div className="space-y-0.5">
+            {event.chargesBreakdown.map((c) => (
+              <div key={c.label} className="flex items-center justify-between text-sm">
+                <span className="text-gray-700">{c.label}</span>
+                <span className="text-gray-500 line-through decoration-gray-300">{formatCurrency(c.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Preferred schedule (free text from the tenant) */}
+      {event.preferredScheduleText && (
+        <div>
+          <p className="text-xs text-gray-400 mb-0.5">Preferred Schedule</p>
+          <p className="text-sm text-gray-900">"{event.preferredScheduleText}"</p>
+        </div>
+      )}
+
+      {/* Tenant note */}
+      {event.tenantNote && (
+        <div>
+          <p className="text-xs text-gray-400 mb-0.5">Tenant Note</p>
+          <p className="text-sm text-gray-900">"{event.tenantNote}"</p>
+        </div>
+      )}
+
+      {/* What changed on a revision — Before → After */}
+      {event.fieldChanges && event.fieldChanges.length > 0 &&
+        event.fieldChanges.map((change) => (
+          <div key={change.label} className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2.5">
+            <p className="text-xs font-medium text-gray-600 mb-1.5">{change.label} Changed</p>
+            <p className="text-[11px] text-gray-400 uppercase tracking-wide">From</p>
+            <p className="text-sm text-gray-500 line-through decoration-gray-300">{change.before}</p>
+            <div className="flex justify-center py-0.5">
+              <ArrowDown className="w-3.5 h-3.5 text-gray-300" />
+            </div>
+            <p className="text-[11px] text-gray-400 uppercase tracking-wide">To</p>
+            <p className="text-sm font-medium text-gray-900">{change.after}</p>
+          </div>
+        ))}
+
+      {/* The payment plan itself, exactly as it stood at this moment — same layout as Active Payment Plan */}
+      {event.proposal && (
+        <div className="pt-1 space-y-2 border-t border-gray-100">
+          <div className="pt-2">
+            <p className="text-xs text-gray-400 mb-0.5">Total Amount</p>
+            <p className="text-lg font-semibold text-gray-900">{formatCurrency(event.proposal.totalAmount)}</p>
+            <p className="text-sm text-gray-700 mt-0.5">{proposalLine(event.proposal)}</p>
+          </div>
+          <InstallmentScheduleTable installments={event.proposal.installments} />
+        </div>
+      )}
+
+      {/* Reason (decline / cancel context) */}
+      {event.reason && (
+        <div>
+          <p className="text-xs text-gray-400 mb-0.5">Reason</p>
+          <p className="text-sm text-gray-900">{event.reason}</p>
+        </div>
+      )}
     </div>
   );
 }
