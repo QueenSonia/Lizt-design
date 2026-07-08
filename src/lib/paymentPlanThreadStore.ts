@@ -189,6 +189,15 @@ const _serviceChargeSchedule: ProposalInstallment[] = [
   { id: "pi-002-1", amount: 125000, dueDate: "2026-06-01", status: "paid" },
   { id: "pi-002-2", amount: 125000, dueDate: "2026-07-01", status: "paid" },
 ];
+// Tenant's original 5-installment request on the Service Charge thread, before the Property
+// Manager consolidated it into the 2-installment schedule above.
+const _serviceChargeTenantRequest: ProposalInstallment[] = [
+  { id: "pi-sc-req-1", amount: 50000, dueDate: "2026-04-30", status: "pending" },
+  { id: "pi-sc-req-2", amount: 50000, dueDate: "2026-05-31", status: "pending" },
+  { id: "pi-sc-req-3", amount: 50000, dueDate: "2026-06-30", status: "pending" },
+  { id: "pi-sc-req-4", amount: 50000, dueDate: "2026-07-31", status: "pending" },
+  { id: "pi-sc-req-5", amount: 50000, dueDate: "2026-08-31", status: "pending" },
+];
 
 const _threads: PaymentPlanThread[] = [
   {
@@ -362,12 +371,24 @@ const _threads: PaymentPlanThread[] = [
     title: "Service Charge",
     amountDue: 250000,
     status: "completed",
-    createdAt: "2026-05-01T00:00:00.000Z",
+    createdAt: "2026-04-28T16:18:00.000Z",
     lastActivityAt: "2026-07-01T08:00:00.000Z",
     revisions: [
       {
-        id: "rev-sc-1",
+        id: "rev-sc-0",
         revisionNumber: 1,
+        proposedBy: "tenant",
+        totalAmount: 250000,
+        planType: "equal",
+        status: "declined",
+        createdAt: "2026-04-28T16:18:00.000Z",
+        note:
+          "I'm unable to pay the full service charge at once because of some unexpected financial commitments. I'd appreciate the opportunity to spread the payment over five months, and I'll ensure each installment is paid on time.",
+        installments: _serviceChargeTenantRequest,
+      },
+      {
+        id: "rev-sc-1",
+        revisionNumber: 2,
         proposedBy: "landlord",
         totalAmount: 250000,
         planType: "equal",
@@ -378,13 +399,32 @@ const _threads: PaymentPlanThread[] = [
     ],
     events: [
       {
+        id: "evt-sc-0",
+        type: "proposal_requested",
+        actor: "tenant",
+        headline: "Tenant requested a payment plan",
+        createdAt: "2026-04-28T16:18:00.000Z",
+        proposal: snapshotFromInstallments(_serviceChargeTenantRequest),
+        resultingStatus: "awaiting_landlord_approval",
+        chargesBreakdown: [{ label: "Service Charge", amount: 250000 }],
+        preferredScheduleText: "₦50,000 monthly for 5 months",
+        tenantNote:
+          "I'm unable to pay the full service charge at once because of some unexpected financial commitments. I'd appreciate the opportunity to spread the payment over five months, and I'll ensure each installment is paid on time.",
+      },
+      {
         id: "evt-sc-1",
-        type: "proposal_created",
+        type: "proposal_revised",
         actor: "landlord",
-        headline: "Property Manager proposed a payment plan",
+        headline: "Property Manager revised the proposal",
         createdAt: "2026-05-01T00:00:00.000Z",
+        previousProposal: snapshotFromInstallments(_serviceChargeTenantRequest),
         proposal: snapshotFromInstallments(_serviceChargeSchedule),
+        reason: "Consolidated into 2 installments to align with the property's billing cycle.",
         resultingStatus: "awaiting_tenant_response",
+        fieldChanges: [
+          { label: "Schedule", before: "5 Installments", after: "2 Installments" },
+          { label: "Installment Amount", before: "₦50,000", after: "₦125,000" },
+        ],
       },
       {
         id: "evt-sc-2",
