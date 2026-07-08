@@ -24,6 +24,8 @@ interface LandlordTopNavProps {
   secondaryButtonText?: string;
   /** Optional content rendered as its own row beneath the title/subtitle/action row — e.g. a page-level search bar. */
   belowHeader?: ReactNode;
+  /** Optional content rendered inline in the header row, between the title and the action buttons, separated by a vertical divider. */
+  headerAccessory?: ReactNode;
 }
 
 export const LandlordTopNav = memo(function LandlordTopNav({
@@ -45,6 +47,7 @@ export const LandlordTopNav = memo(function LandlordTopNav({
   secondaryAction,
   secondaryButtonText,
   belowHeader,
+  headerAccessory,
 }: LandlordTopNavProps) {
   return (
     <div className="lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white border-b border-slate-200 shadow-sm transition-none">
@@ -107,6 +110,13 @@ export const LandlordTopNav = memo(function LandlordTopNav({
               )}
             </div>
           </div>
+
+          {headerAccessory && (
+            <>
+              <div className="hidden lg:block w-px h-8 bg-slate-200 shrink-0" aria-hidden="true" />
+              <div className="shrink-0">{headerAccessory}</div>
+            </>
+          )}
 
           {/* Right: Action Buttons - Only show one at a time based on priority */}
           {showAddButton && (
