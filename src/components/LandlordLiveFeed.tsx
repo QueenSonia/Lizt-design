@@ -6,6 +6,8 @@ import {
   CalendarIcon,
   AlertCircle,
   Bell,
+  Search,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -207,6 +209,7 @@ export default function LandlordLiveFeed({
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
   const [showAddTenantModal, setShowAddTenantModal] = useState(false);
   const [showAddManagerModal, setShowAddManagerModal] = useState(false);
+  const [feedSearch, setFeedSearch] = useState("");
 
   const {
     isSupported,
@@ -380,12 +383,17 @@ export default function LandlordLiveFeed({
 
   const activities: Activity[] = mapNotificationToActivities(notifications);
 
+  const effectiveSearchTerm = feedSearch || searchTerm;
+
   const filteredActivities = activities.filter((activity) => {
-    if (!searchTerm) return true;
+    if (!effectiveSearchTerm) return true;
+    const query = effectiveSearchTerm.toLowerCase();
     return (
-      activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity.property.toLowerCase().includes(searchTerm.toLowerCase())
+      activity.title.toLowerCase().includes(query) ||
+      activity.description.toLowerCase().includes(query) ||
+      activity.property.toLowerCase().includes(query) ||
+      (activity.landlord?.toLowerCase().includes(query) ?? false) ||
+      (activity.type as string).toLowerCase().includes(query)
     );
   });
 
@@ -479,6 +487,27 @@ export default function LandlordLiveFeed({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={feedSearch}
+                onChange={(e) => setFeedSearch(e.target.value)}
+                placeholder="Search tenants, properties, landlords or activities..."
+                className="w-full h-10 pl-9 pr-9 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400"
+              />
+              {feedSearch && (
+                <button
+                  type="button"
+                  onClick={() => setFeedSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
             {isLoading ? (
               <LiveFeedSkeletonLoader />
             ) : isError ? (
@@ -489,6 +518,16 @@ export default function LandlordLiveFeed({
                 </h3>
                 <p className="text-slate-600 mb-4">
                   {error instanceof Error ? error.message : "An error occurred"}
+                </p>
+              </div>
+            ) : filteredActivities.length === 0 && effectiveSearchTerm ? (
+              <div className="text-center py-8">
+                <Search className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  No matching activities found
+                </h3>
+                <p className="text-slate-500 text-sm">
+                  Try searching for a tenant, property, landlord, or activity type.
                 </p>
               </div>
             ) : filteredActivities.length === 0 ? (
