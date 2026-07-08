@@ -399,117 +399,119 @@ export default function PaymentPlanThreadDetail() {
 
       <div className="max-w-3xl px-4 sm:px-6 py-6 space-y-6">
         {/* Active Payment Plan — the plan currently in effect, pending, active, or completed */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
-            <div>
-              <p className="text-xs text-gray-400 mb-0.5">Active Payment Plan</p>
-              <p className="text-lg font-semibold text-gray-900">{formatCurrency(thread.amountDue)}</p>
-              <p className="text-sm text-gray-700 mt-0.5">
-                {currentRevision ? proposalSummary(thread) : "—"}
-              </p>
-              {(thread.tenancyStartDate || thread.tenancyEndDate) && (
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {thread.tenancyStartDate ? formatDate(thread.tenancyStartDate) : "—"}
-                  {" – "}
-                  {thread.tenancyEndDate ? formatDate(thread.tenancyEndDate) : "—"}
+        <div>
+          <p className="text-xl font-bold text-gray-900 mb-3">Active Payment Plan</p>
+          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+            <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+              <div>
+                <p className="text-lg font-semibold text-gray-900">{formatCurrency(thread.amountDue)}</p>
+                <p className="text-sm text-gray-700 mt-0.5">
+                  {currentRevision ? proposalSummary(thread) : "—"}
                 </p>
-              )}
+                {(thread.tenancyStartDate || thread.tenancyEndDate) && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {thread.tenancyStartDate ? formatDate(thread.tenancyStartDate) : "—"}
+                    {" – "}
+                    {thread.tenancyEndDate ? formatDate(thread.tenancyEndDate) : "—"}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 ${THREAD_STATUS_STYLES[thread.status]}`}>
+                  {THREAD_STATUS_LABELS[thread.status]}
+                </Badge>
+                {currentRevision && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                        aria-label="Payment plan actions"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setShowReviseModal(true)}>
+                        <Pencil className="w-3.5 h-3.5 mr-2" />
+                        Edit Payment Plan
+                      </DropdownMenuItem>
+                      {canDelete ? (
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600"
+                          onClick={() => setShowDeleteDialog(true)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-2" />
+                          Delete Payment Plan
+                        </DropdownMenuItem>
+                      ) : canCancel ? (
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600"
+                          onClick={() => setShowCancelDialog(true)}
+                        >
+                          <Ban className="w-3.5 h-3.5 mr-2" />
+                          Cancel Payment Plan
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 ${THREAD_STATUS_STYLES[thread.status]}`}>
-                {THREAD_STATUS_LABELS[thread.status]}
-              </Badge>
-              {currentRevision && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+
+            {currentRevision && (
+              <div className="rounded-lg border border-gray-100 overflow-hidden">
+                <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-400">
+                  <span>Due Date</span>
+                  <span className="text-right">Amount</span>
+                  <span className="text-right w-16">Status</span>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {currentRevision.installments.map((inst) => (
                     <button
+                      key={inst.id}
                       type="button"
-                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                      aria-label="Payment plan actions"
+                      disabled={inst.status === "paid"}
+                      onClick={() => markInstallmentPaid(thread!.id, currentRevision.id, inst.id)}
+                      className={`w-full grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2.5 items-center text-left ${
+                        inst.status !== "paid" ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
+                      }`}
                     >
-                      <MoreVertical className="w-4 h-4" />
+                      <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
+                      <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
+                      <div className="w-16 flex justify-end">
+                        <Badge
+                          className={`text-xs border-0 rounded-full px-2 py-0.5 ${
+                            inst.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-50 text-amber-600"
+                          }`}
+                        >
+                          {inst.status === "paid" ? "Paid" : "Pending"}
+                        </Badge>
+                      </div>
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setShowReviseModal(true)}>
-                      <Pencil className="w-3.5 h-3.5 mr-2" />
-                      Edit Payment Plan
-                    </DropdownMenuItem>
-                    {canDelete ? (
-                      <DropdownMenuItem
-                        className="text-red-600 focus:text-red-600"
-                        onClick={() => setShowDeleteDialog(true)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-2" />
-                        Delete Payment Plan
-                      </DropdownMenuItem>
-                    ) : canCancel ? (
-                      <DropdownMenuItem
-                        className="text-red-600 focus:text-red-600"
-                        onClick={() => setShowCancelDialog(true)}
-                      >
-                        <Ban className="w-3.5 h-3.5 mr-2" />
-                        Cancel Payment Plan
-                      </DropdownMenuItem>
-                    ) : null}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {latestIsPending && (isAwaitingLandlord || isAwaitingTenant) && (
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" onClick={handleApprove} className="bg-[#FF5000] hover:bg-[#e04600] text-white h-9 px-5">
+                  <Check className="w-3.5 h-3.5 mr-1" />
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowDeclineDialog(true)}
+                  className="border-gray-200 text-gray-600 hover:bg-gray-50 h-9 px-5"
+                >
+                  <X className="w-3.5 h-3.5 mr-1" />
+                  Decline
+                </Button>
+              </div>
+            )}
           </div>
-
-          {currentRevision && (
-            <div className="rounded-lg border border-gray-100 overflow-hidden">
-              <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-400">
-                <span>Due Date</span>
-                <span className="text-right">Amount</span>
-                <span className="text-right w-16">Status</span>
-              </div>
-              <div className="divide-y divide-gray-50">
-                {currentRevision.installments.map((inst) => (
-                  <button
-                    key={inst.id}
-                    type="button"
-                    disabled={inst.status === "paid"}
-                    onClick={() => markInstallmentPaid(thread!.id, currentRevision.id, inst.id)}
-                    className={`w-full grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2.5 items-center text-left ${
-                      inst.status !== "paid" ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
-                    }`}
-                  >
-                    <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
-                    <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
-                    <div className="w-16 flex justify-end">
-                      <Badge
-                        className={`text-xs border-0 rounded-full px-2 py-0.5 ${
-                          inst.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-50 text-amber-600"
-                        }`}
-                      >
-                        {inst.status === "paid" ? "Paid" : "Pending"}
-                      </Badge>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {latestIsPending && (isAwaitingLandlord || isAwaitingTenant) && (
-            <div className="flex gap-2 pt-1">
-              <Button size="sm" onClick={handleApprove} className="bg-[#FF5000] hover:bg-[#e04600] text-white h-9 px-5">
-                <Check className="w-3.5 h-3.5 mr-1" />
-                Approve
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowDeclineDialog(true)}
-                className="border-gray-200 text-gray-600 hover:bg-gray-50 h-9 px-5"
-              >
-                <X className="w-3.5 h-3.5 mr-1" />
-                Decline
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Payment Plan Thread — the negotiation journey, newest at the top, oldest (tenant's
