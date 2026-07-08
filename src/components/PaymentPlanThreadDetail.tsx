@@ -96,7 +96,7 @@ function versionLabel(event: ThreadEvent): string {
     case "proposal_requested":
       return "Tenant Requested Payment Plan";
     case "proposal_created":
-      return "Property Manager Proposed Payment Plan";
+      return "Payment Plan Was Edited";
     case "proposal_revised":
       return `${who} Edited Payment Plan`;
     case "proposal_accepted":
@@ -114,24 +114,15 @@ function versionLabel(event: ThreadEvent): string {
   }
 }
 
-const VERSION_STATUS_STYLES: Record<string, string> = {
-  Submitted: "bg-blue-50 text-blue-600",
-  Accepted: "bg-green-100 text-green-700",
-  Declined: "bg-red-50 text-red-500",
-  Deleted: "bg-gray-100 text-gray-500",
-};
-
 /**
- * One entry in the versioned Payment Plan History — reuses the same card language as the
- * Active Payment Plan card (title row, status badge, divider, field rows) so every step reads
- * as "the payment plan exactly as it existed at that moment," not an abstract activity log.
+ * One entry in the Payment Plan Thread — reuses the same card language as the Active Payment
+ * Plan card (title row, divider, field rows) so every step reads as "the payment plan exactly
+ * as it existed at that moment," not an abstract activity log. No status pill here — the
+ * content and timestamp alone communicate progression; the only status badge in this page
+ * lives on the Active Payment Plan card.
  */
 function VersionCard({ event }: { event: ThreadEvent }) {
   const label = versionLabel(event);
-  const statusLabel = event.resultingStatusLabel ?? (event.resultingStatus ? THREAD_STATUS_LABELS[event.resultingStatus] : undefined);
-  const statusStyle =
-    (statusLabel && VERSION_STATUS_STYLES[statusLabel]) ??
-    (event.resultingStatus ? THREAD_STATUS_STYLES[event.resultingStatus] : "bg-gray-100 text-gray-500");
 
   const dateLabel =
     event.type === "proposal_requested"
@@ -150,13 +141,8 @@ function VersionCard({ event }: { event: ThreadEvent }) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+      <div className="px-4 py-3.5">
         <p className="text-sm font-semibold text-gray-900">{label}</p>
-        {statusLabel && (
-          <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 shrink-0 ${statusStyle}`}>
-            {statusLabel}
-          </Badge>
-        )}
       </div>
 
       <div className="border-t border-gray-100 px-4 py-3.5 space-y-3">
@@ -245,17 +231,6 @@ function VersionCard({ event }: { event: ThreadEvent }) {
   );
 }
 
-/** A short, minimal vertical connector between two consecutive history cards. */
-function TimelineConnector() {
-  return (
-    <div className="flex flex-col items-center py-1" aria-hidden="true">
-      <span className="w-px h-3 bg-gray-200" />
-      <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-      <span className="w-px h-3 bg-gray-200" />
-    </div>
-  );
-}
-
 export default function PaymentPlanThreadDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -291,16 +266,13 @@ export default function PaymentPlanThreadDetail() {
   const latestIsPending = latestRevision?.status === "pending";
   const canDelete = canDeleteCurrentProposal(thread);
   const canCancel = isActive && currentRevision && !canDelete;
-  const hasBeenApproved = thread.events.some((e) => e.type === "plan_approved");
-  const proposalSectionTitle =
-    thread.status === "completed" ? "Final Payment Plan" : hasBeenApproved ? "Approved Payment Plan" : "Current Proposal";
-
-  // Chronological order — the complete story from request to completion. Only version events
-  // (a full payment-plan snapshot: request, edit, response, approval) get their own history
-  // card; payment-execution events (installments, reminders) live in the Active Plan card above.
+  // Newest first — the thread reads top (current) to bottom (oldest / tenant's original request).
+  // Only version events (a full payment-plan snapshot: request, edit, response, approval) get
+  // their own card; payment-execution events (installments, reminders) live in the Active
+  // Payment Plan card above.
   const history = [...thread.events]
     .filter(isVersionEvent)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   function handleApprove() {
     if (!latestRevision) return;
@@ -377,12 +349,15 @@ export default function PaymentPlanThreadDetail() {
       </div>
 
       <div className="max-w-3xl px-4 sm:px-6 py-6 space-y-6">
-        {/* Header summary */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-          <div className="flex items-start justify-between gap-3">
+        {/* Active Payment Plan — the plan currently in effect, pending, active, or completed */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Total Amount</p>
+              <p className="text-xs text-gray-400 mb-0.5">Active Payment Plan</p>
               <p className="text-lg font-semibold text-gray-900">{formatCurrency(thread.amountDue)}</p>
+              <p className="text-sm text-gray-700 mt-0.5">
+                {currentRevision ? proposalSummary(thread) : "—"}
+              </p>
               {(thread.tenancyStartDate || thread.tenancyEndDate) && (
                 <p className="text-xs text-gray-400 mt-0.5">
                   {thread.tenancyStartDate ? formatDate(thread.tenancyStartDate) : "—"}
@@ -391,57 +366,47 @@ export default function PaymentPlanThreadDetail() {
                 </p>
               )}
             </div>
-            <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 shrink-0 ${THREAD_STATUS_STYLES[thread.status]}`}>
-              {THREAD_STATUS_LABELS[thread.status]}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Current / Approved / Final Payment Plan */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
-            <div>
-              <p className="text-xs text-gray-400 mb-0.5">{proposalSectionTitle}</p>
-              <p className="text-sm font-semibold text-gray-900">
-                {currentRevision ? proposalSummary(thread) : "—"}
-              </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge className={`text-xs border-0 rounded-full px-2.5 py-0.5 ${THREAD_STATUS_STYLES[thread.status]}`}>
+                {THREAD_STATUS_LABELS[thread.status]}
+              </Badge>
+              {currentRevision && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                      aria-label="Payment plan actions"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setShowReviseModal(true)}>
+                      <Pencil className="w-3.5 h-3.5 mr-2" />
+                      Edit Payment Plan
+                    </DropdownMenuItem>
+                    {canDelete ? (
+                      <DropdownMenuItem
+                        className="text-red-600 focus:text-red-600"
+                        onClick={() => setShowDeleteDialog(true)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-2" />
+                        Delete Payment Plan
+                      </DropdownMenuItem>
+                    ) : canCancel ? (
+                      <DropdownMenuItem
+                        className="text-red-600 focus:text-red-600"
+                        onClick={() => setShowCancelDialog(true)}
+                      >
+                        <Ban className="w-3.5 h-3.5 mr-2" />
+                        Cancel Payment Plan
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
-            {currentRevision && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="p-1.5 -mr-1.5 -mt-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                    aria-label="Payment plan actions"
-                  >
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowReviseModal(true)}>
-                    <Pencil className="w-3.5 h-3.5 mr-2" />
-                    Edit Payment Plan
-                  </DropdownMenuItem>
-                  {canDelete ? (
-                    <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600"
-                      onClick={() => setShowDeleteDialog(true)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-2" />
-                      Delete Payment Plan
-                    </DropdownMenuItem>
-                  ) : canCancel ? (
-                    <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600"
-                      onClick={() => setShowCancelDialog(true)}
-                    >
-                      <Ban className="w-3.5 h-3.5 mr-2" />
-                      Cancel Payment Plan
-                    </DropdownMenuItem>
-                  ) : null}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
 
           {currentRevision && (
@@ -498,23 +463,27 @@ export default function PaymentPlanThreadDetail() {
           )}
         </div>
 
-        {/* Payment Plan History — the versioned evolution of this payment plan, read top to bottom */}
+        {/* Payment Plan Thread — the negotiation journey, newest at the top, oldest (tenant's
+            original request) at the bottom */}
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Payment Plan History
+            Payment Plan Thread
           </h3>
-          <div>
-            {history.length === 0 ? (
-              <p className="text-xs text-gray-400 italic text-center py-4">No activity yet.</p>
-            ) : (
-              history.map((event, i) => (
-                <div key={event.id}>
-                  <VersionCard event={event} />
-                  {i < history.length - 1 && <TimelineConnector />}
-                </div>
-              ))
-            )}
-          </div>
+          {history.length === 0 ? (
+            <p className="text-xs text-gray-400 italic text-center py-4">No activity yet.</p>
+          ) : (
+            <div className="relative pl-6">
+              <div className="absolute left-[5px] top-2 bottom-2 w-0.5 bg-gray-200" aria-hidden="true" />
+              <div className="space-y-5">
+                {history.map((event) => (
+                  <div key={event.id} className="relative">
+                    <span className="absolute -left-6 top-5 w-2.5 h-2.5 rounded-full bg-gray-400 ring-4 ring-gray-50" aria-hidden="true" />
+                    <VersionCard event={event} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
