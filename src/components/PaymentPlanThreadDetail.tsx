@@ -62,16 +62,6 @@ function proposalLine(p: ProposalSnapshot): string {
   return p.installmentCount === 1 ? "One-time Payment" : `${p.installmentCount} Installments`;
 }
 
-/** One-line "N × ₦amount" shorthand used inside the concise change summary sentence. */
-function proposalShorthand(p: ProposalSnapshot): string {
-  return `${p.installmentCount} × ${formatCurrency(p.installmentAmount)}`;
-}
-
-/** A single concise sentence describing what changed between two proposal snapshots. */
-function buildChangeSummary(before: ProposalSnapshot, after: ProposalSnapshot): string {
-  return `Payment schedule revised from ${proposalShorthand(before)} to ${proposalShorthand(after)}.`;
-}
-
 const PAYMENT_EVENT_TYPES = new Set<ThreadEvent["type"]>([
   "installment_paid",
   "installment_overdue",
@@ -97,6 +87,24 @@ const VERSION_EVENT_TYPES = new Set<ThreadEvent["type"]>([
 
 function isVersionEvent(event: ThreadEvent): boolean {
   return VERSION_EVENT_TYPES.has(event.type);
+}
+
+/**
+ * Newest-first display order, with one deliberate exception: a plan_approved card is shown
+ * directly *above* the revision/response event that immediately precedes it in time (instead of
+ * above it, which strict chronological order would do), so the thread leads with "what the plan
+ * looks like now" before the approval stamp on it. Every other pair stays in chronological order.
+ */
+function orderThreadHistory(events: ThreadEvent[]): ThreadEvent[] {
+  const chronological = [...events].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const newestFirst = [...chronological].reverse();
+  for (let i = 0; i < newestFirst.length - 1; i++) {
+    if (newestFirst[i].type === "plan_approved") {
+      [newestFirst[i], newestFirst[i + 1]] = [newestFirst[i + 1], newestFirst[i]];
+      i++; // don't re-evaluate the approval now sitting one slot later
+    }
+  }
+  return newestFirst;
 }
 
 /** Actor-aware label — several event types (accept/decline/revise) can be triggered by either party. */
@@ -209,14 +217,6 @@ function VersionCard({ event }: { event: ThreadEvent }) {
         )}
       </div>
 
-      {/* What changed on a revision — one concise sentence instead of a Before/After block per field */}
-      {event.previousProposal && event.proposal && (
-        <div>
-          <p className="text-xs text-gray-400 mb-0.5">Changes Made</p>
-          <p className="text-sm text-gray-900">{buildChangeSummary(event.previousProposal, event.proposal)}</p>
-        </div>
-      )}
-
       {/* Total Amount — always shown; the schedule table only once a structured plan exists */}
       {event.proposal && (
         <div className="space-y-2">
@@ -271,8 +271,8 @@ function VersionCard({ event }: { event: ThreadEvent }) {
         </p>
       )}
 
-      {/* Reason (decline / cancel context) */}
-      {event.reason && (
+      {/* Reason (decline / cancel context) — omitted on "Payment Plan Edited"; the snapshot speaks for itself */}
+      {event.reason && event.type !== "proposal_revised" && (
         <div>
           <p className="text-xs text-gray-400 mb-0.5">Reason</p>
           <p className="text-sm text-gray-900">{event.reason}</p>
@@ -321,9 +321,7 @@ export default function PaymentPlanThreadDetail() {
   // Only version events (a full payment-plan snapshot: request, edit, response, approval) get
   // their own card; payment-execution events (installments, reminders) live in the Active
   // Payment Plan card above.
-  const history = [...thread.events]
-    .filter(isVersionEvent)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const history = orderThreadHistory(thread.events.filter(isVersionEvent));
 
   function handleApprove() {
     if (!latestRevision) return;
