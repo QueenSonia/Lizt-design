@@ -35,6 +35,10 @@ import {
   isTaskPriority,
   setTaskPriority,
 } from "@/lib/taskThreadStore";
+import { ColumnsButton, TablePagination, stickyHeadClass } from "./TableControls";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
 
 interface LandlordFacilityProps {
   onBack?: () => void;
@@ -50,6 +54,17 @@ interface FacilityManager {
   role: string;
   date: string;
 }
+
+type FacilityManagerColumnId = "name" | "phone" | "activeTasks";
+
+const FACILITY_MANAGER_COLUMN_DEFS: { id: FacilityManagerColumnId; label: string }[] = [
+  { id: "name", label: "Name" },
+  { id: "phone", label: "Phone Number" },
+  { id: "activeTasks", label: "Active Tasks" },
+];
+
+// The table needs at least one identifying column — Name can't be hidden entirely.
+const FACILITY_MANAGER_PRIMARY_COLUMNS: FacilityManagerColumnId[] = ["name"];
 
 const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
   {
@@ -422,6 +437,20 @@ export function LandlordFacility({
   const [loadingManagers, setLoadingManagers] = useState(true);
   const [detailManager, setDetailManager] = useState<FacilityManager | null>(null);
   const [isEditingManager, setIsEditingManager] = useState(false);
+
+  const {
+    visibility: fmColumnVisibility,
+    toggleColumn: toggleFmColumn,
+    visibleCount: fmVisibleCount,
+    totalCount: fmTotalCount,
+  } = useColumnVisibility<FacilityManagerColumnId>(
+    "lizt.facilityManagers.columnVisibility",
+    FACILITY_MANAGER_COLUMN_DEFS.map((c) => c.id),
+    FACILITY_MANAGER_PRIMARY_COLUMNS
+  );
+  const { ref: fmTableScrollRef, scrolled: fmTableScrolled, onScroll: handleFmTableScroll } =
+    useTableScrollShadow<HTMLDivElement>();
+  const fmPagination = useTablePagination(managers, managers.length);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [confirmDeleteManager, setConfirmDeleteManager] = useState(false);
@@ -918,48 +947,87 @@ export function LandlordFacility({
                 <p className="text-gray-500">Add your first facility manager to get started.</p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="text-left py-4 px-6 text-sm text-gray-600">Name</th>
-                      <th className="text-left py-4 px-6 text-sm text-gray-600">Phone Number</th>
-                      <th className="text-left py-4 px-6 text-sm text-gray-600">Active Tasks</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {managers.map((manager) => {
-                      const activeCount = getRequestsForManager(manager.id).filter(
-                        (rid) => {
-                          const req = requests.find((r) => r.id === rid);
-                          if (!req) return false;
-                          const status = (statusOverrides[req.id] ?? req.status).toLowerCase();
-                          return status !== "resolved" && status !== "closed";
-                        },
-                      ).length;
-                      return (
-                        <tr
-                          key={manager.id}
-                          onClick={() => openDetailModal(manager)}
-                          className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors last:border-0"
-                        >
-                          <td className="py-4 px-6 text-gray-900">{manager.name}</td>
-                          <td className="py-4 px-6 text-gray-600">{manager.phone_number}</td>
-                          <td className="py-4 px-6">
-                            {activeCount > 0 ? (
-                              <span className="inline-flex items-center text-xs bg-orange-100 text-orange-700 font-medium px-2 py-0.5 rounded-full">
-                                {activeCount} active
-                              </span>
-                            ) : (
-                              <span className="text-xs text-gray-400">None</span>
+              <>
+                <div className="flex justify-end mb-3">
+                  <ColumnsButton
+                    columns={FACILITY_MANAGER_COLUMN_DEFS}
+                    visibility={fmColumnVisibility}
+                    primaryColumns={FACILITY_MANAGER_PRIMARY_COLUMNS}
+                    onToggle={toggleFmColumn}
+                    visibleCount={fmVisibleCount}
+                    totalCount={fmTotalCount}
+                  />
+                </div>
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div ref={fmTableScrollRef} onScroll={handleFmTableScroll} className="max-h-[70vh] overflow-y-auto">
+                  <table className="w-full">
+                    <thead className={stickyHeadClass(fmTableScrolled)}>
+                      <tr>
+                        {fmColumnVisibility.name && (
+                          <th className="text-left py-4 px-6 text-sm text-gray-600">Name</th>
+                        )}
+                        {fmColumnVisibility.phone && (
+                          <th className="text-left py-4 px-6 first:pl-6 text-sm text-gray-600">Phone Number</th>
+                        )}
+                        {fmColumnVisibility.activeTasks && (
+                          <th className="text-left py-4 px-6 first:pl-6 text-sm text-gray-600">Active Tasks</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fmPagination.paginated.map((manager) => {
+                        const activeCount = getRequestsForManager(manager.id).filter(
+                          (rid) => {
+                            const req = requests.find((r) => r.id === rid);
+                            if (!req) return false;
+                            const status = (statusOverrides[req.id] ?? req.status).toLowerCase();
+                            return status !== "resolved" && status !== "closed";
+                          },
+                        ).length;
+                        return (
+                          <tr
+                            key={manager.id}
+                            onClick={() => openDetailModal(manager)}
+                            className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors last:border-0"
+                          >
+                            {fmColumnVisibility.name && (
+                              <td className="py-4 px-6 text-gray-900">{manager.name}</td>
                             )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            {fmColumnVisibility.phone && (
+                              <td className="py-4 px-6 first:pl-6 text-gray-600">{manager.phone_number}</td>
+                            )}
+                            {fmColumnVisibility.activeTasks && (
+                              <td className="py-4 px-6 first:pl-6">
+                                {activeCount > 0 ? (
+                                  <span className="inline-flex items-center text-xs bg-orange-100 text-orange-700 font-medium px-2 py-0.5 rounded-full">
+                                    {activeCount} active
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-400">None</span>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+
+                <TablePagination
+                  page={fmPagination.page}
+                  totalPages={fmPagination.totalPages}
+                  pageSize={fmPagination.pageSize}
+                  onPageChange={fmPagination.setPage}
+                  onPageSizeChange={fmPagination.setPageSize}
+                  rangeStart={fmPagination.rangeStart}
+                  rangeEnd={fmPagination.rangeEnd}
+                  total={fmPagination.total}
+                  itemLabel="facility managers"
+                  getPageNumbers={fmPagination.getPageNumbers}
+                />
+              </>
             )}
           </div>
         )}
