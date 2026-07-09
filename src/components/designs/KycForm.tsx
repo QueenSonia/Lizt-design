@@ -446,6 +446,8 @@ interface KycFormData {
   property_applying_for: string;
   intended_use_of_property: string;
   number_of_occupants: string;
+  is_first_time_tenant: string;
+  number_of_previous_residences: string;
   parking_needs: string;
   proposed_rent_amount: string;
   rent_payment_frequency: string;
@@ -491,6 +493,8 @@ const INITIAL_FORM_DATA: KycFormData = {
   property_applying_for: "",
   intended_use_of_property: "",
   number_of_occupants: "",
+  is_first_time_tenant: "",
+  number_of_previous_residences: "",
   parking_needs: "",
   proposed_rent_amount: "",
   rent_payment_frequency: "",
@@ -1063,6 +1067,44 @@ function TenancyInformationStep({
               onChange={(e) => onChange({ parking_needs: e.target.value })}
               placeholder="0"
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="is_first_time_tenant" className="mb-2">
+                First Time Tenant?
+              </Label>
+              <Select
+                value={formData.is_first_time_tenant}
+                onValueChange={(v) => onChange({ is_first_time_tenant: v })}
+              >
+                <SelectTrigger id="is_first_time_tenant" className={inputClass(!!errors.is_first_time_tenant)}>
+                  <SelectValue placeholder="Select an option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError>{errors.is_first_time_tenant}</FieldError>
+            </div>
+            {formData.is_first_time_tenant === "no" && (
+              <div>
+                <Label htmlFor="number_of_previous_residences" className="mb-2">
+                  Number of Places Lived In Before
+                </Label>
+                <Input
+                  id="number_of_previous_residences"
+                  type="number"
+                  min="0"
+                  value={formData.number_of_previous_residences}
+                  onChange={(e) => onChange({ number_of_previous_residences: e.target.value })}
+                  placeholder="0"
+                  className={inputClass(!!errors.number_of_previous_residences)}
+                />
+                <FieldError>{errors.number_of_previous_residences}</FieldError>
+              </div>
+            )}
           </div>
         </div>
       </div>

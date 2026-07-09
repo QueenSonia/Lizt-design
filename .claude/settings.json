@@ -3,5 +3,19 @@
     "allow": [
       "Bash(npm run:*)"
     ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && { [ -z \"$(git status --porcelain)\" ] && echo '{}' && exit 0; }; git add -A && git commit -m \"$(printf 'Auto-commit: session changes\\n\\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>')\" --quiet && git push --quiet 2>&1; echo '{\"systemMessage\": \"Auto-committed and pushed changes\"}'",
+            "timeout": 30,
+            "statusMessage": "Committing and pushing changes..."
+          }
+        ]
+      }
+    ]
   }
 }
