@@ -8,6 +8,10 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ReceiptViewModal, ReceiptData } from "./ReceiptViewModal";
 import { toast } from "sonner";
+import { ColumnsButton, TablePagination, stickyHeadClass } from "./TableControls";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
 
 type InvoiceStatus = "upcoming" | "paid" | "overdue";
 
@@ -403,44 +407,97 @@ export function InvoiceDrawer({
 
 // ── Invoices Tab ──────────────────────────────────────────────────────────────
 
+type InvoiceColumnId = "dueDate" | "description" | "status" | "total";
+
+const INVOICE_COLUMN_DEFS: { id: InvoiceColumnId; label: string }[] = [
+  { id: "dueDate", label: "Due Date" },
+  { id: "description", label: "Description" },
+  { id: "status", label: "Status" },
+  { id: "total", label: "Invoice Total" },
+];
+
+// The table needs at least one identifying column — Description can't be hidden entirely.
+const INVOICE_PRIMARY_COLUMNS: InvoiceColumnId[] = ["description"];
+
 function InvoicesTab({ propertyName, tenantName }: { propertyName: string; tenantName: string }) {
   const [selected, setSelected] = useState<Invoice | null>(null);
 
+  const {
+    visibility: columnVisibility,
+    toggleColumn,
+    visibleCount,
+    totalCount,
+  } = useColumnVisibility<InvoiceColumnId>(
+    "lizt.invoices.columnVisibility",
+    INVOICE_COLUMN_DEFS.map((c) => c.id),
+    INVOICE_PRIMARY_COLUMNS
+  );
+  const { ref: tableScrollRef, scrolled: tableScrolled, onScroll: handleTableScroll } =
+    useTableScrollShadow<HTMLDivElement>();
+  const pagination = useTablePagination(MOCK_INVOICES, MOCK_INVOICES.length);
+
   return (
     <div className="py-4">
+      <div className="flex justify-end mb-3">
+        <ColumnsButton
+          columns={INVOICE_COLUMN_DEFS}
+          visibility={columnVisibility}
+          primaryColumns={INVOICE_PRIMARY_COLUMNS}
+          onToggle={toggleColumn}
+          visibleCount={visibleCount}
+          totalCount={totalCount}
+        />
+      </div>
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto">
         <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[200px]">Due Date</th>
-              <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[260px]">Description</th>
-              <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[160px]">Status</th>
-              <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[180px]">Invoice Total</th>
+          <thead className={stickyHeadClass(tableScrolled)}>
+            <tr>
+              {columnVisibility.dueDate && (
+                <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[200px]">Due Date</th>
+              )}
+              {columnVisibility.description && (
+                <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[260px] first:pl-10">Description</th>
+              )}
+              {columnVisibility.status && (
+                <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[160px] first:pl-10">Status</th>
+              )}
+              {columnVisibility.total && (
+                <th className="text-left px-10 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[180px] first:pl-10">Invoice Total</th>
+              )}
               <th className="w-10 pr-4" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {MOCK_INVOICES.map(inv => (
+            {pagination.paginated.map(inv => (
               <tr
                 key={inv.id}
                 className="hover:bg-gray-50 transition-colors cursor-pointer"
                 onClick={() => setSelected(inv)}
               >
-                <td className="px-10 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
-                <td className="px-10 py-4">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                    <span className="text-sm text-gray-900">{inv.description}</span>
-                  </div>
-                </td>
-                <td className="px-10 py-4">
-                  <Badge className={`text-xs rounded-full px-2.5 py-0.5 font-medium ${STATUS_STYLES[inv.status]}`}>
-                    {inv.status === "upcoming" ? "Upcoming" : inv.status === "paid" ? "Paid" : "Overdue"}
-                  </Badge>
-                </td>
-                <td className="px-10 py-4 text-sm font-medium text-gray-900">
-                  {inv.total !== null ? formatCurrency(inv.total) : "—"}
-                </td>
+                {columnVisibility.dueDate && (
+                  <td className="px-10 py-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
+                )}
+                {columnVisibility.description && (
+                  <td className="px-10 py-4 first:pl-10">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span className="text-sm text-gray-900">{inv.description}</span>
+                    </div>
+                  </td>
+                )}
+                {columnVisibility.status && (
+                  <td className="px-10 py-4 first:pl-10">
+                    <Badge className={`text-xs rounded-full px-2.5 py-0.5 font-medium ${STATUS_STYLES[inv.status]}`}>
+                      {inv.status === "upcoming" ? "Upcoming" : inv.status === "paid" ? "Paid" : "Overdue"}
+                    </Badge>
+                  </td>
+                )}
+                {columnVisibility.total && (
+                  <td className="px-10 py-4 first:pl-10 text-sm font-medium text-gray-900">
+                    {inv.total !== null ? formatCurrency(inv.total) : "—"}
+                  </td>
+                )}
                 <td className="pr-4 text-right w-10">
                   <ChevronRight className="w-4 h-4 text-gray-400 inline" />
                 </td>
@@ -448,7 +505,21 @@ function InvoicesTab({ propertyName, tenantName }: { propertyName: string; tenan
             ))}
           </tbody>
         </table>
+        </div>
       </div>
+
+      <TablePagination
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        pageSize={pagination.pageSize}
+        onPageChange={pagination.setPage}
+        onPageSizeChange={pagination.setPageSize}
+        rangeStart={pagination.rangeStart}
+        rangeEnd={pagination.rangeEnd}
+        total={pagination.total}
+        itemLabel="invoices"
+        getPageNumbers={pagination.getPageNumbers}
+      />
 
       {selected && (
         <InvoiceDrawer
