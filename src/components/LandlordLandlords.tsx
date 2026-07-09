@@ -15,6 +15,10 @@ import { GlobalSearchDropdown } from "./GlobalSearch";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ColumnsButton, TablePagination, stickyHeadClass } from "./TableControls";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -581,6 +585,19 @@ const LANDLORD_FILTER_GROUPS: FilterGroup[] = [
 
 const EMPTY_FILTERS: FilterValues = {};
 
+// ── Column visibility ────────────────────────────────────────────────────────
+
+type LandlordColumnId = "landlord" | "properties" | "activeTenancies";
+
+const LANDLORD_COLUMN_DEFS: { id: LandlordColumnId; label: string }[] = [
+  { id: "landlord", label: "Landlord" },
+  { id: "properties", label: "Properties" },
+  { id: "activeTenancies", label: "Active Tenancies" },
+];
+
+// The table needs at least one identifying column — Landlord can't be hidden entirely.
+const LANDLORD_PRIMARY_COLUMNS: LandlordColumnId[] = ["landlord"];
+
 function LandlordListScreen({
   landlords,
   onSelect,
@@ -598,6 +615,15 @@ function LandlordListScreen({
   const [filterValues, setFilterValues] = useState<FilterValues>(EMPTY_FILTERS);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
+
+  const { visibility: columnVisibility, toggleColumn, visibleCount, totalCount } =
+    useColumnVisibility<LandlordColumnId>(
+      "lizt.landlords.columnVisibility",
+      LANDLORD_COLUMN_DEFS.map((c) => c.id),
+      LANDLORD_PRIMARY_COLUMNS
+    );
+  const { ref: tableScrollRef, scrolled: tableScrolled, onScroll: handleTableScroll } =
+    useTableScrollShadow<HTMLDivElement>();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -660,6 +686,11 @@ function LandlordListScreen({
   }, [landlords, search, filterValues]);
 
   const hasActiveFilters = Object.values(filterValues).some((v) => v.length > 0);
+
+  const pagination = useTablePagination(
+    filtered,
+    `${search}|${JSON.stringify(filterValues)}`
+  );
 
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
@@ -730,6 +761,16 @@ function LandlordListScreen({
               onChange={setFilterValues}
               onClear={() => setFilterValues(EMPTY_FILTERS)}
             />
+
+            {/* Columns */}
+            <ColumnsButton
+              columns={LANDLORD_COLUMN_DEFS}
+              visibility={columnVisibility}
+              primaryColumns={LANDLORD_PRIMARY_COLUMNS}
+              onToggle={toggleColumn}
+              visibleCount={visibleCount}
+              totalCount={totalCount}
+            />
           </div>
         </div>
       </div>
@@ -759,44 +800,58 @@ function LandlordListScreen({
             <>
               {/* Desktop table */}
               <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className={stickyHeadClass(tableScrolled)}>
                     <tr>
-                      <th className="text-left px-6 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Landlord</span>
-                      </th>
-                      <th className="text-left px-4 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Properties</span>
-                      </th>
-                      <th className="text-left px-4 py-3 pr-6">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Active Tenancies</span>
-                      </th>
+                      {columnVisibility.landlord && (
+                        <th className="text-left px-6 py-3">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Landlord</span>
+                        </th>
+                      )}
+                      {columnVisibility.properties && (
+                        <th className="text-left px-4 py-3 first:pl-6">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Properties</span>
+                        </th>
+                      )}
+                      {columnVisibility.activeTenancies && (
+                        <th className="text-left px-4 py-3 pr-6 first:pl-6">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Active Tenancies</span>
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filtered.map((l) => (
+                    {pagination.paginated.map((l) => (
                       <tr
                         key={l.id}
                         onClick={() => onSelect(l)}
                         className="bg-white hover:bg-gray-50 cursor-pointer transition-colors group"
                       >
-                        <td className="px-6 py-4">
-                          <p className="font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors">{l.name}</p>
-                          {l.type === "corporate" && l.contactName && (
-                            <p className="text-xs text-gray-400 mt-0.5">Contact: {l.contactName}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-gray-900 tabular-nums font-medium">{l.properties}</td>
-                        <td className="px-4 py-4 pr-6 text-gray-900 tabular-nums font-medium">{l.activeTenancies}</td>
+                        {columnVisibility.landlord && (
+                          <td className="px-6 py-4">
+                            <p className="font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors">{l.name}</p>
+                            {l.type === "corporate" && l.contactName && (
+                              <p className="text-xs text-gray-400 mt-0.5">Contact: {l.contactName}</p>
+                            )}
+                          </td>
+                        )}
+                        {columnVisibility.properties && (
+                          <td className="px-4 py-4 first:pl-6 text-gray-900 tabular-nums font-medium">{l.properties}</td>
+                        )}
+                        {columnVisibility.activeTenancies && (
+                          <td className="px-4 py-4 pr-6 first:pl-6 text-gray-900 tabular-nums font-medium">{l.activeTenancies}</td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
 
               {/* Mobile cards */}
               <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
-                {filtered.map((l) => (
+                {pagination.paginated.map((l) => (
                   <div
                     key={l.id}
                     onClick={() => onSelect(l)}
@@ -824,6 +879,19 @@ function LandlordListScreen({
                   </div>
                 ))}
               </div>
+
+              <TablePagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                pageSize={pagination.pageSize}
+                onPageChange={pagination.setPage}
+                onPageSizeChange={pagination.setPageSize}
+                rangeStart={pagination.rangeStart}
+                rangeEnd={pagination.rangeEnd}
+                total={pagination.total}
+                itemLabel="landlords"
+                getPageNumbers={pagination.getPageNumbers}
+              />
             </>
           )}
         </div>
