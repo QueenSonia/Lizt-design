@@ -204,7 +204,7 @@ export function stickyHeadClass(scrolled: boolean): string {
 
 /** Sticky-section-header class helper — for a plain card/list section title (not a <thead>). */
 export function stickySectionHeadClass(scrolled: boolean): string {
-  return `px-5 py-4 border-b bg-gray-50/60 sticky top-0 z-10 transition-shadow duration-150 ${
-    scrolled ? "border-gray-200 shadow-sm" : "border-gray-50"
+  return `px-5 py-4 border-b bg-white sticky top-0 z-10 transition-shadow duration-150 ${
+    scrolled ? "border-gray-200 shadow-sm" : "border-gray-100"
   }`;
 }
