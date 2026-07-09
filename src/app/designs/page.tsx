@@ -18,6 +18,12 @@ const DESIGNS = [
     description:
       "Standalone payment receipt for a tenancy renewal — itemized breakdown, amount paid, and remaining balance.",
   },
+  {
+    slug: "kyc-form",
+    title: "KYC Form",
+    description:
+      "Tenant onboarding wizard — phone verification, personal/employment/tenancy details, document uploads, and declaration.",
+  },
 ];
 
 export default function DesignsIndexPage() {
