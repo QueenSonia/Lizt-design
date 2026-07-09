@@ -23,10 +23,32 @@ import {
 } from "./ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { PaymentDetailsModal } from "./PaymentDetailsModal";
+import { ColumnsButton, TablePagination, stickyHeadClass } from "./TableControls";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
 
 interface LandlordRentPaymentsProps {
   searchTerm?: string;
 }
+
+type RentPaymentColumnId =
+  | "paymentId" | "tenantName" | "property" | "amountPaid"
+  | "paymentMethod" | "status" | "dateTime" | "actions";
+
+const RENT_PAYMENT_COLUMN_DEFS: { id: RentPaymentColumnId; label: string }[] = [
+  { id: "paymentId", label: "Payment ID" },
+  { id: "tenantName", label: "Tenant Name" },
+  { id: "property", label: "Property" },
+  { id: "amountPaid", label: "Amount Paid" },
+  { id: "paymentMethod", label: "Payment Method" },
+  { id: "status", label: "Status" },
+  { id: "dateTime", label: "Date & Time" },
+  { id: "actions", label: "Actions" },
+];
+
+// The table needs at least one identifying column — Tenant Name can't be hidden entirely.
+const RENT_PAYMENT_PRIMARY_COLUMNS: RentPaymentColumnId[] = ["tenantName"];
 
 // Mock payment transactions data
 const mockPaymentData = [
@@ -157,6 +179,19 @@ export default function LandlordRentPayments({
 
   const effectiveSearchTerm = searchTerm || localSearchTerm;
 
+  const {
+    visibility: columnVisibility,
+    toggleColumn,
+    visibleCount,
+    totalCount,
+  } = useColumnVisibility<RentPaymentColumnId>(
+    "lizt.rentPayments.columnVisibility",
+    RENT_PAYMENT_COLUMN_DEFS.map((c) => c.id),
+    RENT_PAYMENT_PRIMARY_COLUMNS
+  );
+  const { ref: tableScrollRef, scrolled: tableScrolled, onScroll: handleTableScroll } =
+    useTableScrollShadow<HTMLDivElement>();
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "successful":
@@ -210,6 +245,11 @@ export default function LandlordRentPayments({
 
     return matchesSearch && matchesStatus && matchesProperty;
   });
+
+  const pagination = useTablePagination(
+    filteredPaymentData,
+    `${effectiveSearchTerm}|${statusFilter}|${propertyFilter}|${dateFilter}`
+  );
 
   // Calculate statistics
   const totalPayments = mockPaymentData.reduce(
@@ -435,6 +475,17 @@ export default function LandlordRentPayments({
                 </div>
               </PopoverContent>
             </Popover>
+
+            <div className="ml-2">
+              <ColumnsButton
+                columns={RENT_PAYMENT_COLUMN_DEFS}
+                visibility={columnVisibility}
+                primaryColumns={RENT_PAYMENT_PRIMARY_COLUMNS}
+                onToggle={toggleColumn}
+                visibleCount={visibleCount}
+                totalCount={totalCount}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -442,114 +493,146 @@ export default function LandlordRentPayments({
       {/* Payment Transactions Table */}
       <Card className="border-slate-200">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-slate-200 bg-slate-50">
+              <thead className={stickyHeadClass(tableScrolled)}>
                 <tr>
-                  <th className="text-left p-4 font-medium text-slate-700">
-                    Payment ID
-                  </th>
-                  <th className="text-left p-4 font-medium text-slate-700">
-                    Tenant Name
-                  </th>
-                  <th className="text-left p-4 font-medium text-slate-700">
-                    Property
-                  </th>
-                  <th className="text-left p-4 font-medium text-slate-700">
-                    Amount Paid
-                  </th>
-                  <th className="text-left p-4 font-medium text-slate-700">
-                    Payment Method
-                  </th>
-                  <th className="text-left p-4 font-medium text-slate-700">
-                    Status
-                  </th>
-                  <th className="text-left p-4 font-medium text-slate-700">
-                    Date & Time
-                  </th>
-                  <th className="text-left p-4 font-medium text-slate-700">
-                    Actions
-                  </th>
+                  {columnVisibility.paymentId && (
+                    <th className="text-left p-4 font-medium text-slate-700">
+                      Payment ID
+                    </th>
+                  )}
+                  {columnVisibility.tenantName && (
+                    <th className="text-left p-4 font-medium text-slate-700">
+                      Tenant Name
+                    </th>
+                  )}
+                  {columnVisibility.property && (
+                    <th className="text-left p-4 font-medium text-slate-700">
+                      Property
+                    </th>
+                  )}
+                  {columnVisibility.amountPaid && (
+                    <th className="text-left p-4 font-medium text-slate-700">
+                      Amount Paid
+                    </th>
+                  )}
+                  {columnVisibility.paymentMethod && (
+                    <th className="text-left p-4 font-medium text-slate-700">
+                      Payment Method
+                    </th>
+                  )}
+                  {columnVisibility.status && (
+                    <th className="text-left p-4 font-medium text-slate-700">
+                      Status
+                    </th>
+                  )}
+                  {columnVisibility.dateTime && (
+                    <th className="text-left p-4 font-medium text-slate-700">
+                      Date & Time
+                    </th>
+                  )}
+                  {columnVisibility.actions && (
+                    <th className="text-left p-4 font-medium text-slate-700">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {filteredPaymentData.map((payment) => (
+                {pagination.paginated.map((payment) => (
                   <tr
                     key={payment.id}
                     className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
                     onClick={() => handleViewPaymentDetails(payment)}
                   >
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {payment.paymentId}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {payment.transactionRef}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {payment.tenantName}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {payment.tenantEmail}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="p-4 text-slate-700">{payment.property}</td>
-                    <td className="p-4 font-medium text-slate-900">
-                      ₦{payment.amountPaid.toLocaleString()}
-                    </td>
-                    <td className="p-4 text-slate-700">
-                      {payment.paymentMethod}
-                    </td>
-                    <td className="p-4">
-                      <Badge
-                        className={`${getStatusColor(
-                          payment.status
-                        )} flex items-center gap-1 w-fit`}
-                      >
-                        {getStatusIcon(payment.status)}
-                        {payment.status}
-                      </Badge>
-                    </td>
-                    <td className="p-4 text-slate-700">
-                      <div>
-                        <p>
-                          {(() => {
-                            const date = new Date(payment.dateTime);
-                            return isNaN(date.getTime())
-                              ? "Invalid date"
-                              : date.toLocaleDateString();
-                          })()}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {(() => {
-                            const date = new Date(payment.dateTime);
-                            return isNaN(date.getTime())
-                              ? ""
-                              : date.toLocaleTimeString();
-                          })()}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-slate-200"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewPaymentDetails(payment);
-                        }}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Details
-                      </Button>
-                    </td>
+                    {columnVisibility.paymentId && (
+                      <td className="p-4">
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {payment.paymentId}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {payment.transactionRef}
+                          </p>
+                        </div>
+                      </td>
+                    )}
+                    {columnVisibility.tenantName && (
+                      <td className="p-4">
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {payment.tenantName}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {payment.tenantEmail}
+                          </p>
+                        </div>
+                      </td>
+                    )}
+                    {columnVisibility.property && (
+                      <td className="p-4 text-slate-700">{payment.property}</td>
+                    )}
+                    {columnVisibility.amountPaid && (
+                      <td className="p-4 font-medium text-slate-900">
+                        ₦{payment.amountPaid.toLocaleString()}
+                      </td>
+                    )}
+                    {columnVisibility.paymentMethod && (
+                      <td className="p-4 text-slate-700">
+                        {payment.paymentMethod}
+                      </td>
+                    )}
+                    {columnVisibility.status && (
+                      <td className="p-4">
+                        <Badge
+                          className={`${getStatusColor(
+                            payment.status
+                          )} flex items-center gap-1 w-fit`}
+                        >
+                          {getStatusIcon(payment.status)}
+                          {payment.status}
+                        </Badge>
+                      </td>
+                    )}
+                    {columnVisibility.dateTime && (
+                      <td className="p-4 text-slate-700">
+                        <div>
+                          <p>
+                            {(() => {
+                              const date = new Date(payment.dateTime);
+                              return isNaN(date.getTime())
+                                ? "Invalid date"
+                                : date.toLocaleDateString();
+                            })()}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {(() => {
+                              const date = new Date(payment.dateTime);
+                              return isNaN(date.getTime())
+                                ? ""
+                                : date.toLocaleTimeString();
+                            })()}
+                          </p>
+                        </div>
+                      </td>
+                    )}
+                    {columnVisibility.actions && (
+                      <td className="p-4">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-slate-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewPaymentDetails(payment);
+                          }}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Details
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -557,6 +640,21 @@ export default function LandlordRentPayments({
           </div>
         </CardContent>
       </Card>
+
+      {filteredPaymentData.length > 0 && (
+        <TablePagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.setPage}
+          onPageSizeChange={pagination.setPageSize}
+          rangeStart={pagination.rangeStart}
+          rangeEnd={pagination.rangeEnd}
+          total={pagination.total}
+          itemLabel="payments"
+          getPageNumbers={pagination.getPageNumbers}
+        />
+      )}
 
       {filteredPaymentData.length === 0 && (
         <Card className="border-slate-200">
