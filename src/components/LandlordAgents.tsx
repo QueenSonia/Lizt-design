@@ -6,6 +6,10 @@ import { Input } from "./ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { KYCService, KYCApplication } from "@/services/kyc/kyc.service";
 import { mockKYCApplications } from "./LandlordKYCList";
+import { ColumnsButton, TablePagination, stickyHeadClass } from "./TableControls";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
 
 /**
  * An agent is derived from KYC data rather than owning its own record — every field here comes
@@ -38,6 +42,16 @@ function deriveAgents(applications: KYCApplication[]): Agent[] {
   return Array.from(byPhone.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+type AgentColumnId = "name" | "phone";
+
+const AGENT_COLUMN_DEFS: { id: AgentColumnId; label: string }[] = [
+  { id: "name", label: "Agent Name" },
+  { id: "phone", label: "Phone Number" },
+];
+
+// The table needs at least one identifying column — name can't be hidden entirely.
+const AGENT_PRIMARY_COLUMNS: AgentColumnId[] = ["name"];
+
 interface LandlordAgentsProps {
   onMenuClick?: () => void;
   isMobile?: boolean;
@@ -45,6 +59,15 @@ interface LandlordAgentsProps {
 
 export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgentsProps) {
   const [search, setSearch] = useState("");
+
+  const { visibility: columnVisibility, toggleColumn, visibleCount, totalCount } =
+    useColumnVisibility<AgentColumnId>(
+      "lizt.agents.columnVisibility",
+      AGENT_COLUMN_DEFS.map((c) => c.id),
+      AGENT_PRIMARY_COLUMNS
+    );
+  const { ref: tableScrollRef, scrolled: tableScrolled, onScroll: handleTableScroll } =
+    useTableScrollShadow<HTMLDivElement>();
 
   const { data: kycApplicationsRaw = [] } = useQuery({
     queryKey: ["kycApplications"],
@@ -64,6 +87,8 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
       (a) => a.name.toLowerCase().includes(q) || a.phone.toLowerCase().includes(q)
     );
   }, [agents, search]);
+
+  const pagination = useTablePagination(filtered, search);
 
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
@@ -93,7 +118,7 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
         <div className="border-t border-gray-200 mx-4 lg:mx-8" />
 
         {/* Search row */}
-        <div className="px-4 lg:px-8 py-4">
+        <div className="px-4 lg:px-8 py-4 flex items-center gap-2">
           <div className="relative w-72 max-w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
@@ -111,6 +136,15 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
               </button>
             )}
           </div>
+
+          <ColumnsButton
+            columns={AGENT_COLUMN_DEFS}
+            visibility={columnVisibility}
+            primaryColumns={AGENT_PRIMARY_COLUMNS}
+            onToggle={toggleColumn}
+            visibleCount={visibleCount}
+            totalCount={totalCount}
+          />
         </div>
       </div>
 
@@ -133,39 +167,62 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
             <>
               {/* Desktop table */}
               <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className={stickyHeadClass(tableScrolled)}>
                     <tr>
-                      <th className="text-left px-6 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Agent Name</span>
-                      </th>
-                      <th className="text-left px-4 py-3 pr-6">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
-                      </th>
+                      {columnVisibility.name && (
+                        <th className="text-left px-6 py-3">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Agent Name</span>
+                        </th>
+                      )}
+                      {columnVisibility.phone && (
+                        <th className="text-left px-4 py-3 pr-6 first:pl-6">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filtered.map((agent) => (
+                    {pagination.paginated.map((agent) => (
                       <tr key={agent.id} className="bg-white">
-                        <td className="px-6 py-4">
-                          <p className="font-medium text-gray-900">{agent.name}</p>
-                        </td>
-                        <td className="px-4 py-4 pr-6 text-gray-900">{agent.phone}</td>
+                        {columnVisibility.name && (
+                          <td className="px-6 py-4">
+                            <p className="font-medium text-gray-900">{agent.name}</p>
+                          </td>
+                        )}
+                        {columnVisibility.phone && (
+                          <td className="px-4 py-4 pr-6 first:pl-6 text-gray-900">{agent.phone}</td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
 
               {/* Mobile cards */}
               <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
-                {filtered.map((agent) => (
+                {pagination.paginated.map((agent) => (
                   <div key={agent.id} className="px-4 py-4">
                     <p className="font-medium text-gray-900">{agent.name}</p>
                     <p className="text-xs text-gray-500 mt-1">{agent.phone}</p>
                   </div>
                 ))}
               </div>
+
+              <TablePagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                pageSize={pagination.pageSize}
+                onPageChange={pagination.setPage}
+                onPageSizeChange={pagination.setPageSize}
+                rangeStart={pagination.rangeStart}
+                rangeEnd={pagination.rangeEnd}
+                total={pagination.total}
+                itemLabel="agents"
+                getPageNumbers={pagination.getPageNumbers}
+              />
             </>
           )}
         </div>
