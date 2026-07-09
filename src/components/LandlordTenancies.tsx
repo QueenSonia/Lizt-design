@@ -523,6 +523,9 @@ function TenancyListScreen({
   const columnsBtnRef = useRef<HTMLButtonElement>(null);
   const [columnsPos, setColumnsPos] = useState({ top: 0, left: 0 });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+
   useEffect(() => {
     setColumnVisibility(loadColumnVisibility());
     setColumnsLoaded(true);
@@ -615,6 +618,38 @@ function TenancyListScreen({
       return sortDir === "asc" ? diff : -diff;
     });
   }, [search, filters, sortCol, sortDir]);
+
+  // Reset to page 1 whenever the result set changes shape (new search, filters, sort, or page
+  // size) — navigating between pages of the same result set should NOT trigger this.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filters, sortCol, sortDir, itemsPerPage]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginated = useMemo(
+    () => sorted.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage),
+    [sorted, safeCurrentPage, itemsPerPage]
+  );
+  const rangeStart = sorted.length === 0 ? 0 : (safeCurrentPage - 1) * itemsPerPage + 1;
+  const rangeEnd = Math.min(safeCurrentPage * itemsPerPage, sorted.length);
+
+  function getPageNumbers(): (number | string)[] {
+    const maxVisible = 5;
+    if (totalPages <= maxVisible) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [1];
+    let start = Math.max(2, safeCurrentPage - 1);
+    let end = Math.min(totalPages - 1, safeCurrentPage + 1);
+    if (safeCurrentPage <= 2) end = Math.min(totalPages - 1, 4);
+    if (safeCurrentPage >= totalPages - 1) start = Math.max(2, totalPages - 3);
+    if (start > 2) pages.push("...");
+    for (let p = start; p <= end; p++) pages.push(p);
+    if (end < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+    return pages;
+  }
 
   function FilterBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
@@ -885,7 +920,7 @@ function TenancyListScreen({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {sorted.map((t) => (
+                  {paginated.map((t) => (
                     <tr
                       key={t.id}
                       onClick={() => onSelect(t)}
@@ -943,7 +978,7 @@ function TenancyListScreen({
 
             {/* ── Mobile cards ── */}
             <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
-              {sorted.map((t) => (
+              {paginated.map((t) => (
                 <div
                   key={t.id}
                   onClick={() => onSelect(t)}
@@ -975,6 +1010,73 @@ function TenancyListScreen({
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* ── Pagination ── */}
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs text-gray-500 order-2 sm:order-1">
+                <span className="whitespace-nowrap">
+                  {sorted.length === 0
+                    ? "No tenancies"
+                    : `Showing ${rangeStart}–${rangeEnd} of ${sorted.length} tenancies`}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <span className="whitespace-nowrap hidden sm:inline">Rows per page</span>
+                  <Select value={String(itemsPerPage)} onValueChange={(v) => setItemsPerPage(Number(v))}>
+                    <SelectTrigger className="h-8 w-[70px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[10, 20, 50, 100].map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safeCurrentPage === 1}
+                  className="h-8 w-8 rounded-lg border-gray-200 hover:bg-[#FFF3EB] hover:border-[#FF5000] disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-gray-200"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+
+                {getPageNumbers().map((page, index) =>
+                  typeof page === "number" ? (
+                    <Button
+                      key={index}
+                      variant={safeCurrentPage === page ? "default" : "outline"}
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-8 w-8 rounded-lg text-xs p-0 ${
+                        safeCurrentPage === page
+                          ? "bg-white border-2 border-[#FF5000] text-[#FF5000] hover:bg-[#FFF3EB]"
+                          : "border-gray-200 hover:bg-[#FFF3EB] hover:border-[#FF5000]"
+                      }`}
+                    >
+                      {page}
+                    </Button>
+                  ) : (
+                    <span key={index} className="px-0.5 text-gray-400 text-xs">{page}</span>
+                  )
+                )}
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safeCurrentPage === totalPages}
+                  className="h-8 w-8 rounded-lg border-gray-200 hover:bg-[#FFF3EB] hover:border-[#FF5000] disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-gray-200"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </>
         )}
