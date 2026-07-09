@@ -15,7 +15,7 @@ import { GlobalSearchDropdown } from "./GlobalSearch";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { ColumnsButton, TablePagination, stickyHeadClass } from "./TableControls";
+import { ColumnsButton, TablePagination, stickyHeadClass, stickySectionHeadClass } from "./TableControls";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
@@ -72,6 +72,87 @@ interface ActivityItem {
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 
+// Generates additional varied, realistic-looking tenancy/tenant records for one landlord (ll-001)
+// so its detail page has enough rows to exercise scrolling and pagination in the Tenancies and
+// Tenants sections. Kept separate from the hand-authored records above, which stay narratively
+// meaningful (e.g. used elsewhere as specific examples); these only need to be valid and varied.
+const GEN_FIRST_NAMES = [
+  "Tunde", "Ifeoma", "Bola", "Segun", "Ngozi", "Yusuf", "Amaka", "Kunle", "Halima", "Chinedu",
+  "Funmi", "Damilola", "Aisha", "Obinna", "Blessing", "Tayo", "Chiamaka", "Ibrahim", "Zainab", "Uche",
+  "Femi", "Grace", "Emeka", "Ronke", "Musa", "Nkechi", "Wale", "Patience", "Suleiman", "Adaobi",
+  "Kayode", "Rita", "Bashir", "Chioma", "Seun", "Maryam", "Chukwuemeka", "Folasade", "Ahmed", "Ijeoma",
+];
+const GEN_LAST_NAMES = [
+  "Adewale", "Okoro", "Balogun", "Ibrahim", "Eze", "Yusuf", "Nwachukwu", "Fashola", "Musa", "Okonkwo",
+  "Adeyinka", "Chukwu", "Bello", "Igwe", "Suleiman", "Afolabi", "Umeh", "Garba", "Nnaji", "Adekunle",
+];
+const GEN_PROPERTIES: { name: string; address: string }[] = [
+  { name: "Parkview Terrace – Block A", address: "5 Gerrard Road, Ikoyi, Lagos" },
+  { name: "Marina Heights – Unit 12", address: "18 Marina Street, Lagos Island" },
+  { name: "Oceanview Court", address: "27 Kofo Abayomi Street, Victoria Island" },
+  { name: "Chevron Drive Duplex", address: "11 Chevron Drive, Lekki" },
+  { name: "Magodo Phase 2 Terrace", address: "42 CMD Road, Magodo, Lagos" },
+  { name: "Surulere Court – Flat 3B", address: "9 Adeniran Ogunsanya St, Surulere" },
+  { name: "Ajah Garden Estate", address: "Block 14, Abraham Adesanya Estate, Ajah" },
+  { name: "GRA Heights", address: "7 Osborne Road, Ikoyi" },
+  { name: "Lekki Gardens Phase 3", address: "15 Chisco Bus Stop, Lekki" },
+  { name: "Ogudu GRA Duplex", address: "8 Ogudu Road, Ogudu GRA" },
+];
+
+function genSeededRand(seed: number) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function generateMockTenancies(): MockTenancy[] {
+  const records: MockTenancy[] = [];
+  const count = 38;
+  for (let i = 0; i < count; i++) {
+    const n = i + 100;
+    const first = GEN_FIRST_NAMES[i % GEN_FIRST_NAMES.length];
+    const last = GEN_LAST_NAMES[(i * 3 + 7) % GEN_LAST_NAMES.length];
+    const property = GEN_PROPERTIES[i % GEN_PROPERTIES.length];
+    const rentAmount = 600000 + Math.floor(genSeededRand(i * 13.1) * 24) * 100000;
+    const outstandingBalance = i % 5 === 0 ? 30000 + Math.floor(genSeededRand(i * 7.7) * 25) * 10000 : 0;
+    const dueYear = 2026 + (i % 2);
+    const dueMonth = String(1 + (i % 12)).padStart(2, "0");
+    const dueDay = ["04", "06", "09", "11"].includes(dueMonth) ? "30" : dueMonth === "02" ? "28" : "31";
+    records.push({
+      id: `tn-gen-${n}`,
+      propertyId: `p-gen-${(i % GEN_PROPERTIES.length) + 1}`,
+      propertyName: property.name,
+      propertyAddress: property.address,
+      tenantName: `${first} ${last}`,
+      tenantId: `t-gen-${n}`,
+      tenantPhone: `+234 7${String(10000000 + ((i * 37) % 89999999)).slice(0, 8)}`,
+      tenancyType: i % 3 === 0 ? "Bi-Annual" : "Annual",
+      rentAmount,
+      nextRentDue: `${dueYear}-${dueMonth}-${dueDay}`,
+      outstandingBalance,
+    });
+  }
+  return records;
+}
+
+function generateMockTenants(): MockTenant[] {
+  const records: MockTenant[] = [];
+  const count = 39;
+  for (let i = 0; i < count; i++) {
+    const n = i + 200;
+    const first = GEN_FIRST_NAMES[(i + 5) % GEN_FIRST_NAMES.length];
+    const last = GEN_LAST_NAMES[(i * 5 + 11) % GEN_LAST_NAMES.length];
+    const property = GEN_PROPERTIES[(i + 2) % GEN_PROPERTIES.length];
+    records.push({
+      id: `t-gen-tenant-${n}`,
+      kycId: `kyc-gen-${n}`,
+      name: `${first} ${last}`,
+      propertyName: i % 9 === 0 ? null : property.name,
+      phone: `+234 8${String(10000000 + ((i * 41) % 89999999)).slice(0, 8)}`,
+    });
+  }
+  return records;
+}
+
 const MOCK_LANDLORDS: MockLandlord[] = [
   {
     id: "ll-001",
@@ -87,11 +168,13 @@ const MOCK_LANDLORDS: MockLandlord[] = [
       { id: "tn-001", propertyId: "p-001", propertyName: "Lekki Phase 1 Duplex", propertyAddress: "14 Admiralty Way, Lekki Phase 1, Lagos", tenantName: "James Okafor", tenantId: "t-001", tenantPhone: "+234 803 214 5678", tenancyType: "Annual", rentAmount: 1800000, nextRentDue: "2026-12-31", outstandingBalance: 120000 },
       { id: "tn-002", propertyId: "p-002", propertyName: "Ikoyi 2-Bed Apartment", propertyAddress: "3 Cameron Road, Ikoyi, Lagos", tenantName: "Adaeze Nwosu", tenantId: "t-002", tenantPhone: "+234 806 332 9910", tenancyType: "Annual", rentAmount: 2400000, nextRentDue: "2027-03-14", outstandingBalance: 0 },
       { id: "tn-003", propertyId: "p-003", propertyName: "Victoria Island Studio", propertyAddress: "22 Ozumba Mbadiwe Ave, VI, Lagos", tenantName: null, tenantId: null, tenantPhone: null, tenancyType: null, rentAmount: null, nextRentDue: null, outstandingBalance: 0, isMarketingReady: true },
+      ...generateMockTenancies(),
     ],
     tenantList: [
       { id: "t-001", kycId: "kyc-001", name: "James Okafor", propertyName: "Lekki Phase 1 Duplex", phone: "+234 803 214 5678" },
       { id: "t-002", kycId: "kyc-002", name: "Adaeze Nwosu", propertyName: "Ikoyi 2-Bed Apartment", phone: "+234 806 332 9910" },
       { id: "t-013", kycId: "kyc-013", name: "Mary Johnson", propertyName: null, phone: "+234 802 123 4567" },
+      ...generateMockTenants(),
     ],
     recentActivity: [],
   },
@@ -932,6 +1015,19 @@ function LandlordDetailScreen({
       )
     : landlord.tenantList;
 
+  const tenanciesPagination = useTablePagination(filteredTenancies, q, 10);
+  const tenantsPagination = useTablePagination(filteredTenants, q, 10);
+  const {
+    ref: tenanciesScrollRef,
+    scrolled: tenanciesScrolled,
+    onScroll: handleTenanciesScroll,
+  } = useTableScrollShadow<HTMLDivElement>();
+  const {
+    ref: tenantsScrollRef,
+    scrolled: tenantsScrolled,
+    onScroll: handleTenantsScroll,
+  } = useTableScrollShadow<HTMLDivElement>();
+
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
       {/* Top nav */}
@@ -991,57 +1087,111 @@ function LandlordDetailScreen({
 
         {/* Tenancies */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenancies</p>
-          </div>
-
           {filteredTenancies.length === 0 ? (
-            <div className="px-5 py-8 text-center">
-              <Home className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">{q ? "No tenancies match your search" : "No tenancies yet"}</p>
-            </div>
+            <>
+              <div className={stickySectionHeadClass(false)}>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenancies</p>
+              </div>
+              <div className="px-5 py-8 text-center">
+                <Home className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">{q ? "No tenancies match your search" : "No tenancies yet"}</p>
+              </div>
+            </>
           ) : (
-            <div className="divide-y divide-gray-200">
-              {filteredTenancies.map((t) => (
-                <TenancyCard
-                  key={t.id}
-                  tenancy={t}
-                  userRole={userRole}
-                  router={router}
+            <>
+              <div
+                ref={tenanciesScrollRef}
+                onScroll={handleTenanciesScroll}
+                className="max-h-[560px] overflow-y-auto"
+              >
+                <div className={stickySectionHeadClass(tenanciesScrolled)}>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenancies</p>
+                </div>
+                <div className="divide-y divide-gray-200">
+                  {tenanciesPagination.paginated.map((t) => (
+                    <TenancyCard
+                      key={t.id}
+                      tenancy={t}
+                      userRole={userRole}
+                      router={router}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="px-5 pb-4">
+                <TablePagination
+                  page={tenanciesPagination.page}
+                  totalPages={tenanciesPagination.totalPages}
+                  pageSize={tenanciesPagination.pageSize}
+                  onPageChange={tenanciesPagination.setPage}
+                  onPageSizeChange={tenanciesPagination.setPageSize}
+                  rangeStart={tenanciesPagination.rangeStart}
+                  rangeEnd={tenanciesPagination.rangeEnd}
+                  total={tenanciesPagination.total}
+                  itemLabel="tenancies"
+                  getPageNumbers={tenanciesPagination.getPageNumbers}
+                  pageSizeOptions={[10, 20, 50]}
                 />
-              ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
 
         {/* Tenants */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/60">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenants</p>
-          </div>
-
           {filteredTenants.length === 0 ? (
-            <div className="px-5 py-8 text-center">
-              <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">{q ? "No tenants match your search" : "No tenants yet"}</p>
-            </div>
+            <>
+              <div className={stickySectionHeadClass(false)}>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenants</p>
+              </div>
+              <div className="px-5 py-8 text-center">
+                <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">{q ? "No tenants match your search" : "No tenants yet"}</p>
+              </div>
+            </>
           ) : (
-            <div className="divide-y divide-gray-50">
-              {filteredTenants.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => router.push(`/${userRole}/kyc-application-detail/${t.kycId}`)}
-                  className="w-full flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors">{t.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{t.propertyName ?? "No Property Assigned"}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{t.phone}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0" />
-                </button>
-              ))}
-            </div>
+            <>
+              <div
+                ref={tenantsScrollRef}
+                onScroll={handleTenantsScroll}
+                className="max-h-[560px] overflow-y-auto"
+              >
+                <div className={stickySectionHeadClass(tenantsScrolled)}>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tenants</p>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {tenantsPagination.paginated.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => router.push(`/${userRole}/kyc-application-detail/${t.kycId}`)}
+                      className="w-full flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left group"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 group-hover:text-[#FF5000] transition-colors">{t.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{t.propertyName ?? "No Property Assigned"}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{t.phone}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#FF5000] transition-colors shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="px-5 pb-4">
+                <TablePagination
+                  page={tenantsPagination.page}
+                  totalPages={tenantsPagination.totalPages}
+                  pageSize={tenantsPagination.pageSize}
+                  onPageChange={tenantsPagination.setPage}
+                  onPageSizeChange={tenantsPagination.setPageSize}
+                  rangeStart={tenantsPagination.rangeStart}
+                  rangeEnd={tenantsPagination.rangeEnd}
+                  total={tenantsPagination.total}
+                  itemLabel="tenants"
+                  getPageNumbers={tenantsPagination.getPageNumbers}
+                  pageSizeOptions={[10, 20, 50]}
+                />
+              </div>
+            </>
           )}
         </div>
 

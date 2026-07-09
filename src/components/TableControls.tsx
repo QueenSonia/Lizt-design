@@ -114,6 +114,7 @@ export function TablePagination({
   total,
   itemLabel = "records",
   getPageNumbers,
+  pageSizeOptions = ROWS_PER_PAGE_OPTIONS,
 }: {
   page: number;
   totalPages: number;
@@ -125,6 +126,7 @@ export function TablePagination({
   total: number;
   itemLabel?: string;
   getPageNumbers: () => (number | string)[];
+  pageSizeOptions?: number[];
 }) {
   return (
     <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -139,7 +141,7 @@ export function TablePagination({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ROWS_PER_PAGE_OPTIONS.map((n) => (
+              {pageSizeOptions.map((n) => (
                 <SelectItem key={n} value={String(n)}>{n}</SelectItem>
               ))}
             </SelectContent>
@@ -197,5 +199,12 @@ export function TablePagination({
 export function stickyHeadClass(scrolled: boolean): string {
   return `bg-gray-50 border-b sticky top-0 z-10 transition-shadow duration-150 ${
     scrolled ? "border-gray-300 shadow-sm" : "border-gray-200"
+  }`;
+}
+
+/** Sticky-section-header class helper — for a plain card/list section title (not a <thead>). */
+export function stickySectionHeadClass(scrolled: boolean): string {
+  return `px-5 py-4 border-b bg-gray-50/60 sticky top-0 z-10 transition-shadow duration-150 ${
+    scrolled ? "border-gray-200 shadow-sm" : "border-gray-50"
   }`;
 }
