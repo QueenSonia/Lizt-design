@@ -1051,7 +1051,6 @@ function TenancyInformationStep({
                 <SelectContent>
                   <SelectItem value="Residential">Residential</SelectItem>
                   <SelectItem value="Commercial">Commercial</SelectItem>
-                  <SelectItem value="Both">Both</SelectItem>
                 </SelectContent>
               </Select>
               <FieldError>{errors.intended_use_of_property}</FieldError>
@@ -1072,6 +1071,177 @@ function TenancyInformationStep({
               <FieldError>{errors.number_of_occupants}</FieldError>
             </div>
           </div>
+
+          <AnimatePresence initial={false}>
+            {formData.intended_use_of_property === "Commercial" && (
+              <motion.div
+                key="company-information"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="pt-2 pb-4">
+                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
+                    Company Information
+                  </h4>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="company_name" className="mb-2">
+                          Company Name
+                        </Label>
+                        <Input
+                          id="company_name"
+                          value={formData.company_name}
+                          onChange={(e) => onChange({ company_name: e.target.value })}
+                          placeholder="Enter company name"
+                          className={inputClass(!!errors.company_name)}
+                        />
+                        <FieldError>{errors.company_name}</FieldError>
+                      </div>
+                      <div>
+                        <Label htmlFor="company_industry" className="mb-2">
+                          Industry / Business Type
+                        </Label>
+                        <Input
+                          id="company_industry"
+                          value={formData.company_industry}
+                          onChange={(e) => onChange({ company_industry: e.target.value })}
+                          placeholder="e.g., Retail, Technology"
+                          className={inputClass(!!errors.company_industry)}
+                        />
+                        <FieldError>{errors.company_industry}</FieldError>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="company_nature_of_business" className="mb-2">
+                          Nature of Business
+                        </Label>
+                        <Input
+                          id="company_nature_of_business"
+                          value={formData.company_nature_of_business}
+                          onChange={(e) => onChange({ company_nature_of_business: e.target.value })}
+                          placeholder="Briefly describe the business"
+                          className={inputClass(!!errors.company_nature_of_business)}
+                        />
+                        <FieldError>{errors.company_nature_of_business}</FieldError>
+                      </div>
+                      <div>
+                        <Label htmlFor="company_years_in_operation" className="mb-2">
+                          Years in Operation
+                        </Label>
+                        <Input
+                          id="company_years_in_operation"
+                          type="number"
+                          min="0"
+                          value={formData.company_years_in_operation}
+                          onChange={(e) => onChange({ company_years_in_operation: e.target.value })}
+                          placeholder="e.g., 5"
+                          className={inputClass(!!errors.company_years_in_operation)}
+                        />
+                        <FieldError>{errors.company_years_in_operation}</FieldError>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="is_primary_contact" className="mb-2">
+                        Are you the primary contact person for this company?
+                      </Label>
+                      <div className="flex items-center gap-6 mt-1.5">
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="is_primary_contact"
+                            value="yes"
+                            checked={formData.is_primary_contact === "yes"}
+                            onChange={() => onChange({ is_primary_contact: "yes" })}
+                            className="accent-orange-600"
+                            style={{ accentColor: BRAND_COLOR }}
+                          />
+                          Yes
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="is_primary_contact"
+                            value="no"
+                            checked={formData.is_primary_contact === "no"}
+                            onChange={() => onChange({ is_primary_contact: "no" })}
+                            className="accent-orange-600"
+                            style={{ accentColor: BRAND_COLOR }}
+                          />
+                          No
+                        </label>
+                      </div>
+                      <FieldError>{errors.is_primary_contact}</FieldError>
+                    </div>
+
+                    <AnimatePresence initial={false}>
+                      {formData.is_primary_contact === "no" && (
+                        <motion.div
+                          key="company-contact-fields"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-6 pt-1">
+                            <div>
+                              <Label htmlFor="company_contact_name" className="mb-2">
+                                Primary Contact Person Name
+                              </Label>
+                              <Input
+                                id="company_contact_name"
+                                value={formData.company_contact_name}
+                                onChange={(e) => onChange({ company_contact_name: e.target.value })}
+                                placeholder="Enter contact person's name"
+                                className={inputClass(!!errors.company_contact_name)}
+                              />
+                              <FieldError>{errors.company_contact_name}</FieldError>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="company_contact_job_title" className="mb-2">
+                                  Job Title / Role
+                                </Label>
+                                <Input
+                                  id="company_contact_job_title"
+                                  value={formData.company_contact_job_title}
+                                  onChange={(e) => onChange({ company_contact_job_title: e.target.value })}
+                                  placeholder="Enter job title or role"
+                                  className={inputClass(!!errors.company_contact_job_title)}
+                                />
+                                <FieldError>{errors.company_contact_job_title}</FieldError>
+                              </div>
+                              <div>
+                                <Label htmlFor="company_contact_phone_number" className="mb-2">
+                                  Phone Number
+                                </Label>
+                                <Input
+                                  id="company_contact_phone_number"
+                                  type="tel"
+                                  value={formData.company_contact_phone_number}
+                                  onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
+                                  placeholder="+234 800 000 0000"
+                                  className={inputClass(!!errors.company_contact_phone_number)}
+                                />
+                                <FieldError>{errors.company_contact_phone_number}</FieldError>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div>
             <Label htmlFor="parking_needs" className="mb-2">
@@ -1126,154 +1296,6 @@ function TenancyInformationStep({
           </div>
         </div>
       </div>
-
-      {(formData.intended_use_of_property === "Commercial" ||
-        formData.intended_use_of_property === "Both") && (
-        <div>
-          <h3 className="text-gray-900 mb-8 pb-2 border-b border-gray-200">Company Information</h3>
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="company_name" className="mb-2">
-                  Company Name
-                </Label>
-                <Input
-                  id="company_name"
-                  value={formData.company_name}
-                  onChange={(e) => onChange({ company_name: e.target.value })}
-                  placeholder="Enter company name"
-                  className={inputClass(!!errors.company_name)}
-                />
-                <FieldError>{errors.company_name}</FieldError>
-              </div>
-              <div>
-                <Label htmlFor="company_industry" className="mb-2">
-                  Industry / Business Type
-                </Label>
-                <Input
-                  id="company_industry"
-                  value={formData.company_industry}
-                  onChange={(e) => onChange({ company_industry: e.target.value })}
-                  placeholder="e.g., Retail, Technology"
-                  className={inputClass(!!errors.company_industry)}
-                />
-                <FieldError>{errors.company_industry}</FieldError>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="company_nature_of_business" className="mb-2">
-                  Nature of Business
-                </Label>
-                <Input
-                  id="company_nature_of_business"
-                  value={formData.company_nature_of_business}
-                  onChange={(e) => onChange({ company_nature_of_business: e.target.value })}
-                  placeholder="Briefly describe the business"
-                  className={inputClass(!!errors.company_nature_of_business)}
-                />
-                <FieldError>{errors.company_nature_of_business}</FieldError>
-              </div>
-              <div>
-                <Label htmlFor="company_years_in_operation" className="mb-2">
-                  Years in Operation
-                </Label>
-                <Input
-                  id="company_years_in_operation"
-                  type="number"
-                  min="0"
-                  value={formData.company_years_in_operation}
-                  onChange={(e) => onChange({ company_years_in_operation: e.target.value })}
-                  placeholder="e.g., 5"
-                  className={inputClass(!!errors.company_years_in_operation)}
-                />
-                <FieldError>{errors.company_years_in_operation}</FieldError>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="is_primary_contact" className="mb-2">
-                Are you the primary contact person for this company?
-              </Label>
-              <div className="flex items-center gap-6 mt-1.5">
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="is_primary_contact"
-                    value="yes"
-                    checked={formData.is_primary_contact === "yes"}
-                    onChange={() => onChange({ is_primary_contact: "yes" })}
-                    className="accent-orange-600"
-                    style={{ accentColor: BRAND_COLOR }}
-                  />
-                  Yes
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="is_primary_contact"
-                    value="no"
-                    checked={formData.is_primary_contact === "no"}
-                    onChange={() => onChange({ is_primary_contact: "no" })}
-                    className="accent-orange-600"
-                    style={{ accentColor: BRAND_COLOR }}
-                  />
-                  No
-                </label>
-              </div>
-              <FieldError>{errors.is_primary_contact}</FieldError>
-            </div>
-
-            {formData.is_primary_contact === "no" && (
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="company_contact_name" className="mb-2">
-                    Primary Contact Person Name
-                  </Label>
-                  <Input
-                    id="company_contact_name"
-                    value={formData.company_contact_name}
-                    onChange={(e) => onChange({ company_contact_name: e.target.value })}
-                    placeholder="Enter contact person's name"
-                    className={inputClass(!!errors.company_contact_name)}
-                  />
-                  <FieldError>{errors.company_contact_name}</FieldError>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="company_contact_job_title" className="mb-2">
-                      Job Title / Role
-                    </Label>
-                    <Input
-                      id="company_contact_job_title"
-                      value={formData.company_contact_job_title}
-                      onChange={(e) => onChange({ company_contact_job_title: e.target.value })}
-                      placeholder="Enter job title or role"
-                      className={inputClass(!!errors.company_contact_job_title)}
-                    />
-                    <FieldError>{errors.company_contact_job_title}</FieldError>
-                  </div>
-                  <div>
-                    <Label htmlFor="company_contact_phone_number" className="mb-2">
-                      Phone Number
-                    </Label>
-                    <Input
-                      id="company_contact_phone_number"
-                      type="tel"
-                      value={formData.company_contact_phone_number}
-                      onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
-                      placeholder="+234 800 000 0000"
-                      className={inputClass(!!errors.company_contact_phone_number)}
-                    />
-                    <FieldError>{errors.company_contact_phone_number}</FieldError>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <div>
         <h3 className="text-gray-900 mb-8 pb-2 border-b border-gray-200">Rental Offer</h3>
@@ -1430,8 +1452,7 @@ function IdentificationDeclarationStep({
             />
           )}
 
-          {(formData.intended_use_of_property === "Commercial" ||
-            formData.intended_use_of_property === "Both") && (
+          {formData.intended_use_of_property === "Commercial" && (
             <>
               <MockFileUpload
                 label="CAC Certificate"
@@ -1591,7 +1612,7 @@ function MockPhoneVerification({ onComplete }: { onComplete: (phone: string) => 
 
   if (stage === "phone") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100/50 flex flex-col">
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#FAF8F5" }}>
         <BrandBanner />
         <div className="flex-1 flex items-center justify-center px-4 py-12">
           <motion.div
@@ -1644,7 +1665,7 @@ function MockPhoneVerification({ onComplete }: { onComplete: (phone: string) => 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100/50 flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#FAF8F5" }}>
       <BrandBanner onBack={() => setStage("phone")} />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <motion.div
@@ -1696,7 +1717,7 @@ function MockPhoneVerification({ onComplete }: { onComplete: (phone: string) => 
 
 function SuccessPage({ applicantName }: { applicantName: string }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100/50 flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#FAF8F5" }}>
       <BrandBanner />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <motion.div
@@ -1777,8 +1798,8 @@ function MultiStepForm({ verifiedPhone, onSubmitted }: { verifiedPhone: string; 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100/50">
-      <div className="sticky top-0 z-40 bg-gradient-to-br from-pink-50 to-pink-100/50">
+    <div className="min-h-screen" style={{ backgroundColor: "#FAF8F5" }}>
+      <div className="sticky top-0 z-40" style={{ backgroundColor: "#FAF8F5" }}>
         <BrandBanner onBack={goToPreviousStep} showBackButton={currentStep > 1} />
       </div>
 
