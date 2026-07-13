@@ -454,10 +454,19 @@ interface KycFormData {
   additional_notes: string;
   referral_agent_full_name: string;
   referral_agent_phone_number: string;
+  company_name: string;
+  company_industry: string;
+  company_nature_of_business: string;
+  company_years_in_operation: string;
+  is_primary_contact: string;
+  company_contact_name: string;
+  company_contact_job_title: string;
+  company_contact_phone_number: string;
   passport_photo: File | null;
   id_document: File | null;
   employment_proof: File | null;
   business_proof: File | null;
+  cac_certificate: File | null;
   declaration_accepted: boolean;
 }
 
@@ -501,10 +510,19 @@ const INITIAL_FORM_DATA: KycFormData = {
   additional_notes: "",
   referral_agent_full_name: "",
   referral_agent_phone_number: "",
+  company_name: "",
+  company_industry: "",
+  company_nature_of_business: "",
+  company_years_in_operation: "",
+  is_primary_contact: "",
+  company_contact_name: "",
+  company_contact_job_title: "",
+  company_contact_phone_number: "",
   passport_photo: null,
   id_document: null,
   employment_proof: null,
   business_proof: null,
+  cac_certificate: null,
   declaration_accepted: false,
 };
 
@@ -1033,7 +1051,7 @@ function TenancyInformationStep({
                 <SelectContent>
                   <SelectItem value="Residential">Residential</SelectItem>
                   <SelectItem value="Commercial">Commercial</SelectItem>
-                  <SelectItem value="Mixed Use">Mixed Use</SelectItem>
+                  <SelectItem value="Both">Both</SelectItem>
                 </SelectContent>
               </Select>
               <FieldError>{errors.intended_use_of_property}</FieldError>
@@ -1108,6 +1126,154 @@ function TenancyInformationStep({
           </div>
         </div>
       </div>
+
+      {(formData.intended_use_of_property === "Commercial" ||
+        formData.intended_use_of_property === "Both") && (
+        <div>
+          <h3 className="text-gray-900 mb-8 pb-2 border-b border-gray-200">Company Information</h3>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="company_name" className="mb-2">
+                  Company Name
+                </Label>
+                <Input
+                  id="company_name"
+                  value={formData.company_name}
+                  onChange={(e) => onChange({ company_name: e.target.value })}
+                  placeholder="Enter company name"
+                  className={inputClass(!!errors.company_name)}
+                />
+                <FieldError>{errors.company_name}</FieldError>
+              </div>
+              <div>
+                <Label htmlFor="company_industry" className="mb-2">
+                  Industry / Business Type
+                </Label>
+                <Input
+                  id="company_industry"
+                  value={formData.company_industry}
+                  onChange={(e) => onChange({ company_industry: e.target.value })}
+                  placeholder="e.g., Retail, Technology"
+                  className={inputClass(!!errors.company_industry)}
+                />
+                <FieldError>{errors.company_industry}</FieldError>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="company_nature_of_business" className="mb-2">
+                  Nature of Business
+                </Label>
+                <Input
+                  id="company_nature_of_business"
+                  value={formData.company_nature_of_business}
+                  onChange={(e) => onChange({ company_nature_of_business: e.target.value })}
+                  placeholder="Briefly describe the business"
+                  className={inputClass(!!errors.company_nature_of_business)}
+                />
+                <FieldError>{errors.company_nature_of_business}</FieldError>
+              </div>
+              <div>
+                <Label htmlFor="company_years_in_operation" className="mb-2">
+                  Years in Operation
+                </Label>
+                <Input
+                  id="company_years_in_operation"
+                  type="number"
+                  min="0"
+                  value={formData.company_years_in_operation}
+                  onChange={(e) => onChange({ company_years_in_operation: e.target.value })}
+                  placeholder="e.g., 5"
+                  className={inputClass(!!errors.company_years_in_operation)}
+                />
+                <FieldError>{errors.company_years_in_operation}</FieldError>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="is_primary_contact" className="mb-2">
+                Are you the primary contact person for this company?
+              </Label>
+              <div className="flex items-center gap-6 mt-1.5">
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="is_primary_contact"
+                    value="yes"
+                    checked={formData.is_primary_contact === "yes"}
+                    onChange={() => onChange({ is_primary_contact: "yes" })}
+                    className="accent-orange-600"
+                    style={{ accentColor: BRAND_COLOR }}
+                  />
+                  Yes
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="is_primary_contact"
+                    value="no"
+                    checked={formData.is_primary_contact === "no"}
+                    onChange={() => onChange({ is_primary_contact: "no" })}
+                    className="accent-orange-600"
+                    style={{ accentColor: BRAND_COLOR }}
+                  />
+                  No
+                </label>
+              </div>
+              <FieldError>{errors.is_primary_contact}</FieldError>
+            </div>
+
+            {formData.is_primary_contact === "no" && (
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="company_contact_name" className="mb-2">
+                    Primary Contact Person Name
+                  </Label>
+                  <Input
+                    id="company_contact_name"
+                    value={formData.company_contact_name}
+                    onChange={(e) => onChange({ company_contact_name: e.target.value })}
+                    placeholder="Enter contact person's name"
+                    className={inputClass(!!errors.company_contact_name)}
+                  />
+                  <FieldError>{errors.company_contact_name}</FieldError>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="company_contact_job_title" className="mb-2">
+                      Job Title / Role
+                    </Label>
+                    <Input
+                      id="company_contact_job_title"
+                      value={formData.company_contact_job_title}
+                      onChange={(e) => onChange({ company_contact_job_title: e.target.value })}
+                      placeholder="Enter job title or role"
+                      className={inputClass(!!errors.company_contact_job_title)}
+                    />
+                    <FieldError>{errors.company_contact_job_title}</FieldError>
+                  </div>
+                  <div>
+                    <Label htmlFor="company_contact_phone_number" className="mb-2">
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="company_contact_phone_number"
+                      type="tel"
+                      value={formData.company_contact_phone_number}
+                      onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
+                      placeholder="+234 800 000 0000"
+                      className={inputClass(!!errors.company_contact_phone_number)}
+                    />
+                    <FieldError>{errors.company_contact_phone_number}</FieldError>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div>
         <h3 className="text-gray-900 mb-8 pb-2 border-b border-gray-200">Rental Offer</h3>
@@ -1263,6 +1429,21 @@ function IdentificationDeclarationStep({
               onChange={(file) => onChange({ business_proof: file })}
             />
           )}
+
+          {(formData.intended_use_of_property === "Commercial" ||
+            formData.intended_use_of_property === "Both") && (
+            <>
+              <MockFileUpload
+                label="CAC Certificate"
+                description="Upload the company's CAC registration certificate (PDF or Image)"
+                accept="image/*,.pdf"
+                required
+                file={formData.cac_certificate}
+                onChange={(file) => onChange({ cac_certificate: file })}
+              />
+              <FieldError>{errors.cac_certificate}</FieldError>
+            </>
+          )}
         </div>
       </div>
 
@@ -1410,7 +1591,7 @@ function MockPhoneVerification({ onComplete }: { onComplete: (phone: string) => 
 
   if (stage === "phone") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50/30 flex flex-col">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100/50 flex flex-col">
         <BrandBanner />
         <div className="flex-1 flex items-center justify-center px-4 py-12">
           <motion.div
@@ -1463,7 +1644,7 @@ function MockPhoneVerification({ onComplete }: { onComplete: (phone: string) => 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50/30 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100/50 flex flex-col">
       <BrandBanner onBack={() => setStage("phone")} />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <motion.div
@@ -1515,7 +1696,7 @@ function MockPhoneVerification({ onComplete }: { onComplete: (phone: string) => 
 
 function SuccessPage({ applicantName }: { applicantName: string }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50/30 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100/50 flex flex-col">
       <BrandBanner />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <motion.div
@@ -1596,8 +1777,8 @@ function MultiStepForm({ verifiedPhone, onSubmitted }: { verifiedPhone: string; 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50/30">
-      <div className="sticky top-0 z-40 bg-gradient-to-br from-gray-50 to-orange-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100/50">
+      <div className="sticky top-0 z-40 bg-gradient-to-br from-pink-50 to-pink-100/50">
         <BrandBanner onBack={goToPreviousStep} showBackButton={currentStep > 1} />
       </div>
 
