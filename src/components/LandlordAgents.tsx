@@ -3,9 +3,8 @@
 import { useMemo, useState } from "react";
 import { Search, Users, X } from "lucide-react";
 import { Input } from "./ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
 import { KYCService, KYCApplication } from "@/services/kyc/kyc.service";
 import { mockKYCApplications } from "./LandlordKYCList";
 import { TablePagination, stickyHeadClass } from "./TableControls";
@@ -27,8 +26,6 @@ export interface Agent {
   primaryName: string;
   /** Other names used for this phone number, excluding the primary name. */
   aliases: string[];
-  applicantCount: number;
-  activeTenantCount: number;
 }
 
 export function normalizePhone(phone: string): string {
@@ -40,8 +37,6 @@ export function deriveAgents(applications: KYCApplication[]): Agent[] {
     phone: string;
     nameCounts: Map<string, number>;
     nameFirstSeen: Map<string, number>;
-    applicantCount: number;
-    activeTenantCount: number;
   }
 
   const byPhone = new Map<string, AgentBucket>();
@@ -56,20 +51,12 @@ export function deriveAgents(applications: KYCApplication[]): Agent[] {
 
     let bucket = byPhone.get(id);
     if (!bucket) {
-      bucket = {
-        phone: agent.phoneNumber,
-        nameCounts: new Map(),
-        nameFirstSeen: new Map(),
-        applicantCount: 0,
-        activeTenantCount: 0,
-      };
+      bucket = { phone: agent.phoneNumber, nameCounts: new Map(), nameFirstSeen: new Map() };
       byPhone.set(id, bucket);
     }
 
     bucket.nameCounts.set(name, (bucket.nameCounts.get(name) ?? 0) + 1);
     if (!bucket.nameFirstSeen.has(name)) bucket.nameFirstSeen.set(name, order++);
-    bucket.applicantCount += 1;
-    if (app.status === "approved") bucket.activeTenantCount += 1;
   }
 
   return Array.from(byPhone.entries())
@@ -80,16 +67,133 @@ export function deriveAgents(applications: KYCApplication[]): Agent[] {
         return (bucket.nameFirstSeen.get(a) ?? 0) - (bucket.nameFirstSeen.get(b) ?? 0);
       });
       const [primaryName, ...aliases] = names;
-      return {
-        id,
-        phone: bucket.phone,
-        primaryName,
-        aliases,
-        applicantCount: bucket.applicantCount,
-        activeTenantCount: bucket.activeTenantCount,
-      };
+      return { id, phone: bucket.phone, primaryName, aliases };
     })
     .sort((a, b) => a.primaryName.localeCompare(b.primaryName));
+}
+
+/** A single person linked to an agent's phone number, for the unified list in the details modal. */
+interface LinkedPerson {
+  applicationId: string;
+  fullName: string;
+  property?: string;
+  unit?: string;
+  applicationDate?: string;
+  status: "Applicant" | "Active Tenant" | "Former Tenant";
+}
+
+function derivePersonStatus(app: KYCApplication): LinkedPerson["status"] | null {
+  if (app.status !== "approved") {
+    // Rejected applications aren't a live lead or a tenant — leave them out of the roster.
+    return app.status === "rejected" ? null : "Applicant";
+  }
+  const endDate = app.offerLetter?.tenancyEndDate;
+  if (endDate && new Date(endDate).getTime() < Date.now()) return "Former Tenant";
+  return "Active Tenant";
+}
+
+function deriveLinkedPeople(applications: KYCApplication[], agentId: string): LinkedPerson[] {
+  return applications
+    .filter(
+      (app) =>
+        app.referralAgent?.phoneNumber &&
+        normalizePhone(app.referralAgent.phoneNumber) === agentId
+    )
+    .map((app): LinkedPerson | null => {
+      const status = derivePersonStatus(app);
+      if (!status) return null;
+      return {
+        applicationId: app.id,
+        fullName: `${app.firstName} ${app.lastName}`.trim(),
+        property: app.property?.name,
+        unit: undefined,
+        applicationDate: app.submissionDate,
+        status,
+      };
+    })
+    .filter((p): p is LinkedPerson => p !== null);
+}
+
+const STATUS_TAG_STYLES: Record<LinkedPerson["status"], string> = {
+  Applicant: "bg-gray-100 text-gray-700 border-gray-200",
+  "Active Tenant": "bg-green-100 text-green-700 border-green-200",
+  "Former Tenant": "bg-amber-100 text-amber-700 border-amber-200",
+};
+
+function formatDate(dateString?: string) {
+  if (!dateString) return undefined;
+  const d = new Date(dateString);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function AgentDetailsModal({
+  agent,
+  people,
+  onClose,
+}: {
+  agent: Agent;
+  people: LinkedPerson[];
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-white rounded-xl max-w-lg max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{agent.phone}</DialogTitle>
+        </DialogHeader>
+
+        <div>
+          <p className="font-medium text-gray-900">{agent.primaryName}</p>
+          {agent.aliases.length > 0 && (
+            <p className="text-xs text-gray-500 mt-0.5">
+              Also referenced as: {agent.aliases.join(", ")}
+            </p>
+          )}
+        </div>
+
+        <div className="border-t border-gray-100 -mx-6 px-6 pt-4 flex-1 overflow-y-auto">
+          {people.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">
+              No applicants or tenants linked to this agent yet.
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {people.map((person) => {
+                const dateLabel = formatDate(person.applicationDate);
+                return (
+                  <li
+                    key={person.applicationId}
+                    className="py-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {person.fullName}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                        {[person.property, person.unit, dateLabel].filter(Boolean).join(" · ") || "-"}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_TAG_STYLES[person.status]}`}
+                    >
+                      {person.status}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="border-t border-gray-100 -mx-6 px-6 pt-4">
+          <p className="text-xs text-gray-500">
+            {people.length} {people.length === 1 ? "person" : "people"} linked to this agent
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 interface LandlordAgentsProps {
@@ -99,9 +203,7 @@ interface LandlordAgentsProps {
 
 export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgentsProps) {
   const [search, setSearch] = useState("");
-  const router = useRouter();
-  const { user } = useAuth();
-  const userRole = user?.role ?? "landlord";
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   const { ref: tableScrollRef, scrolled: tableScrolled, onScroll: handleTableScroll } =
     useTableScrollShadow<HTMLDivElement>();
@@ -131,19 +233,15 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
 
   const pagination = useTablePagination(filtered, search);
 
-  const goToAgent = (agent: Agent) => {
-    router.push(`/${userRole}/agents/${encodeURIComponent(agent.id)}`);
-  };
+  const selectedAgent = useMemo(
+    () => (selectedAgentId ? agents.find((a) => a.id === selectedAgentId) ?? null : null),
+    [agents, selectedAgentId]
+  );
 
-  const goToApplicants = (agent: Agent, e: React.MouseEvent) => {
-    e.stopPropagation();
-    router.push(`/${userRole}/agents/${encodeURIComponent(agent.id)}?tab=applicants`);
-  };
-
-  const goToTenants = (agent: Agent, e: React.MouseEvent) => {
-    e.stopPropagation();
-    router.push(`/${userRole}/agents/${encodeURIComponent(agent.id)}?tab=tenants`);
-  };
+  const selectedAgentPeople = useMemo(
+    () => (selectedAgentId ? deriveLinkedPeople(kycApplications, selectedAgentId) : []),
+    [kycApplications, selectedAgentId]
+  );
 
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
@@ -218,16 +316,10 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                   <thead className={stickyHeadClass(tableScrolled)}>
                     <tr>
                       <th className="text-left px-6 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Agent</span>
-                      </th>
-                      <th className="text-left px-4 py-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
                       </th>
-                      <th className="text-left px-4 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Tenant Applicants</span>
-                      </th>
                       <th className="text-left px-4 py-3 pr-6">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Active Tenants</span>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Agent Name(s)</span>
                       </th>
                     </tr>
                   </thead>
@@ -235,35 +327,17 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                     {pagination.paginated.map((agent) => (
                       <tr
                         key={agent.id}
-                        onClick={() => goToAgent(agent)}
+                        onClick={() => setSelectedAgentId(agent.id)}
                         className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-gray-900">{agent.phone}</td>
+                        <td className="px-4 py-4 pr-6">
                           <p className="font-medium text-gray-900">{agent.primaryName}</p>
                           {agent.aliases.length > 0 && (
                             <p className="text-xs text-gray-500 mt-0.5">
                               Also referenced as: {agent.aliases.join(", ")}
                             </p>
                           )}
-                        </td>
-                        <td className="px-4 py-4 text-gray-900">{agent.phone}</td>
-                        <td className="px-4 py-4">
-                          <button
-                            onClick={(e) => goToApplicants(agent, e)}
-                            className="text-sm font-medium hover:underline"
-                            style={{ color: "#FF5000" }}
-                          >
-                            {agent.applicantCount} Applicant{agent.applicantCount === 1 ? "" : "s"}
-                          </button>
-                        </td>
-                        <td className="px-4 py-4 pr-6">
-                          <button
-                            onClick={(e) => goToTenants(agent, e)}
-                            className="text-sm font-medium hover:underline"
-                            style={{ color: "#FF5000" }}
-                          >
-                            {agent.activeTenantCount} Tenant{agent.activeTenantCount === 1 ? "" : "s"}
-                          </button>
                         </td>
                       </tr>
                     ))}
@@ -277,32 +351,16 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                 {pagination.paginated.map((agent) => (
                   <div
                     key={agent.id}
-                    onClick={() => goToAgent(agent)}
+                    onClick={() => setSelectedAgentId(agent.id)}
                     className="px-4 py-4 active:bg-gray-50"
                   >
-                    <p className="font-medium text-gray-900">{agent.primaryName}</p>
+                    <p className="text-xs text-gray-500">{agent.phone}</p>
+                    <p className="font-medium text-gray-900 mt-0.5">{agent.primaryName}</p>
                     {agent.aliases.length > 0 && (
                       <p className="text-xs text-gray-500 mt-0.5">
                         Also referenced as: {agent.aliases.join(", ")}
                       </p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">{agent.phone}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <button
-                        onClick={(e) => goToApplicants(agent, e)}
-                        className="text-xs font-medium hover:underline"
-                        style={{ color: "#FF5000" }}
-                      >
-                        {agent.applicantCount} Applicant{agent.applicantCount === 1 ? "" : "s"}
-                      </button>
-                      <button
-                        onClick={(e) => goToTenants(agent, e)}
-                        className="text-xs font-medium hover:underline"
-                        style={{ color: "#FF5000" }}
-                      >
-                        {agent.activeTenantCount} Tenant{agent.activeTenantCount === 1 ? "" : "s"}
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -323,6 +381,14 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
           )}
         </div>
       </div>
+
+      {selectedAgent && (
+        <AgentDetailsModal
+          agent={selectedAgent}
+          people={selectedAgentPeople}
+          onClose={() => setSelectedAgentId(null)}
+        />
+      )}
     </div>
   );
 }
