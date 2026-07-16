@@ -79,7 +79,7 @@ interface LinkedPerson {
   property?: string;
   unit?: string;
   applicationDate?: string;
-  status: "Applicant" | "Active Tenant" | "Former Tenant";
+  status: "Applicant" | "Tenant";
 }
 
 function derivePersonStatus(app: KYCApplication): LinkedPerson["status"] | null {
@@ -87,9 +87,8 @@ function derivePersonStatus(app: KYCApplication): LinkedPerson["status"] | null 
     // Rejected applications aren't a live lead or a tenant — leave them out of the roster.
     return app.status === "rejected" ? null : "Applicant";
   }
-  const endDate = app.offerLetter?.tenancyEndDate;
-  if (endDate && new Date(endDate).getTime() < Date.now()) return "Former Tenant";
-  return "Active Tenant";
+  // Approved means the referral converted into a tenant — active or ended tenancy both count.
+  return "Tenant";
 }
 
 function deriveLinkedPeople(applications: KYCApplication[], agentId: string): LinkedPerson[] {
@@ -116,8 +115,7 @@ function deriveLinkedPeople(applications: KYCApplication[], agentId: string): Li
 
 const STATUS_TAG_STYLES: Record<LinkedPerson["status"], string> = {
   Applicant: "bg-gray-100 text-gray-700 border-gray-200",
-  "Active Tenant": "bg-green-100 text-green-700 border-green-200",
-  "Former Tenant": "bg-amber-100 text-amber-700 border-amber-200",
+  Tenant: "bg-green-100 text-green-700 border-green-200",
 };
 
 function formatDate(dateString?: string) {
