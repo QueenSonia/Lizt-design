@@ -154,23 +154,22 @@ function AgentDetailsModal({
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="bg-white rounded-xl max-w-lg max-h-[85vh] flex flex-col">
+        <button
+          onClick={onEdit}
+          className="absolute right-11 top-4 inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-700 transition-colors z-10"
+        >
+          <Pencil className="w-3 h-3" />
+          Edit
+        </button>
+
         <DialogHeader>
-          <DialogTitle>{agent.phone}</DialogTitle>
+          <DialogTitle>{agent.primaryName}</DialogTitle>
         </DialogHeader>
 
         <div>
-          <div className="flex items-center gap-2">
-            <p className="font-medium text-gray-900">{agent.primaryName}</p>
-            <button
-              onClick={onEdit}
-              className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-700 transition-colors"
-            >
-              <Pencil className="w-3 h-3" />
-              Edit
-            </button>
-          </div>
+          <p className="text-sm text-gray-700">{agent.phone}</p>
           {agent.aliases.length > 0 && (
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 mt-2">
               Also referenced as: {agent.aliases.join(", ")}
             </p>
           )}
