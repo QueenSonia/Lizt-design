@@ -144,10 +144,12 @@ function AgentDetailsModal({
   agent,
   people,
   onClose,
+  onEdit,
 }: {
   agent: Agent;
   people: LinkedPerson[];
   onClose: () => void;
+  onEdit: () => void;
 }) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -157,7 +159,16 @@ function AgentDetailsModal({
         </DialogHeader>
 
         <div>
-          <p className="font-medium text-gray-900">{agent.primaryName}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-gray-900">{agent.primaryName}</p>
+            <button
+              onClick={onEdit}
+              className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
           {agent.aliases.length > 0 && (
             <p className="text-xs text-gray-500 mt-0.5">
               Also referenced as: {agent.aliases.join(", ")}
@@ -418,11 +429,8 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                       <th className="text-left px-6 py-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
                       </th>
-                      <th className="text-left px-4 py-3">
+                      <th className="text-left px-4 py-3 pr-6">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Agent Name(s)</span>
-                      </th>
-                      <th className="text-right px-4 py-3 pr-6">
-                        <span className="sr-only">Actions</span>
                       </th>
                     </tr>
                   </thead>
@@ -434,25 +442,13 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                         className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                       >
                         <td className="px-6 py-4 text-gray-900">{agent.phone}</td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 pr-6">
                           <p className="font-medium text-gray-900">{agent.primaryName}</p>
                           {agent.aliases.length > 0 && (
                             <p className="text-xs text-gray-500 mt-0.5">
                               Also referenced as: {agent.aliases.join(", ")}
                             </p>
                           )}
-                        </td>
-                        <td className="px-4 py-4 pr-6 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingAgentId(agent.id);
-                            }}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            Edit
-                          </button>
                         </td>
                       </tr>
                     ))}
@@ -467,27 +463,15 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                   <div
                     key={agent.id}
                     onClick={() => setSelectedAgentId(agent.id)}
-                    className="px-4 py-4 active:bg-gray-50 flex items-start justify-between gap-3"
+                    className="px-4 py-4 active:bg-gray-50"
                   >
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500">{agent.phone}</p>
-                      <p className="font-medium text-gray-900 mt-0.5">{agent.primaryName}</p>
-                      {agent.aliases.length > 0 && (
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          Also referenced as: {agent.aliases.join(", ")}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingAgentId(agent.id);
-                      }}
-                      className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Edit
-                    </button>
+                    <p className="text-xs text-gray-500">{agent.phone}</p>
+                    <p className="font-medium text-gray-900 mt-0.5">{agent.primaryName}</p>
+                    {agent.aliases.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Also referenced as: {agent.aliases.join(", ")}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -514,6 +498,7 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
           agent={selectedAgent}
           people={selectedAgentPeople}
           onClose={() => setSelectedAgentId(null)}
+          onEdit={() => setEditingAgentId(selectedAgent.id)}
         />
       )}
 
