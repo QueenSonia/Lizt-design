@@ -23,9 +23,10 @@ import {
   UserCheck,
   X,
 } from "lucide-react";
-import { addAgentAlias, findAgentByPhone } from "@/lib/agentStore";
+import { addAgentAlias, findAgentByPhone, searchAgentsByPhone, type Agent } from "@/lib/agentStore";
 import { mockKYCApplications } from "@/lib/mockKycApplications";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 
 const BRAND_COLOR = "#FF5000";
 const LOGO_SRC = "/designs/receipt/lizt.png";
@@ -986,9 +987,12 @@ function EmploymentDetailsStep({
  * Step 3 — Tenancy Information
  * ---------------------------------------------------------------------- */
 
-// Start looking up an agent once the phone number has at least this many digits — enough to be a
-// meaningful partial match without firing on every single keystroke of a fresh number.
-const AGENT_LOOKUP_MIN_DIGITS = 7;
+// Start searching for matching agents once the phone number has at least this many digits —
+// enough to be a meaningful partial match without firing on every single keystroke.
+const AGENT_SEARCH_MIN_DIGITS = 3;
+// Auto-populate the Agent Name field once the phone number is specific enough to resolve to a
+// single agent unambiguously, without the tenant needing to pick from the dropdown.
+const AGENT_AUTOFILL_MIN_DIGITS = 7;
 
 function TenancyInformationStep({
   formData,
@@ -1001,16 +1005,27 @@ function TenancyInformationStep({
 }) {
   const selected = MOCK_PROPERTIES.find((p) => p.id === formData.property_applying_for);
 
-  // Agent lookup — resolves the entered phone number to an existing agent record so the tenant
+  // Agent lookup — resolves the entered phone number to existing agent records so the tenant
   // doesn't have to retype a name that's already on file, and so the KYC form never creates a
   // duplicate agent for a phone number that already exists.
-  const debouncedAgentPhone = useDebounce(formData.referral_agent_phone_number, 300);
+  const debouncedAgentPhone = useDebounce(formData.referral_agent_phone_number, 200);
+  const debouncedDigitCount = debouncedAgentPhone.replace(/\D/g, "").length;
+
+  const agentSuggestions = useMemo(() => {
+    if (debouncedDigitCount < AGENT_SEARCH_MIN_DIGITS) return [];
+    return searchAgentsByPhone(mockKYCApplications, debouncedAgentPhone);
+  }, [debouncedAgentPhone, debouncedDigitCount]);
 
   const matchedAgent = useMemo(() => {
-    const digitCount = debouncedAgentPhone.replace(/\D/g, "").length;
-    if (digitCount < AGENT_LOOKUP_MIN_DIGITS) return undefined;
+    if (debouncedDigitCount < AGENT_AUTOFILL_MIN_DIGITS) return undefined;
     return findAgentByPhone(mockKYCApplications, debouncedAgentPhone);
-  }, [debouncedAgentPhone]);
+  }, [debouncedAgentPhone, debouncedDigitCount]);
+
+  // Dropdown is open while the phone field is focused and there are suggestions to show; the
+  // tenant can dismiss it early (e.g. after picking a result) without it reopening mid-typing.
+  const [phoneFieldFocused, setPhoneFieldFocused] = useState(false);
+  const [suppressDropdown, setSuppressDropdown] = useState(false);
+  const showDropdown = phoneFieldFocused && !suppressDropdown && agentSuggestions.length > 0;
 
   // Tracks which matched agent's name we last auto-filled, so we only overwrite the Agent Name
   // field once per match (not on every keystroke) and never clobber a name the tenant typed
@@ -1024,6 +1039,15 @@ function TenancyInformationStep({
     setAutoFilledForAgentId(matchedAgent.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchedAgent]);
+
+  const selectAgentSuggestion = (agent: Agent) => {
+    onChange({
+      referral_agent_phone_number: agent.phone,
+      referral_agent_full_name: agent.primaryName,
+    });
+    setAutoFilledForAgentId(agent.id);
+    setSuppressDropdown(true);
+  };
 
   // If the tenant edited the Agent Name field away from a matched agent's official name, record
   // the typed name as an additional alias for that phone number rather than treating it as a new
@@ -1406,14 +1430,47 @@ function TenancyInformationStep({
             <Label htmlFor="referral_agent_phone_number">
               Agent Phone Number <span className="text-red-500">*</span>
             </Label>
-            <Input
-              id="referral_agent_phone_number"
-              type="tel"
-              value={formData.referral_agent_phone_number}
-              onChange={(e) => onChange({ referral_agent_phone_number: e.target.value })}
-              placeholder="+234 800 000 0000"
-              className="mt-1.5"
-            />
+            <Popover open={showDropdown}>
+              <PopoverAnchor>
+                <Input
+                  id="referral_agent_phone_number"
+                  type="tel"
+                  autoComplete="off"
+                  value={formData.referral_agent_phone_number}
+                  onChange={(e) => {
+                    onChange({ referral_agent_phone_number: e.target.value });
+                    setSuppressDropdown(false);
+                  }}
+                  onFocus={() => setPhoneFieldFocused(true)}
+                  onBlur={() => setPhoneFieldFocused(false)}
+                  placeholder="+234 800 000 0000"
+                  className="mt-1.5"
+                />
+              </PopoverAnchor>
+              <PopoverContent
+                align="start"
+                sideOffset={4}
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
+                className="w-[--radix-popper-anchor-width] p-1"
+              >
+                <div className="max-h-64 overflow-y-auto">
+                  {agentSuggestions.map((agent) => (
+                    <button
+                      key={agent.id}
+                      type="button"
+                      // Fires before the input's onBlur closes the dropdown, so the click still registers.
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectAgentSuggestion(agent)}
+                      className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-gray-900">{agent.primaryName}</p>
+                      <p className="text-xs text-gray-500">{agent.phone}</p>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <FieldError>{errors.referral_agent_phone_number}</FieldError>
             {matchedAgent && (
               <div className="mt-2 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">

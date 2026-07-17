@@ -165,3 +165,20 @@ export function findAgentByPhone(
   if (!id) return undefined;
   return deriveAgents(applications).find((a) => a.id === id);
 }
+
+/**
+ * Finds every agent whose phone number contains `partial` anywhere in its digits — powers the
+ * phone-number autocomplete on the KYC form, so "704220" or "2208871" both surface an agent whose
+ * full number is "+234 704 220 8871".
+ */
+export function searchAgentsByPhone(
+  applications: KYCApplication[],
+  partial: string,
+  limit = 5
+): Agent[] {
+  const digits = normalizePhone(partial).replace(/^\+/, "");
+  if (!digits) return [];
+  return deriveAgents(applications)
+    .filter((a) => normalizePhone(a.phone).replace(/^\+/, "").includes(digits))
+    .slice(0, limit);
+}
