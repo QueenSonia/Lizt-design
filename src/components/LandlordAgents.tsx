@@ -1,15 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Search, Users, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Users, X, Pencil } from "lucide-react";
 import { Input } from "./ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Button } from "./ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { KYCService, KYCApplication } from "@/services/kyc/kyc.service";
 import { mockKYCApplications } from "./LandlordKYCList";
 import { TablePagination, stickyHeadClass } from "./TableControls";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
+import { getOfficialAgentName, setOfficialAgentName, subscribeToAgentStore } from "@/lib/agentStore";
 
 /**
  * An agent is derived from KYC data rather than owning its own record — every field here is
@@ -66,7 +68,20 @@ export function deriveAgents(applications: KYCApplication[]): Agent[] {
         if (countDiff !== 0) return countDiff;
         return (bucket.nameFirstSeen.get(a) ?? 0) - (bucket.nameFirstSeen.get(b) ?? 0);
       });
-      const [primaryName, ...aliases] = names;
+
+      // A Property-Manager-assigned official name takes over as the primary display name. The
+      // KYC-derived name it replaces isn't discarded — it folds back into the alias list (unless
+      // it's already there) so the original submitted names stay visible as historical references.
+      const officialName = getOfficialAgentName(id);
+      let primaryName: string;
+      let aliases: string[];
+      if (officialName) {
+        primaryName = officialName;
+        aliases = names.includes(officialName) ? names.filter((n) => n !== officialName) : names;
+      } else {
+        [primaryName, ...aliases] = names;
+      }
+
       return { id, phone: bucket.phone, primaryName, aliases };
     })
     .sort((a, b) => a.primaryName.localeCompare(b.primaryName));
@@ -194,6 +209,82 @@ function AgentDetailsModal({
   );
 }
 
+function EditAgentNameModal({
+  agent,
+  onClose,
+  onSaved,
+}: {
+  agent: Agent;
+  onClose: () => void;
+  onSaved: (name: string) => void;
+}) {
+  const [name, setName] = useState(agent.primaryName);
+
+  const trimmed = name.trim();
+  const canSave = trimmed.length > 0;
+
+  const handleSave = () => {
+    if (!canSave) return;
+    onSaved(trimmed);
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-white rounded-xl max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Edit Agent Name</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-1">Phone Number</p>
+            <p className="text-sm text-gray-900">{agent.phone}</p>
+          </div>
+
+          <div>
+            <label htmlFor="official-agent-name" className="text-xs font-medium text-gray-500 mb-1 block">
+              Official Agent Name
+            </label>
+            <Input
+              id="official-agent-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSave();
+              }}
+              placeholder="Enter official agent name"
+              autoFocus
+              className="h-9 text-sm"
+            />
+          </div>
+
+          {agent.aliases.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">Also referenced as</p>
+              <p className="text-xs text-gray-500">{agent.aliases.join(", ")}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            disabled={!canSave}
+            onClick={handleSave}
+            className="text-white disabled:opacity-50"
+            style={{ backgroundColor: "#FF5000" }}
+          >
+            Save Changes
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 interface LandlordAgentsProps {
   onMenuClick?: () => void;
   isMobile?: boolean;
@@ -202,6 +293,12 @@ interface LandlordAgentsProps {
 export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgentsProps) {
   const [search, setSearch] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
+  const [, agentStoreTick] = useState(0);
+
+  useEffect(() => {
+    return subscribeToAgentStore(() => agentStoreTick((n) => n + 1));
+  }, []);
 
   const { ref: tableScrollRef, scrolled: tableScrolled, onScroll: handleTableScroll } =
     useTableScrollShadow<HTMLDivElement>();
@@ -239,6 +336,11 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
   const selectedAgentPeople = useMemo(
     () => (selectedAgentId ? deriveLinkedPeople(kycApplications, selectedAgentId) : []),
     [kycApplications, selectedAgentId]
+  );
+
+  const editingAgent = useMemo(
+    () => (editingAgentId ? agents.find((a) => a.id === editingAgentId) ?? null : null),
+    [agents, editingAgentId]
   );
 
   return (
@@ -316,8 +418,11 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                       <th className="text-left px-6 py-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
                       </th>
-                      <th className="text-left px-4 py-3 pr-6">
+                      <th className="text-left px-4 py-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Agent Name(s)</span>
+                      </th>
+                      <th className="text-right px-4 py-3 pr-6">
+                        <span className="sr-only">Actions</span>
                       </th>
                     </tr>
                   </thead>
@@ -329,13 +434,25 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                         className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                       >
                         <td className="px-6 py-4 text-gray-900">{agent.phone}</td>
-                        <td className="px-4 py-4 pr-6">
+                        <td className="px-4 py-4">
                           <p className="font-medium text-gray-900">{agent.primaryName}</p>
                           {agent.aliases.length > 0 && (
                             <p className="text-xs text-gray-500 mt-0.5">
                               Also referenced as: {agent.aliases.join(", ")}
                             </p>
                           )}
+                        </td>
+                        <td className="px-4 py-4 pr-6 text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingAgentId(agent.id);
+                            }}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -350,15 +467,27 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                   <div
                     key={agent.id}
                     onClick={() => setSelectedAgentId(agent.id)}
-                    className="px-4 py-4 active:bg-gray-50"
+                    className="px-4 py-4 active:bg-gray-50 flex items-start justify-between gap-3"
                   >
-                    <p className="text-xs text-gray-500">{agent.phone}</p>
-                    <p className="font-medium text-gray-900 mt-0.5">{agent.primaryName}</p>
-                    {agent.aliases.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Also referenced as: {agent.aliases.join(", ")}
-                      </p>
-                    )}
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">{agent.phone}</p>
+                      <p className="font-medium text-gray-900 mt-0.5">{agent.primaryName}</p>
+                      {agent.aliases.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Also referenced as: {agent.aliases.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingAgentId(agent.id);
+                      }}
+                      className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Edit
+                    </button>
                   </div>
                 ))}
               </div>
@@ -385,6 +514,17 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
           agent={selectedAgent}
           people={selectedAgentPeople}
           onClose={() => setSelectedAgentId(null)}
+        />
+      )}
+
+      {editingAgent && (
+        <EditAgentNameModal
+          agent={editingAgent}
+          onClose={() => setEditingAgentId(null)}
+          onSaved={(name) => {
+            setOfficialAgentName(editingAgent.id, name);
+            setEditingAgentId(null);
+          }}
         />
       )}
     </div>
