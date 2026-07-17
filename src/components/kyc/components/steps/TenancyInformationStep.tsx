@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,9 +23,18 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, UserCheck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { FormStepProps } from "../../types";
 import { FormValidator } from "../../utils/form-validator";
+import { KYCService } from "@/services/kyc/kyc.service";
+import { mockKYCApplications } from "@/lib/mockKycApplications";
+import { addAgentAlias, findAgentByPhone } from "@/lib/agentStore";
+import { useDebounce } from "@/hooks/useDebounce";
+
+// Start looking up an agent once the phone number has at least this many digits — enough to be a
+// meaningful partial match without firing on every single keystroke of a fresh number.
+const AGENT_LOOKUP_MIN_DIGITS = 7;
 
 const TenancyInformationStep: React.FC<
   FormStepProps & {
@@ -51,6 +60,40 @@ const TenancyInformationStep: React.FC<
   properties = [],
 }) => {
   const [propertySearchOpen, setPropertySearchOpen] = useState(false);
+
+  // Agent lookup — resolves the entered phone number to an existing agent record so the tenant
+  // doesn't have to retype a name that's already on file, and so the KYC form never creates a
+  // duplicate agent for a phone number that already exists.
+  const debouncedAgentPhone = useDebounce(
+    formData.referral_agent_phone_number || "",
+    300
+  );
+  const { data: kycApplicationsRaw = [] } = useQuery({
+    queryKey: ["kycApplications"],
+    queryFn: KYCService.getAllKycApplications,
+    staleTime: 30000,
+  });
+  const kycApplications =
+    kycApplicationsRaw.length > 0 ? kycApplicationsRaw : mockKYCApplications;
+
+  const matchedAgent = useMemo(() => {
+    const digitCount = debouncedAgentPhone.replace(/\D/g, "").length;
+    if (digitCount < AGENT_LOOKUP_MIN_DIGITS) return undefined;
+    return findAgentByPhone(kycApplications, debouncedAgentPhone);
+  }, [debouncedAgentPhone, kycApplications]);
+
+  // Tracks which matched agent's name we last auto-filled, so we only overwrite the Agent Name
+  // field once per match (not on every keystroke) and never clobber a name the tenant typed
+  // themselves before a match was found.
+  const [autoFilledForAgentId, setAutoFilledForAgentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!matchedAgent) return;
+    if (autoFilledForAgentId === matchedAgent.id) return;
+    onDataChange({ referral_agent_full_name: matchedAgent.primaryName });
+    setAutoFilledForAgentId(matchedAgent.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedAgent]);
 
   // Filter properties based on pending KYC - Requirements 4.9, 7.4
   const filteredProperties: typeof properties = React.useMemo(() => {
@@ -84,6 +127,17 @@ const TenancyInformationStep: React.FC<
         goToNextStep();
       }
     }
+  };
+
+  // If the tenant edited the Agent Name field away from a matched agent's official name, record
+  // the typed name as an additional alias for that phone number rather than treating it as a new
+  // agent — the phone number is the source of truth, so the official name never changes here.
+  const handleAgentNameBlur = () => {
+    if (!matchedAgent) return;
+    const typedName = (formData.referral_agent_full_name || "").trim();
+    if (!typedName) return;
+    if (typedName.toLowerCase() === matchedAgent.primaryName.toLowerCase()) return;
+    addAgentAlias(matchedAgent.id, typedName);
   };
 
   // Helper to check if error should be shown (only if field is touched)
@@ -420,19 +474,6 @@ const TenancyInformationStep: React.FC<
         </h3>
         <div className="space-y-5">
           <div>
-            <Label htmlFor="referral_agent_full_name">Agent Name</Label>
-            <Input
-              id="referral_agent_full_name"
-              value={formData.referral_agent_full_name || ""}
-              onChange={(e) =>
-                handleInputChange("referral_agent_full_name", e.target.value)
-              }
-              placeholder="Enter agent's name"
-              className="mt-1.5"
-            />
-          </div>
-
-          <div>
             <Label htmlFor="referral_agent_phone_number">
               Agent Phone Number
             </Label>
@@ -446,6 +487,38 @@ const TenancyInformationStep: React.FC<
               placeholder="+234 XXX XXX XXXX"
               className="mt-1.5"
             />
+            {matchedAgent && (
+              <div className="mt-2 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+                <UserCheck className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-green-700 uppercase tracking-wide">
+                    Existing Agent Found
+                  </p>
+                  <p className="text-sm text-gray-900">{matchedAgent.primaryName}</p>
+                  <p className="text-xs text-gray-500">{matchedAgent.phone}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="referral_agent_full_name">Agent Name</Label>
+            <Input
+              id="referral_agent_full_name"
+              value={formData.referral_agent_full_name || ""}
+              onChange={(e) =>
+                handleInputChange("referral_agent_full_name", e.target.value)
+              }
+              onBlur={handleAgentNameBlur}
+              placeholder="Enter agent's name"
+              className="mt-1.5"
+            />
+            {matchedAgent && (
+              <p className="text-xs text-gray-400 mt-1.5">
+                You can edit this if you know {matchedAgent.primaryName} by a different name —
+                we&apos;ll keep it on file as a reference without creating a duplicate agent.
+              </p>
+            )}
           </div>
         </div>
       </div>

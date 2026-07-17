@@ -11,81 +11,16 @@ import { mockKYCApplications } from "./LandlordKYCList";
 import { TablePagination, stickyHeadClass } from "./TableControls";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
-import { getOfficialAgentName, setOfficialAgentName, subscribeToAgentStore } from "@/lib/agentStore";
+import {
+  Agent,
+  deriveAgents,
+  normalizePhone,
+  setOfficialAgentName,
+  subscribeToAgentStore,
+} from "@/lib/agentStore";
 
-/**
- * An agent is derived from KYC data rather than owning its own record — every field here is
- * rolled up from every `application.referralAgent` that shares the same normalized phone number.
- * Phone number is the identity; every name seen alongside that phone becomes an alias, and the
- * most frequently used one (ties broken by first-seen order) is shown as the primary name.
- */
-export interface Agent {
-  /** Normalized phone number — the unique identifier so the same agent entered under different
-   *  names by different tenants collapses into a single row. */
-  id: string;
-  /** Phone number as first entered, used for display. */
-  phone: string;
-  primaryName: string;
-  /** Other names used for this phone number, excluding the primary name. */
-  aliases: string[];
-}
-
-export function normalizePhone(phone: string): string {
-  return phone.replace(/[\s\-()]/g, "");
-}
-
-export function deriveAgents(applications: KYCApplication[]): Agent[] {
-  interface AgentBucket {
-    phone: string;
-    nameCounts: Map<string, number>;
-    nameFirstSeen: Map<string, number>;
-  }
-
-  const byPhone = new Map<string, AgentBucket>();
-  let order = 0;
-
-  for (const app of applications) {
-    const agent = app.referralAgent;
-    if (!agent?.phoneNumber || !agent.fullName) continue;
-    const id = normalizePhone(agent.phoneNumber);
-    const name = agent.fullName.trim();
-    if (!name) continue;
-
-    let bucket = byPhone.get(id);
-    if (!bucket) {
-      bucket = { phone: agent.phoneNumber, nameCounts: new Map(), nameFirstSeen: new Map() };
-      byPhone.set(id, bucket);
-    }
-
-    bucket.nameCounts.set(name, (bucket.nameCounts.get(name) ?? 0) + 1);
-    if (!bucket.nameFirstSeen.has(name)) bucket.nameFirstSeen.set(name, order++);
-  }
-
-  return Array.from(byPhone.entries())
-    .map(([id, bucket]) => {
-      const names = Array.from(bucket.nameCounts.keys()).sort((a, b) => {
-        const countDiff = (bucket.nameCounts.get(b) ?? 0) - (bucket.nameCounts.get(a) ?? 0);
-        if (countDiff !== 0) return countDiff;
-        return (bucket.nameFirstSeen.get(a) ?? 0) - (bucket.nameFirstSeen.get(b) ?? 0);
-      });
-
-      // A Property-Manager-assigned official name takes over as the primary display name. The
-      // KYC-derived name it replaces isn't discarded — it folds back into the alias list (unless
-      // it's already there) so the original submitted names stay visible as historical references.
-      const officialName = getOfficialAgentName(id);
-      let primaryName: string;
-      let aliases: string[];
-      if (officialName) {
-        primaryName = officialName;
-        aliases = names.includes(officialName) ? names.filter((n) => n !== officialName) : names;
-      } else {
-        [primaryName, ...aliases] = names;
-      }
-
-      return { id, phone: bucket.phone, primaryName, aliases };
-    })
-    .sort((a, b) => a.primaryName.localeCompare(b.primaryName));
-}
+export type { Agent } from "@/lib/agentStore";
+export { deriveAgents, normalizePhone } from "@/lib/agentStore";
 
 /** A single person linked to an agent's phone number, for the unified list in the details modal. */
 interface LinkedPerson {
