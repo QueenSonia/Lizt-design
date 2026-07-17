@@ -20,7 +20,6 @@ import {
   Upload,
   FileText,
   ImageIcon,
-  UserCheck,
   X,
 } from "lucide-react";
 import { addAgentAlias, findAgentByPhone, searchAgentsByPhone, type Agent } from "@/lib/agentStore";
@@ -1472,18 +1471,6 @@ function TenancyInformationStep({
               </PopoverContent>
             </Popover>
             <FieldError>{errors.referral_agent_phone_number}</FieldError>
-            {matchedAgent && (
-              <div className="mt-2 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
-                <UserCheck className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-xs font-medium text-green-700 uppercase tracking-wide">
-                    Existing Agent Found
-                  </p>
-                  <p className="text-sm text-gray-900">{matchedAgent.primaryName}</p>
-                  <p className="text-xs text-gray-500">{matchedAgent.phone}</p>
-                </div>
-              </div>
-            )}
           </div>
           <div>
             <Label htmlFor="referral_agent_full_name">
@@ -1498,12 +1485,6 @@ function TenancyInformationStep({
               className="mt-1.5"
             />
             <FieldError>{errors.referral_agent_full_name}</FieldError>
-            {matchedAgent && (
-              <p className="text-xs text-gray-400 mt-1.5">
-                You can edit this if you know {matchedAgent.primaryName} by a different name —
-                we&apos;ll keep it on file as a reference without creating a duplicate agent.
-              </p>
-            )}
           </div>
         </div>
       </div>
