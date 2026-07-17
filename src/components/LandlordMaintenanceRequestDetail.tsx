@@ -895,10 +895,6 @@ export default function LandlordMaintenanceRequestDetail() {
               <label className="text-sm font-medium text-gray-700 block">
                 How was this request resolved? <span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Describe how the issue was diagnosed and resolved. Include the work carried out, repairs
-                completed, parts replaced (if any), root cause, and any other relevant information.
-              </p>
               <textarea
                 value={resolutionSummary}
                 onChange={(e) => {
@@ -906,7 +902,7 @@ export default function LandlordMaintenanceRequestDetail() {
                   if (e.target.value.trim()) setShowResolutionError(false);
                 }}
                 rows={7}
-                placeholder="Describe the diagnosis, work carried out, parts replaced, and outcome…"
+                placeholder="Describe how the issue was diagnosed, what work was carried out, and how the issue was resolved…"
                 className={`w-full px-3 py-2.5 border rounded-lg text-sm text-gray-900 resize-y outline-none bg-gray-50 leading-relaxed ${
                   showResolutionError && !resolutionSummary.trim()
                     ? "border-red-400 focus:border-red-400"

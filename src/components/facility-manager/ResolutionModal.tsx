@@ -274,17 +274,13 @@ export function ResolutionModal({
             <label style={labelStyle}>
               How was this request resolved? <span style={{ color: "#DC2626" }}>*</span>
             </label>
-            <p style={{ fontSize: 12, color: "#9A9790", lineHeight: 1.5, marginBottom: 8, marginTop: -2 }}>
-              Describe how the issue was diagnosed and resolved. Include the work carried out, repairs
-              completed, parts replaced (if any), root cause, and any other relevant information.
-            </p>
             <textarea
               value={summary}
               onChange={(e) => {
                 setSummary(e.target.value);
                 if (e.target.value.trim()) setShowSummaryError(false);
               }}
-              placeholder="Describe the diagnosis, work carried out, parts replaced, and outcome…"
+              placeholder="Describe how the issue was diagnosed, what work was carried out, and how the issue was resolved…"
               rows={6}
               style={{
                 ...inputStyle,
