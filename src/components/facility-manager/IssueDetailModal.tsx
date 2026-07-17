@@ -501,6 +501,31 @@ export function IssueDetailModal({
                               );
                             }
 
+                            if (entry.type === "resolution") {
+                              return (
+                                <div key={entry.id} style={{ border: "1px solid #D1FAE5", borderRadius: 12, background: "#F0FDF4", overflow: "hidden" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderBottom: "1px solid #D1FAE5", background: "#DCFCE7" }}>
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: "#166534", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                                      Maintenance Request Resolved
+                                    </span>
+                                  </div>
+                                  <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                                    <ResRow label="Resolved by" value={entry.resolvedBy} />
+                                    <div>
+                                      <span style={{ fontSize: 11, color: "#6B7280", display: "block", marginBottom: 3 }}>Resolution Summary</span>
+                                      <p style={{ fontSize: 13, color: "#1A1A1A", lineHeight: 1.6, margin: 0, whiteSpace: "pre-line" }}>{entry.summary}</p>
+                                    </div>
+                                    <span style={{ fontSize: 10, color: "#B0ADA8" }}>
+                                      {new Date(entry.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · {fmtThreadTime(entry.timestamp)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            }
+
                             if (entry.type === "payment_request") {
                               const statusColor =
                                 entry.status === "approved" ? { bg: "#F0FDF4", border: "#86EFAC", text: "#166534" } :
@@ -681,12 +706,12 @@ export function IssueDetailModal({
               );
             })()}
 
-            {/* ── Resolution History ────────────────────────────────── */}
+            {/* ── Resolution Summary ────────────────────────────────── */}
             {issue.resolutions && issue.resolutions.length > 0 && (
               <div style={{ marginTop: 24 }}>
                 {/* Section label */}
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#B0ADA8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
-                  Resolution History
+                  Resolution Summary
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {[...issue.resolutions].reverse().map((attempt, revIdx) => {
@@ -714,25 +739,25 @@ export function IssueDetailModal({
                           </div>
                           {/* Card body */}
                           <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+                            <div>
+                              <span style={{ fontSize: 11, color: "#6B7280", display: "block", marginBottom: 3 }}>Resolution Summary</span>
+                              <p style={{ fontSize: 13, color: "#1A1A1A", lineHeight: 1.6, margin: 0, whiteSpace: "pre-line" }}>{attempt.summary}</p>
+                            </div>
+                            {attempt.resolvedBy && <ResRow label="Resolved by" value={attempt.resolvedBy} />}
                             {attempt.resolvedAt && (
-                              <ResRow label="Resolved on" value={
+                              <ResRow label="Resolution Date & Time" value={
                                 new Date(attempt.resolvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) +
                                 " · " +
                                 new Date(attempt.resolvedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
                               } />
                             )}
                             <ResRow label="Job category" value={attempt.category} />
-                            <div>
-                              <span style={{ fontSize: 11, color: "#6B7280", display: "block", marginBottom: 3 }}>Description</span>
-                              <p style={{ fontSize: 13, color: "#1A1A1A", lineHeight: 1.6, margin: 0 }}>{attempt.summary}</p>
-                            </div>
                             {attempt.hadCost && attempt.costAmount
                               ? <ResRow label="Cost amount" value={attempt.costAmount} />
                               : <ResRow label="Cost amount" value="No cost" />
                             }
                             {attempt.artisanName && <ResRow label="Artisan name" value={attempt.artisanName} />}
                             {attempt.artisanPhone && <ResRow label="Phone number" value={attempt.artisanPhone} />}
-                            {attempt.resolvedBy && <ResRow label="Resolved by" value={attempt.resolvedBy} />}
                           </div>
                         </div>
                         {/* Rejected feedback */}
@@ -944,7 +969,13 @@ export function IssueDetailModal({
           onClose={() => setResolveOpen(false)}
           onConfirm={(resolution) => {
             onStatusChange(issue.id, "resolved", resolution);
-            appendThreadEntry(issue.id, { id: makeMsgId(), type: "event", body: "Marked as resolved", timestamp: new Date().toISOString() });
+            appendThreadEntry(issue.id, {
+              id: makeMsgId(),
+              type: "resolution",
+              resolvedBy: resolution.resolvedBy || "Facility Manager",
+              summary: resolution.summary,
+              timestamp: resolution.resolvedAt || new Date().toISOString(),
+            });
           }}
         />
       )}

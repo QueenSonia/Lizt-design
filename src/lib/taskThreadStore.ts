@@ -39,7 +39,15 @@ export interface ThreadPaymentRequest {
   timestamp: string;       // ISO — when request was submitted
 }
 
-export type ThreadEntry = ThreadMessage | ThreadEvent | ThreadPaymentRequest;
+export interface ThreadResolution {
+  id: string;
+  type: "resolution";
+  resolvedBy: string;
+  summary: string;
+  timestamp: string; // ISO — resolution date & time
+}
+
+export type ThreadEntry = ThreadMessage | ThreadEvent | ThreadPaymentRequest | ThreadResolution;
 
 export function makeMsgId() {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

@@ -26,14 +26,20 @@ export function ResolutionModal({
   const [summary, setSummary] = useState(prev?.summary || "");
   const [category, setCategory] = useState(prev?.category || "");
   const [busy, setBusy] = useState(false);
+  const [showSummaryError, setShowSummaryError] = useState(false);
 
   const costValid =
     hadCost === false ||
     (hadCost === true && costAmount.trim() && artisanName.trim() && artisanPhone.trim());
+  const summaryValid = !!summary.trim();
   const canSubmit =
-    summary.trim() && category && hadCost !== null && costValid;
+    summaryValid && category && hadCost !== null && costValid;
 
   const submit = () => {
+    if (!summaryValid) {
+      setShowSummaryError(true);
+      return;
+    }
     if (!canSubmit || busy) return;
     setBusy(true);
     setTimeout(() => {
@@ -265,14 +271,33 @@ export function ResolutionModal({
           </div>
 
           <div>
-            <label style={labelStyle}>Description</label>
+            <label style={labelStyle}>
+              How was this request resolved? <span style={{ color: "#DC2626" }}>*</span>
+            </label>
+            <p style={{ fontSize: 12, color: "#9A9790", lineHeight: 1.5, marginBottom: 8, marginTop: -2 }}>
+              Describe how the issue was diagnosed and resolved. Include the work carried out, repairs
+              completed, parts replaced (if any), root cause, and any other relevant information.
+            </p>
             <textarea
               value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              placeholder="Briefly describe how the issue was resolved…"
-              rows={4}
-              style={{ ...inputStyle, resize: "none", lineHeight: 1.6 }}
+              onChange={(e) => {
+                setSummary(e.target.value);
+                if (e.target.value.trim()) setShowSummaryError(false);
+              }}
+              placeholder="Describe the diagnosis, work carried out, parts replaced, and outcome…"
+              rows={6}
+              style={{
+                ...inputStyle,
+                resize: "vertical",
+                lineHeight: 1.6,
+                ...(showSummaryError && !summaryValid ? { borderColor: "#DC2626" } : {}),
+              }}
             />
+            {showSummaryError && !summaryValid && (
+              <p style={{ fontSize: 12, color: "#DC2626", marginTop: 6 }}>
+                A resolution summary is required before closing this request.
+              </p>
+            )}
           </div>
         </div>
 

@@ -9,6 +9,7 @@ import {
   MOCK_FACILITY_MANAGERS,
   ServiceRequest,
   FacilityManager,
+  ResolutionDetails,
   resolveSource,
   reporterName,
   SOURCE_LABEL,
@@ -64,6 +65,10 @@ export default function LandlordMaintenanceRequestDetail() {
 
   // State
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
+  const [resolutionOverrides, setResolutionOverrides] = useState<Record<string, ResolutionDetails[]>>({});
+  const [resolveModalOpen, setResolveModalOpen] = useState(false);
+  const [resolutionSummary, setResolutionSummary] = useState("");
+  const [showResolutionError, setShowResolutionError] = useState(false);
   const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [declineModal, setDeclineModal] = useState<{ taskId: string; entryId: string; amount: string; requestedBy: string; reason: string } | null>(null);
   const [declineReason, setDeclineReason] = useState("");
@@ -197,7 +202,45 @@ export default function LandlordMaintenanceRequestDetail() {
     );
   };
 
-  const resArr = req.resolutions ?? (req.resolution ? [req.resolution] : []);
+  const baseResArr = req.resolutions ?? (req.resolution ? [req.resolution] : []);
+  const resArr = [...baseResArr, ...(resolutionOverrides[req.id] ?? [])];
+  const isResolved = ["resolved", "closed"].includes(currentStatus.toLowerCase());
+  const canResolve = isApproved && !isResolved;
+
+  const openResolveModal = () => {
+    setResolutionSummary("");
+    setShowResolutionError(false);
+    setResolveModalOpen(true);
+  };
+
+  const confirmResolution = () => {
+    if (!resolutionSummary.trim()) {
+      setShowResolutionError(true);
+      return;
+    }
+    const resolvedByName = assignee?.name ?? "Facility Manager";
+    const resolvedAt = new Date().toISOString();
+    const resolution: ResolutionDetails = {
+      summary: resolutionSummary.trim(),
+      category: req.issue_category,
+      hadCost: false,
+      resolvedAt,
+      resolvedBy: resolvedByName,
+    };
+    setResolutionOverrides((prev) => ({
+      ...prev,
+      [req.id]: [...(prev[req.id] ?? []), resolution],
+    }));
+    setStatus("resolved", "Request marked as resolved.");
+    appendThreadEntry(req.id, {
+      id: makeMsgId(),
+      type: "resolution",
+      resolvedBy: resolvedByName,
+      summary: resolution.summary,
+      timestamp: resolvedAt,
+    });
+    setResolveModalOpen(false);
+  };
 
   return (
     <div className="page-container">
@@ -247,6 +290,21 @@ export default function LandlordMaintenanceRequestDetail() {
             >
               {isApproved ? "Approved" : "Approve Request"}
             </Button>
+            {isResolved ? (
+              <Button size="sm" disabled className="bg-emerald-600 text-white disabled:opacity-100">
+                <Check className="w-3.5 h-3.5 mr-1.5" />
+                Resolved
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                disabled={!canResolve}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                onClick={openResolveModal}
+              >
+                Mark as Resolved
+              </Button>
+            )}
           </div>
         </div>
 
@@ -342,6 +400,31 @@ export default function LandlordMaintenanceRequestDetail() {
                             );
                           }
 
+                          /* Resolution — full-width green summary card */
+                          if (entry.type === "resolution") {
+                            return (
+                              <div key={entry.id} className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+                                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
+                                  <Check className="w-3.5 h-3.5 text-emerald-700" />
+                                  <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Maintenance Request Resolved</p>
+                                </div>
+                                <div className="px-4 py-3.5 space-y-2.5 text-sm">
+                                  <div>
+                                    <p className="text-xs text-gray-500 mb-0.5">Resolved by</p>
+                                    <p className="text-gray-900">{entry.resolvedBy}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500 mb-0.5">Resolution Summary</p>
+                                    <p className="text-gray-900 whitespace-pre-line leading-relaxed">{entry.summary}</p>
+                                  </div>
+                                  <p className="text-[11px] text-gray-400">
+                                    {formatDateTime(entry.timestamp)}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           /* Payment request reference — centred amber pill */
                           if (entry.type === "payment_request") {
                             return (
@@ -408,10 +491,10 @@ export default function LandlordMaintenanceRequestDetail() {
               </div>
             </div>
 
-            {/* Resolution History */}
+            {/* Resolution Summary */}
             {resArr.length > 0 && (
               <div className="p-6 sm:p-8">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Resolution History</h3>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Resolution Summary</h3>
                 <div className="flex flex-col gap-3">
                   {[...resArr].reverse().map((attempt, revIdx) => {
                     const origIdx = resArr.length - 1 - revIdx;
@@ -431,10 +514,18 @@ export default function LandlordMaintenanceRequestDetail() {
                           </div>
                           <div className="px-4 py-3.5 space-y-2.5 text-sm">
                             <div>
-                              <p className="text-xs text-gray-500 mb-0.5">Description</p>
+                              <p className="text-xs text-gray-500 mb-0.5">Resolution Summary</p>
                               <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.summary}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                              <div>
+                                <p className="text-xs text-gray-500 mb-0.5">Resolved by (Facility Manager)</p>
+                                <p className="text-gray-900">{attempt.resolvedBy}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500 mb-0.5">Resolution Date & Time</p>
+                                <p className="text-gray-900">{formatDateTime(attempt.resolvedAt)}</p>
+                              </div>
                               <div>
                                 <p className="text-xs text-gray-500 mb-0.5">Job category</p>
                                 <p className="text-gray-900">{attempt.category}</p>
@@ -455,14 +546,6 @@ export default function LandlordMaintenanceRequestDetail() {
                                   <p className="text-gray-900">{attempt.artisanPhone}</p>
                                 </div>
                               )}
-                              <div>
-                                <p className="text-xs text-gray-500 mb-0.5">Date resolved</p>
-                                <p className="text-gray-900">{formatDateTime(attempt.resolvedAt)}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 mb-0.5">Facility manager</p>
-                                <p className="text-gray-900">{attempt.resolvedBy}</p>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -786,6 +869,66 @@ export default function LandlordMaintenanceRequestDetail() {
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-semibold text-white"
               >
                 Decline Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mark as Resolved Modal */}
+      {resolveModalOpen && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setResolveModalOpen(false); }}
+          className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
+        >
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-700" />
+                <span className="text-sm font-bold text-gray-900">Mark as Resolved</span>
+              </div>
+              <button onClick={() => setResolveModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-2 overflow-y-auto">
+              <label className="text-sm font-medium text-gray-700 block">
+                How was this request resolved? <span className="text-red-500">*</span>
+              </label>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Describe how the issue was diagnosed and resolved. Include the work carried out, repairs
+                completed, parts replaced (if any), root cause, and any other relevant information.
+              </p>
+              <textarea
+                value={resolutionSummary}
+                onChange={(e) => {
+                  setResolutionSummary(e.target.value);
+                  if (e.target.value.trim()) setShowResolutionError(false);
+                }}
+                rows={7}
+                placeholder="Describe the diagnosis, work carried out, parts replaced, and outcome…"
+                className={`w-full px-3 py-2.5 border rounded-lg text-sm text-gray-900 resize-y outline-none bg-gray-50 leading-relaxed ${
+                  showResolutionError && !resolutionSummary.trim()
+                    ? "border-red-400 focus:border-red-400"
+                    : "border-gray-200 focus:border-gray-400"
+                }`}
+              />
+              {showResolutionError && !resolutionSummary.trim() && (
+                <p className="text-xs text-red-600">
+                  A resolution summary is required before closing this request.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3 px-5 pb-5 pt-2 justify-end shrink-0">
+              <button onClick={() => setResolveModalOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+              <button
+                onClick={confirmResolution}
+                disabled={!resolutionSummary.trim()}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm font-semibold text-white"
+              >
+                Confirm Resolution
               </button>
             </div>
           </div>
