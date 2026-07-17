@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import * as React from "react";
 import Image from "next/image";
 import * as SelectPrimitive from "@radix-ui/react-select";
@@ -20,8 +20,12 @@ import {
   Upload,
   FileText,
   ImageIcon,
+  UserCheck,
   X,
 } from "lucide-react";
+import { addAgentAlias, findAgentByPhone } from "@/lib/agentStore";
+import { mockKYCApplications } from "@/lib/mockKycApplications";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const BRAND_COLOR = "#FF5000";
 const LOGO_SRC = "/designs/receipt/lizt.png";
@@ -982,6 +986,10 @@ function EmploymentDetailsStep({
  * Step 3 — Tenancy Information
  * ---------------------------------------------------------------------- */
 
+// Start looking up an agent once the phone number has at least this many digits — enough to be a
+// meaningful partial match without firing on every single keystroke of a fresh number.
+const AGENT_LOOKUP_MIN_DIGITS = 7;
+
 function TenancyInformationStep({
   formData,
   onChange,
@@ -992,6 +1000,41 @@ function TenancyInformationStep({
   errors: Record<string, string>;
 }) {
   const selected = MOCK_PROPERTIES.find((p) => p.id === formData.property_applying_for);
+
+  // Agent lookup — resolves the entered phone number to an existing agent record so the tenant
+  // doesn't have to retype a name that's already on file, and so the KYC form never creates a
+  // duplicate agent for a phone number that already exists.
+  const debouncedAgentPhone = useDebounce(formData.referral_agent_phone_number, 300);
+
+  const matchedAgent = useMemo(() => {
+    const digitCount = debouncedAgentPhone.replace(/\D/g, "").length;
+    if (digitCount < AGENT_LOOKUP_MIN_DIGITS) return undefined;
+    return findAgentByPhone(mockKYCApplications, debouncedAgentPhone);
+  }, [debouncedAgentPhone]);
+
+  // Tracks which matched agent's name we last auto-filled, so we only overwrite the Agent Name
+  // field once per match (not on every keystroke) and never clobber a name the tenant typed
+  // themselves before a match was found.
+  const [autoFilledForAgentId, setAutoFilledForAgentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!matchedAgent) return;
+    if (autoFilledForAgentId === matchedAgent.id) return;
+    onChange({ referral_agent_full_name: matchedAgent.primaryName });
+    setAutoFilledForAgentId(matchedAgent.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedAgent]);
+
+  // If the tenant edited the Agent Name field away from a matched agent's official name, record
+  // the typed name as an additional alias for that phone number rather than treating it as a new
+  // agent — the phone number is the source of truth, so the official name never changes here.
+  const handleAgentNameBlur = () => {
+    if (!matchedAgent) return;
+    const typedName = formData.referral_agent_full_name.trim();
+    if (!typedName) return;
+    if (typedName.toLowerCase() === matchedAgent.primaryName.toLowerCase()) return;
+    addAgentAlias(matchedAgent.id, typedName);
+  };
 
   return (
     <div className="space-y-6">
@@ -1360,19 +1403,6 @@ function TenancyInformationStep({
         </h3>
         <div className="space-y-5">
           <div>
-            <Label htmlFor="referral_agent_full_name">
-              Agent Name <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="referral_agent_full_name"
-              value={formData.referral_agent_full_name}
-              onChange={(e) => onChange({ referral_agent_full_name: e.target.value })}
-              placeholder="Enter agent's name"
-              className="mt-1.5"
-            />
-            <FieldError>{errors.referral_agent_full_name}</FieldError>
-          </div>
-          <div>
             <Label htmlFor="referral_agent_phone_number">
               Agent Phone Number <span className="text-red-500">*</span>
             </Label>
@@ -1385,6 +1415,38 @@ function TenancyInformationStep({
               className="mt-1.5"
             />
             <FieldError>{errors.referral_agent_phone_number}</FieldError>
+            {matchedAgent && (
+              <div className="mt-2 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+                <UserCheck className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-green-700 uppercase tracking-wide">
+                    Existing Agent Found
+                  </p>
+                  <p className="text-sm text-gray-900">{matchedAgent.primaryName}</p>
+                  <p className="text-xs text-gray-500">{matchedAgent.phone}</p>
+                </div>
+              </div>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="referral_agent_full_name">
+              Agent Name <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="referral_agent_full_name"
+              value={formData.referral_agent_full_name}
+              onChange={(e) => onChange({ referral_agent_full_name: e.target.value })}
+              onBlur={handleAgentNameBlur}
+              placeholder="Enter agent's name"
+              className="mt-1.5"
+            />
+            <FieldError>{errors.referral_agent_full_name}</FieldError>
+            {matchedAgent && (
+              <p className="text-xs text-gray-400 mt-1.5">
+                You can edit this if you know {matchedAgent.primaryName} by a different name —
+                we&apos;ll keep it on file as a reference without creating a duplicate agent.
+              </p>
+            )}
           </div>
         </div>
       </div>
