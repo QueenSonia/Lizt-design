@@ -12,6 +12,7 @@ import {
   KeyRound,
   Megaphone,
   Users,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
@@ -75,6 +76,7 @@ export function LandlordSidebar({
         { id: "landlords", label: "Landlords", icon: Building2 },
         { id: "kyc", label: "Tenant Applicants", icon: FileCheck },
         { id: "agents", label: "Agents", icon: Users },
+        { id: "onboarding", label: "Onboarding", icon: ClipboardList },
         { id: "communications", label: "Communications", icon: Megaphone },
         { id: "facility", label: "Facility", icon: Wrench },
       ],
