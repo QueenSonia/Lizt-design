@@ -5,18 +5,15 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
-  Check,
-  X,
   FileText,
   Building2,
   User,
   Phone,
   Calendar,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-import { OnboardingSubmission, OnboardingSubmissionStatus, OnboardingProperty } from "@/types/onboarding";
+import { OnboardingSubmission, OnboardingProperty } from "@/types/onboarding";
 
 function formatDateTime(dateString: string): string {
   const date = new Date(dateString);
@@ -184,18 +181,6 @@ export default function LandlordOnboardingDetail({
   submission,
   onBack,
 }: LandlordOnboardingDetailProps) {
-  const [status, setStatus] = useState<OnboardingSubmissionStatus>(submission.status);
-
-  const handleApprove = () => {
-    setStatus("approved");
-    toast.success(`Onboarding approved for ${submission.landlordName}.`);
-  };
-
-  const handleReject = () => {
-    setStatus("rejected");
-    toast.success(`Submission rejected for ${submission.landlordName}.`);
-  };
-
   return (
     <div className="page-container">
       {/* Header card */}
@@ -213,47 +198,14 @@ export default function LandlordOnboardingDetail({
 
         <div className="border-t border-gray-100" />
 
-        <div className="px-6 sm:px-8 py-5 flex items-start justify-between gap-4 flex-wrap">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-semibold text-slate-900 leading-snug">
-              {submission.landlordName}
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" />
-              Submitted {formatDateTime(submission.submittedAt)}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            {status === "approved" ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <Check className="w-3.5 h-3.5" />
-                Approved
-              </span>
-            ) : status === "rejected" ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-red-50 text-red-700 border border-red-200">
-                <X className="w-3.5 h-3.5" />
-                Rejected
-              </span>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReject}
-                  className="border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200"
-                >
-                  Reject Submission
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleApprove}
-                  className="bg-[#FF5000] hover:bg-[#e04600] text-white"
-                >
-                  Approve Onboarding
-                </Button>
-              </>
-            )}
-          </div>
+        <div className="px-6 sm:px-8 py-5">
+          <h1 className="text-xl font-semibold text-slate-900 leading-snug">
+            {submission.landlordName}
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" />
+            Submitted {formatDateTime(submission.submittedAt)}
+          </p>
         </div>
       </div>
 
