@@ -65,6 +65,11 @@ import { CreatePaymentPlanModal, type ChargeOption } from "./CreatePaymentPlanMo
 import { PlanScopePickerModal, type PlanScope } from "./PlanScopePickerModal";
 import { createPaymentPlanThread } from "@/lib/paymentPlanThreadStore";
 import {
+  buildMockPropertyHistory,
+  categoryBadgeClass,
+  type MockPropertyHistoryEvent,
+} from "@/lib/mockPropertyHistory";
+import {
   PropertyDetailWithHistory,
   KYCApplicationSummary,
 } from "@/types/property";
@@ -393,6 +398,11 @@ export default function LandlordPropertyDetail({
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
 
+  // While there's no real history yet, show a realistic mock timeline so the Property History
+  // tab demonstrates the full audit-trail experience instead of an empty state.
+  const mockPropertyHistory: MockPropertyHistoryEvent[] =
+    propertyHistory.length === 0 ? buildMockPropertyHistory() : [];
+
   // Debug: Log the property history data
   console.log("🔍 Frontend Property History Debug:", {
     propertyId: effectivePropertyId,
@@ -574,6 +584,34 @@ export default function LandlordPropertyDetail({
       const monthYear = getMonthYearLabel(event.date);
       if (!grouped[monthYear]) grouped[monthYear] = [];
       grouped[monthYear].push(event);
+    });
+    return grouped;
+  };
+
+  // Groups mock history events by calendar day, labeling today as "Today" — used only for the
+  // mock timeline fallback (real history keeps its existing month-based grouping above).
+  const getDayGroupLabel = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const isSameDay =
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
+    if (isSameDay) return "Today";
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  const formatMockEventTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  };
+
+  const groupMockHistoryByDay = (history: MockPropertyHistoryEvent[]) => {
+    const grouped: { [key: string]: MockPropertyHistoryEvent[] } = {};
+    history.forEach((event) => {
+      const label = getDayGroupLabel(event.date);
+      if (!grouped[label]) grouped[label] = [];
+      grouped[label].push(event);
     });
     return grouped;
   };
@@ -2299,13 +2337,61 @@ export default function LandlordPropertyDetail({
                 })()}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm">
-                <div className="py-12 text-center px-6">
-                  <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">
-                    No history available for this property
-                  </p>
-                </div>
+              <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
+                {(() => {
+                  const grouped = groupMockHistoryByDay(mockPropertyHistory);
+                  const dayKeys = Object.keys(grouped);
+                  return dayKeys.map((dayLabel, groupIndex) => (
+                    <div key={dayLabel}>
+                      {/* Date Label */}
+                      <div className="mb-6">
+                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          {dayLabel}
+                        </h3>
+                        <div className="mt-2 border-t border-gray-200" />
+                      </div>
+
+                      {/* Timeline Container */}
+                      <div className="relative pl-8">
+                        {grouped[dayLabel].length > 1 && (
+                          <div
+                            className="absolute left-[7px] top-[20px] bottom-[20px] w-[1px] bg-neutral-200"
+                            style={{ height: `calc(100% - 40px)` }}
+                          />
+                        )}
+
+                        {grouped[dayLabel].map((event) => (
+                          <div key={event.id} className="relative pb-6 last:pb-0">
+                            {/* Timeline dot */}
+                            <div className="absolute left-[-24px] top-[16px] w-[6px] h-[6px] rounded-full bg-neutral-400" />
+
+                            <div className="relative rounded-lg p-3 -m-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {event.title}
+                                </p>
+                                <Badge
+                                  className={`shrink-0 border-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${categoryBadgeClass(event.category)}`}
+                                >
+                                  {event.category}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">{event.description}</p>
+                              {event.actor && (
+                                <p className="text-xs text-gray-500 mt-1">{event.actor}</p>
+                              )}
+                              <p className="text-xs text-gray-400 mt-1.5">
+                                {formatMockEventTime(event.date)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {groupIndex < dayKeys.length - 1 && <div className="mt-8" />}
+                    </div>
+                  ));
+                })()}
               </div>
             )}
           </div>
