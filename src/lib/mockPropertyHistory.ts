@@ -9,9 +9,25 @@ export type PropertyHistoryCategory =
   | "Tenant"
   | "Tenancy"
   | "Payment"
+  | "Payment Plans"
   | "Maintenance"
-  | "Document"
-  | "KYC";
+  | "Documents"
+  | "KYC"
+  | "Communications"
+  | "System";
+
+export const PROPERTY_HISTORY_CATEGORIES: PropertyHistoryCategory[] = [
+  "Property",
+  "Tenant",
+  "Tenancy",
+  "Payment",
+  "Payment Plans",
+  "Maintenance",
+  "Documents",
+  "KYC",
+  "Communications",
+  "System",
+];
 
 export interface MockPropertyHistoryEvent {
   id: string;
@@ -29,9 +45,12 @@ const CATEGORY_BADGE_STYLES: Record<PropertyHistoryCategory, string> = {
   Tenant: "bg-blue-50 text-blue-700",
   Tenancy: "bg-purple-50 text-purple-700",
   Payment: "bg-green-50 text-green-700",
+  "Payment Plans": "bg-teal-50 text-teal-700",
   Maintenance: "bg-amber-50 text-amber-700",
-  Document: "bg-indigo-50 text-indigo-700",
+  Documents: "bg-indigo-50 text-indigo-700",
   KYC: "bg-pink-50 text-pink-700",
+  Communications: "bg-sky-50 text-sky-700",
+  System: "bg-slate-100 text-slate-600",
 };
 
 export function categoryBadgeClass(category: PropertyHistoryCategory): string {
@@ -79,6 +98,14 @@ export function buildMockPropertyHistory(): MockPropertyHistoryEvent[] {
     },
     {
       id: "ph-4",
+      title: "Payment Plan Created",
+      description: "A 3-installment payment plan was set up for James Okafor's annual rent.",
+      date: iso(9, 12, 27),
+      category: "Payment Plans",
+      actor: "Property Manager",
+    },
+    {
+      id: "ph-5",
       title: "Payment Received",
       description: "Partial rent payment of ₦1,750,000 received via bank transfer.",
       date: iso(14, 13, 5),
@@ -86,7 +113,15 @@ export function buildMockPropertyHistory(): MockPropertyHistoryEvent[] {
       actor: "System",
     },
     {
-      id: "ph-5",
+      id: "ph-6",
+      title: "Rent Reminder Sent",
+      description: "A WhatsApp rent reminder was sent to James Okafor.",
+      date: iso(17, 9, 0),
+      category: "Communications",
+      actor: "System",
+    },
+    {
+      id: "ph-7",
       title: "Facility Manager Assigned",
       description: "David Johnson was assigned as the facility manager for this property.",
       date: iso(20, 8, 50),
@@ -94,7 +129,7 @@ export function buildMockPropertyHistory(): MockPropertyHistoryEvent[] {
       actor: "Property Manager",
     },
     {
-      id: "ph-6",
+      id: "ph-8",
       title: "Tenancy Started",
       description: "James Okafor's annual tenancy commenced.",
       date: iso(202, 9, 0),
@@ -102,15 +137,15 @@ export function buildMockPropertyHistory(): MockPropertyHistoryEvent[] {
       actor: "Rent: ₦3,500,000",
     },
     {
-      id: "ph-7",
+      id: "ph-9",
       title: "Tenancy Agreement Uploaded",
       description: "The signed tenancy agreement was uploaded to the property.",
       date: iso(213, 14, 14),
-      category: "Document",
+      category: "Documents",
       actor: "James Okafor (Tenant)",
     },
     {
-      id: "ph-8",
+      id: "ph-10",
       title: "Tenant KYC Approved",
       description: "James Okafor successfully completed KYC verification.",
       date: iso(215, 11, 36),
@@ -118,7 +153,7 @@ export function buildMockPropertyHistory(): MockPropertyHistoryEvent[] {
       actor: "Property Manager",
     },
     {
-      id: "ph-9",
+      id: "ph-11",
       title: "Tenant KYC Submitted",
       description: "James Okafor submitted his KYC application for review.",
       date: iso(216, 17, 2),
@@ -126,7 +161,7 @@ export function buildMockPropertyHistory(): MockPropertyHistoryEvent[] {
       actor: "James Okafor (Tenant)",
     },
     {
-      id: "ph-10",
+      id: "ph-12",
       title: "Tenant Assigned",
       description: "James Okafor was assigned to this property.",
       date: iso(218, 15, 42),
@@ -134,7 +169,7 @@ export function buildMockPropertyHistory(): MockPropertyHistoryEvent[] {
       actor: "Property Manager",
     },
     {
-      id: "ph-11",
+      id: "ph-13",
       title: "Property Details Updated",
       description: "Rent amount and service charge were updated ahead of tenant assignment.",
       date: iso(220, 9, 30),
@@ -142,7 +177,15 @@ export function buildMockPropertyHistory(): MockPropertyHistoryEvent[] {
       actor: "Michael Adeyemi (Landlord)",
     },
     {
-      id: "ph-12",
+      id: "ph-14",
+      title: "Property Sync Completed",
+      description: "Scheduled nightly sync verified property and tenancy records are up to date.",
+      date: iso(221, 2, 0),
+      category: "System",
+      actor: "System",
+    },
+    {
+      id: "ph-15",
       title: "Property Added",
       description: "This property was created and added under Michael Adeyemi.",
       date: iso(223, 10, 11),

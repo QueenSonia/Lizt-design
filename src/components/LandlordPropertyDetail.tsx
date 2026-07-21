@@ -1,6 +1,7 @@
 /* eslint-disable */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -67,7 +69,9 @@ import { createPaymentPlanThread } from "@/lib/paymentPlanThreadStore";
 import {
   buildMockPropertyHistory,
   categoryBadgeClass,
+  PROPERTY_HISTORY_CATEGORIES,
   type MockPropertyHistoryEvent,
+  type PropertyHistoryCategory,
 } from "@/lib/mockPropertyHistory";
 import {
   PropertyDetailWithHistory,
@@ -147,6 +151,72 @@ interface LandlordPropertyDetailProps {
   onEditProperty?: () => void;
 }
 
+function HistoryFilterPopover({
+  selected,
+  onChange,
+  onClose,
+  pos,
+}: {
+  selected: PropertyHistoryCategory[];
+  onChange: (next: PropertyHistoryCategory[]) => void;
+  onClose: () => void;
+  pos: { top: number; left: number };
+}) {
+  const toggleCategory = (category: PropertyHistoryCategory) => {
+    onChange(
+      selected.includes(category)
+        ? selected.filter((c) => c !== category)
+        : [...selected, category],
+    );
+  };
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[90]" onClick={onClose} />
+      <div
+        className="fixed z-[100] w-64 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+        style={{ top: pos.top, left: pos.left }}
+      >
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-900">Filter Activity</p>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="px-2 py-2 max-h-80 overflow-y-auto">
+          <label className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selected.length === 0}
+              onChange={() => onChange([])}
+              className="w-4 h-4 rounded border-gray-300 text-[#FF5000] focus:ring-[#FF5000] focus:ring-offset-0"
+            />
+            All Activity
+          </label>
+          <div className="my-1.5 border-t border-gray-100" />
+          {PROPERTY_HISTORY_CATEGORIES.map((category) => (
+            <label
+              key={category}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(category)}
+                onChange={() => toggleCategory(category)}
+                className="w-4 h-4 rounded border-gray-300 text-[#FF5000] focus:ring-[#FF5000] focus:ring-offset-0"
+              />
+              {category}
+            </label>
+          ))}
+        </div>
+      </div>
+    </>,
+    document.body,
+  );
+}
+
 export default function LandlordPropertyDetail({
   propertyId: propPropertyId,
   onBack,
@@ -191,6 +261,10 @@ export default function LandlordPropertyDetail({
   const [showScopePicker, setShowScopePicker] = useState(false);
   const [showPaymentPlanModal, setShowPaymentPlanModal] = useState(false);
   const [paymentPlanScope, setPaymentPlanScope] = useState<PlanScope>("tenancy");
+  const [historyCategoryFilters, setHistoryCategoryFilters] = useState<PropertyHistoryCategory[]>([]);
+  const [historyFilterOpen, setHistoryFilterOpen] = useState(false);
+  const [historyFilterPos, setHistoryFilterPos] = useState({ top: 0, left: 0 });
+  const historyFilterBtnRef = useRef<HTMLButtonElement>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // Mock landlord lookup by property ID — used for display in the page header
@@ -2337,60 +2411,153 @@ export default function LandlordPropertyDetail({
                 })()}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
+              <div className="space-y-4">
+                {/* Filter bar */}
+                <div className="flex items-center justify-end">
+                  <button
+                    ref={historyFilterBtnRef}
+                    onClick={() => {
+                      if (historyFilterBtnRef.current) {
+                        const rect = historyFilterBtnRef.current.getBoundingClientRect();
+                        setHistoryFilterPos({ top: rect.bottom + 8, left: Math.max(8, rect.right - 256) });
+                      }
+                      setHistoryFilterOpen(true);
+                    }}
+                    className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-sm font-medium transition-colors ${
+                      historyCategoryFilters.length > 0
+                        ? "border-[#FF5000] text-[#FF5000] bg-[#FFF3EB]"
+                        : "border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <SlidersHorizontal className="w-4 h-4" />
+                    <span>Filter</span>
+                    {historyCategoryFilters.length > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-[#FF5000] text-white text-[10px] font-bold flex items-center justify-center">
+                        {historyCategoryFilters.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {historyFilterOpen && (
+                    <HistoryFilterPopover
+                      selected={historyCategoryFilters}
+                      onChange={setHistoryCategoryFilters}
+                      onClose={() => setHistoryFilterOpen(false)}
+                      pos={historyFilterPos}
+                    />
+                  )}
+                </div>
+
+                {/* Active filter chips */}
+                {historyCategoryFilters.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {historyCategoryFilters.map((category) => (
+                      <span
+                        key={category}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-700 font-medium"
+                      >
+                        {category}
+                        <button
+                          onClick={() =>
+                            setHistoryCategoryFilters((prev) => prev.filter((c) => c !== category))
+                          }
+                          className="text-gray-400 hover:text-gray-600 ml-0.5"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {(() => {
-                  const grouped = groupMockHistoryByDay(mockPropertyHistory);
-                  const dayKeys = Object.keys(grouped);
-                  return dayKeys.map((dayLabel, groupIndex) => (
-                    <div key={dayLabel}>
-                      {/* Date Label */}
-                      <div className="mb-6">
-                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          {dayLabel}
-                        </h3>
-                        <div className="mt-2 border-t border-gray-200" />
+                  const filteredMockHistory =
+                    historyCategoryFilters.length === 0
+                      ? mockPropertyHistory
+                      : mockPropertyHistory.filter((event) =>
+                          historyCategoryFilters.includes(event.category),
+                        );
+
+                  if (filteredMockHistory.length === 0) {
+                    return (
+                      <div className="bg-white rounded-lg shadow-sm">
+                        <div className="py-12 text-center px-6">
+                          <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-700 text-sm font-medium mb-1">
+                            No matching history found
+                          </p>
+                          <p className="text-gray-500 text-sm mb-4">
+                            There are no Property History events matching your selected filters.
+                          </p>
+                          <button
+                            onClick={() => setHistoryCategoryFilters([])}
+                            className="text-sm font-medium text-[#FF5000] hover:underline"
+                          >
+                            Clear Filters
+                          </button>
+                        </div>
                       </div>
+                    );
+                  }
 
-                      {/* Timeline Container */}
-                      <div className="relative pl-8">
-                        {grouped[dayLabel].length > 1 && (
-                          <div
-                            className="absolute left-[7px] top-[20px] bottom-[20px] w-[1px] bg-neutral-200"
-                            style={{ height: `calc(100% - 40px)` }}
-                          />
-                        )}
-
-                        {grouped[dayLabel].map((event) => (
-                          <div key={event.id} className="relative pb-6 last:pb-0">
-                            {/* Timeline dot */}
-                            <div className="absolute left-[-24px] top-[16px] w-[6px] h-[6px] rounded-full bg-neutral-400" />
-
-                            <div className="relative rounded-lg p-3 -m-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <p className="text-sm font-medium text-gray-900">
-                                  {event.title}
-                                </p>
-                                <Badge
-                                  className={`shrink-0 border-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${categoryBadgeClass(event.category)}`}
-                                >
-                                  {event.category}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-gray-600 mt-1">{event.description}</p>
-                              {event.actor && (
-                                <p className="text-xs text-gray-500 mt-1">{event.actor}</p>
-                              )}
-                              <p className="text-xs text-gray-400 mt-1.5">
-                                {formatMockEventTime(event.date)}
-                              </p>
+                  return (
+                    <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
+                      {(() => {
+                        const grouped = groupMockHistoryByDay(filteredMockHistory);
+                        const dayKeys = Object.keys(grouped);
+                        return dayKeys.map((dayLabel, groupIndex) => (
+                          <div key={dayLabel}>
+                            {/* Date Label */}
+                            <div className="mb-6">
+                              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                {dayLabel}
+                              </h3>
+                              <div className="mt-2 border-t border-gray-200" />
                             </div>
-                          </div>
-                        ))}
-                      </div>
 
-                      {groupIndex < dayKeys.length - 1 && <div className="mt-8" />}
+                            {/* Timeline Container */}
+                            <div className="relative pl-8">
+                              {grouped[dayLabel].length > 1 && (
+                                <div
+                                  className="absolute left-[7px] top-[20px] bottom-[20px] w-[1px] bg-neutral-200"
+                                  style={{ height: `calc(100% - 40px)` }}
+                                />
+                              )}
+
+                              {grouped[dayLabel].map((event) => (
+                                <div key={event.id} className="relative pb-6 last:pb-0">
+                                  {/* Timeline dot */}
+                                  <div className="absolute left-[-24px] top-[16px] w-[6px] h-[6px] rounded-full bg-neutral-400" />
+
+                                  <div className="relative rounded-lg p-3 -m-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <p className="text-sm font-medium text-gray-900">
+                                        {event.title}
+                                      </p>
+                                      <Badge
+                                        className={`shrink-0 border-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${categoryBadgeClass(event.category)}`}
+                                      >
+                                        {event.category}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1">{event.description}</p>
+                                    {event.actor && (
+                                      <p className="text-xs text-gray-500 mt-1">{event.actor}</p>
+                                    )}
+                                    <p className="text-xs text-gray-400 mt-1.5">
+                                      {formatMockEventTime(event.date)}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {groupIndex < dayKeys.length - 1 && <div className="mt-8" />}
+                          </div>
+                        ));
+                      })()}
                     </div>
-                  ));
+                  );
                 })()}
               </div>
             )}
