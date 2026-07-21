@@ -7,7 +7,6 @@ import {
   ChevronUp,
   FileText,
   Building2,
-  User,
   Phone,
   Calendar,
 } from "lucide-react";
@@ -203,6 +202,10 @@ export default function LandlordOnboardingDetail({
             {submission.landlordName}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5" />
+            {submission.landlordPhone}
+          </p>
+          <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5" />
             Submitted {formatDateTime(submission.submittedAt)}
           </p>
@@ -211,29 +214,6 @@ export default function LandlordOnboardingDetail({
 
       {/* Content */}
       <div className="max-w-5xl space-y-6">
-        {/* Landlord Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-            Landlord Information
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-            <div className="flex items-start gap-2.5">
-              <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-0.5">Landlord Name</p>
-                <p className="text-sm text-gray-900">{submission.landlordName}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2.5">
-              <Phone className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-0.5">Phone Number</p>
-                <p className="text-sm text-gray-900">{submission.landlordPhone}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Submitted Properties */}
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
