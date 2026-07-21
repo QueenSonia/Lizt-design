@@ -64,7 +64,7 @@ function PropertyCard({
             <div className="flex items-center gap-3 min-w-0">
               <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{property.name}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{property.description}</p>
                 <p className="text-xs text-gray-500 truncate">{property.address}</p>
               </div>
             </div>
@@ -85,18 +85,6 @@ function PropertyCard({
 
         <CollapsibleContent>
           <div className="border-t border-gray-100 px-5 py-5 space-y-6">
-            {/* Property Information */}
-            <div>
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                Property Information
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                <InfoRow label="Description" value={property.description} />
-                <InfoRow label="Address" value={property.address} />
-                <InfoRow label="Occupancy Status" value={isOccupied ? "Occupied" : "Vacant"} />
-              </div>
-            </div>
-
             {isOccupied && (
               <>
                 {/* Financial Information */}
