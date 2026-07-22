@@ -146,7 +146,9 @@ function versionLabel(event: ThreadEvent): string {
     case "proposal_accepted":
       return `${who} Accepted Revised Plan`;
     case "proposal_declined":
-      return `${who} Declined Revised Plan`;
+      // The timeline focuses on the outcome, not who performed it — the actor is shown in the
+      // date/metadata line instead (see actorNameFor below).
+      return "Payment Plan Declined";
     case "proposal_deleted":
       return "Payment Plan Deleted";
     case "plan_approved":
@@ -156,6 +158,12 @@ function versionLabel(event: ThreadEvent): string {
     default:
       return event.headline;
   }
+}
+
+/** Actor display name for the date/metadata line — "Tunji Oginni" for the Property Manager (the
+ *  established identity used elsewhere for landlord-attributed actions), "Tenant" otherwise. */
+function actorNameFor(event: ThreadEvent): string {
+  return event.actor === "landlord" ? "Tunji Oginni" : "Tenant";
 }
 
 const STATUS_BADGE_STYLES: Record<ProposalInstallment["status"], string> = {
@@ -330,6 +338,7 @@ function VersionCard({
         {!isTenantRequest && (
           <p className="text-sm text-gray-400 mt-1">
             {dateLabel} {formatFullTimestamp(event.createdAt)}
+            {event.type === "proposal_declined" && ` by ${actorNameFor(event)}`}
           </p>
         )}
       </div>
@@ -348,7 +357,10 @@ function VersionCard({
               onStatusClick={isCurrentSchedule ? onStatusClick : undefined}
             />
           ) : (
-            !isTenantRequest && (
+            // The decline event stays concise — Total Amount and installment count above are all
+            // it shows, no pointer back to the live schedule.
+            !isTenantRequest &&
+            event.type !== "proposal_declined" && (
               <p className="text-sm text-gray-500">
                 {event.proposal.installmentCount === 1
                   ? "One-time payment"
@@ -402,8 +414,9 @@ function VersionCard({
         </p>
       )}
 
-      {/* Reason (decline / cancel context) — omitted on "Payment Plan Edited"; the snapshot speaks for itself */}
-      {event.reason && event.type !== "proposal_revised" && (
+      {/* Reason (cancel context only) — decline events stay concise and never show a reason;
+          "Payment Plan Edited" omits it too since the snapshot speaks for itself. */}
+      {event.reason && event.type !== "proposal_revised" && event.type !== "proposal_declined" && (
         <div>
           <p className="text-xs text-gray-400 mb-0.5">Reason</p>
           <p className="text-sm text-gray-900">{event.reason}</p>
