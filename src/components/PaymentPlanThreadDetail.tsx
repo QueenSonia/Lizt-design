@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Bell, Check, X, Plus, MoreVertical, Pencil, Trash2, Ban } from "lucide-react";
+import { ArrowLeft, Bell, Check, X, Plus, MoreVertical, Pencil, Trash2, Ban, Receipt } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
@@ -185,41 +186,50 @@ function InstallmentScheduleTable({
 }) {
   const interactive = !isProposal && !!onRecordPayment;
 
+  // Fixed column template so every row lines up perfectly — Amount/Paid/Balance share one equal
+  // width, Status and Action get their own fixed, centered slots. Due Date takes the remaining
+  // space and stays left-aligned.
+  const interactiveGrid = "grid grid-cols-[1fr_128px_128px_128px_112px_56px] items-center";
+  const proposalGrid = "grid grid-cols-[1fr_128px_112px] items-center";
+
   if (interactive) {
     return (
-      <div className="rounded-xl border border-gray-100 overflow-hidden">
-        <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto_auto] gap-6 px-5 py-3 bg-gray-50 text-xs font-medium text-gray-400 uppercase tracking-wide">
-          <span>Due Date</span>
+      <div className="rounded-lg overflow-hidden">
+        <div className={`${interactiveGrid} gap-4 px-4 py-2.5 text-xs font-medium text-gray-400 border-b border-gray-100`}>
+          <span className="text-left">Due Date</span>
           <span className="text-right">Amount</span>
           <span className="text-right">Paid</span>
           <span className="text-right">Balance</span>
-          <span className="text-right">Status</span>
-          <span className="text-right">Action</span>
+          <span className="text-center">Status</span>
+          <span className="text-center">Action</span>
         </div>
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-gray-100">
           {installments.map((inst, i) => {
             const paid = installmentAmountPaid(inst);
             const balance = installmentBalance(inst);
             const canRecordPayment = inst.status !== "paid";
             return (
-              <div
-                key={inst.id}
-                className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto_auto] gap-6 px-5 py-4 items-center"
-              >
-                <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
-                <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
-                <span className="text-sm text-gray-700 text-right">{formatCurrency(paid)}</span>
-                <span className="text-sm text-gray-700 text-right">{formatCurrency(balance)}</span>
-                <div className="flex justify-end">{installmentStatusBadge(inst)}</div>
-                <div className="flex justify-end">
+              <div key={inst.id} className={`${interactiveGrid} gap-4 px-4 py-3.5`}>
+                <span className="text-sm text-gray-700 text-left">{formatDate(inst.dueDate)}</span>
+                <span className="text-sm text-gray-900 text-right tabular-nums">{formatCurrency(inst.amount)}</span>
+                <span className="text-sm text-gray-700 text-right tabular-nums">{formatCurrency(paid)}</span>
+                <span className="text-sm text-gray-700 text-right tabular-nums">{formatCurrency(balance)}</span>
+                <div className="flex justify-center">{installmentStatusBadge(inst)}</div>
+                <div className="flex justify-center">
                   {canRecordPayment ? (
-                    <button
-                      type="button"
-                      onClick={() => onRecordPayment!(inst, i + 1)}
-                      className="text-xs font-medium text-[#FF5000] hover:underline whitespace-nowrap"
-                    >
-                      Record Payment
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => onRecordPayment!(inst, i + 1)}
+                          aria-label="Record Payment"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#FF5000] hover:bg-[#FFF3EB] transition-colors"
+                        >
+                          <Receipt className="w-4 h-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Record Payment</TooltipContent>
+                    </Tooltip>
                   ) : (
                     <span className="text-xs text-gray-300">—</span>
                   )}
@@ -233,18 +243,18 @@ function InstallmentScheduleTable({
   }
 
   return (
-    <div className="rounded-xl border border-gray-100 overflow-hidden">
-      <div className="grid grid-cols-[1fr_auto_auto] gap-6 px-5 py-3 bg-gray-50 text-xs font-medium text-gray-400 uppercase tracking-wide">
-        <span>Due Date</span>
+    <div className="rounded-lg overflow-hidden">
+      <div className={`${proposalGrid} gap-4 px-4 py-2.5 text-xs font-medium text-gray-400 border-b border-gray-100`}>
+        <span className="text-left">Due Date</span>
         <span className="text-right">Amount</span>
-        <span className="text-right w-28">Status</span>
+        <span className="text-center">Status</span>
       </div>
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y divide-gray-100">
         {installments.map((inst) => (
-          <div key={inst.id} className="grid grid-cols-[1fr_auto_auto] gap-6 px-5 py-4 items-center">
-            <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
-            <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
-            <div className="w-28 flex justify-end">
+          <div key={inst.id} className={`${proposalGrid} gap-4 px-4 py-3.5`}>
+            <span className="text-sm text-gray-700 text-left">{formatDate(inst.dueDate)}</span>
+            <span className="text-sm text-gray-900 text-right tabular-nums">{formatCurrency(inst.amount)}</span>
+            <div className="flex justify-center">
               {isProposal ? (
                 <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-gray-100 text-gray-500">
                   Proposed
@@ -618,10 +628,10 @@ export default function PaymentPlanThreadDetail() {
       <div className="max-w-6xl px-6 sm:px-10 py-8">
         {/* Payment Plan Thread — one continuous version history. The first entry IS the current
             active payment plan; every card beneath it is an earlier version of the same plan.
-            The rail sits a fixed distance from the left edge (not centered), and cards fill the
+            The rail sits close to the content's left edge (not centered), and cards fill the
             remaining width so the page doesn't leave a large empty column on the left. */}
-        <div className="relative pl-[100px]">
-          <div className="absolute left-[94px] top-6 bottom-6 w-0.5 bg-gray-200" aria-hidden="true" />
+        <div className="relative pl-8">
+          <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-gray-200" aria-hidden="true" />
           <div className="space-y-8">
             {/* The thread itself is the complete record — newest event first, oldest (the
                 tenant's original request) last. No separate "current state" card. */}
