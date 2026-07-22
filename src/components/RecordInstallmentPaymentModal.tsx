@@ -138,11 +138,32 @@ export function RecordInstallmentPaymentModal({
             </div>
             {alreadyPaid > 0 && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Already Paid</span>
+                <span className="text-gray-500">Total Paid</span>
                 <span className="font-medium text-gray-900">{formatCurrency(alreadyPaid)}</span>
               </div>
             )}
+            {alreadyPaid > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Remaining Balance</span>
+                <span className="font-medium text-gray-900">{formatCurrency(balance)}</span>
+              </div>
+            )}
           </div>
+
+          {/* Previous payments — only relevant once at least one payment has been recorded */}
+          {installment.payments && installment.payments.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-gray-500">Previous Payments</p>
+              <div className="rounded-lg border border-gray-100 divide-y divide-gray-100">
+                {installment.payments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                    <span className="text-gray-700">{formatDate(p.date)} · {p.method}</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(p.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {errors.length > 0 && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 space-y-1">

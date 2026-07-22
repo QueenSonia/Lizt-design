@@ -3,8 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Bell, Check, X, Plus, MoreVertical, Pencil, Trash2, Ban, Receipt } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { ArrowLeft, Bell, Check, X, Plus, MoreVertical, Pencil, Trash2, Ban, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
@@ -49,6 +48,7 @@ import {
   RecordInstallmentPaymentModal,
   type RecordInstallmentPaymentResult,
 } from "./RecordInstallmentPaymentModal";
+import { InstallmentPaymentDetailsModal } from "./InstallmentPaymentDetailsModal";
 import type { PlanScope } from "./PlanScopePickerModal";
 
 function formatCurrency(n: number): string {
@@ -158,81 +158,92 @@ function versionLabel(event: ThreadEvent): string {
   }
 }
 
-function installmentStatusBadge(inst: ProposalInstallment) {
-  if (inst.status === "paid") {
-    return <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-green-100 text-green-700">Paid</Badge>;
-  }
-  if (inst.status === "partial") {
-    return <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-blue-50 text-blue-600">Partially Paid</Badge>;
-  }
-  return <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-amber-50 text-amber-600">Pending</Badge>;
+const STATUS_BADGE_STYLES: Record<ProposalInstallment["status"], string> = {
+  paid: "bg-green-100 text-green-700",
+  partial: "bg-blue-50 text-blue-600",
+  pending: "bg-amber-50 text-amber-600",
+};
+
+const STATUS_BADGE_LABELS: Record<ProposalInstallment["status"], string> = {
+  paid: "Paid",
+  partial: "Partially Paid",
+  pending: "Pending",
+};
+
+/**
+ * The Status badge is the schedule's single interactive element. Clicking it always opens
+ * something: Pending/Partially Paid open the Record Payment modal, Paid opens a read-only
+ * Payment Details view. A small chevron hints it's clickable without adding visual weight.
+ */
+function installmentStatusBadge(inst: ProposalInstallment, onClick?: () => void) {
+  const badge = (
+    <Badge
+      className={`text-xs border-0 rounded-full pl-2 pr-1.5 py-0.5 inline-flex items-center gap-0.5 ${STATUS_BADGE_STYLES[inst.status]}`}
+    >
+      {STATUS_BADGE_LABELS[inst.status]}
+      {onClick && <ChevronRight className="w-3 h-3 opacity-60" />}
+    </Badge>
+  );
+
+  if (!onClick) return badge;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="cursor-pointer rounded-full transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-gray-300"
+    >
+      {badge}
+    </button>
+  );
 }
 
 /**
- * The Due Date / Amount / Status table used on the Active Payment Plan card. Pass isProposal for
- * a not-yet-reviewed submission (e.g. the tenant's original request) so every row reads
- * "Proposed" instead of implying it's already an active Pending/Paid schedule. Pass
- * onRecordPayment (only relevant for the live, current schedule) to show Paid/Balance columns
- * and a Record Payment action on every not-yet-fully-paid row.
+ * The Due Date / Amount / Paid / Balance / Status table used on the Active Payment Plan card.
+ * Pass isProposal for a not-yet-reviewed submission (e.g. the tenant's original request) so every
+ * row reads "Proposed" instead of implying it's already an active Pending/Paid schedule. Pass
+ * onStatusClick (only relevant for the live, current schedule) to make every row's Status badge
+ * open the Record Payment or Payment Details modal, whichever applies.
  */
 function InstallmentScheduleTable({
   installments,
   isProposal = false,
-  onRecordPayment,
+  onStatusClick,
 }: {
   installments: ProposalSnapshot["installments"];
   isProposal?: boolean;
-  onRecordPayment?: (installment: ProposalInstallment, index: number) => void;
+  onStatusClick?: (installment: ProposalInstallment, index: number) => void;
 }) {
-  const interactive = !isProposal && !!onRecordPayment;
+  const interactive = !isProposal && !!onStatusClick;
 
   // Fixed column template so every row lines up perfectly — Amount/Paid/Balance share one equal
-  // width, Status and Action get their own fixed, centered slots. Due Date takes the remaining
-  // space and stays left-aligned.
-  const interactiveGrid = "grid grid-cols-[1fr_128px_128px_128px_112px_56px] items-center";
-  const proposalGrid = "grid grid-cols-[1fr_128px_112px] items-center";
+  // width, Status gets its own fixed, centered slot. Due Date takes the remaining space and
+  // stays left-aligned.
+  const interactiveGrid = "grid grid-cols-[1fr_140px_140px_140px_140px] items-center";
+  const proposalGrid = "grid grid-cols-[1fr_140px_140px] items-center";
 
   if (interactive) {
     return (
       <div className="rounded-lg overflow-hidden">
-        <div className={`${interactiveGrid} gap-4 px-4 py-2.5 text-xs font-medium text-gray-400 border-b border-gray-100`}>
+        <div className={`${interactiveGrid} gap-6 px-4 py-2.5 text-xs font-medium text-gray-400 border-b border-gray-100`}>
           <span className="text-left">Due Date</span>
           <span className="text-right">Amount</span>
           <span className="text-right">Paid</span>
           <span className="text-right">Balance</span>
           <span className="text-center">Status</span>
-          <span className="text-center">Action</span>
         </div>
         <div className="divide-y divide-gray-100">
           {installments.map((inst, i) => {
             const paid = installmentAmountPaid(inst);
             const balance = installmentBalance(inst);
-            const canRecordPayment = inst.status !== "paid";
             return (
-              <div key={inst.id} className={`${interactiveGrid} gap-4 px-4 py-3.5`}>
+              <div key={inst.id} className={`${interactiveGrid} gap-6 px-4 py-3.5`}>
                 <span className="text-sm text-gray-700 text-left">{formatDate(inst.dueDate)}</span>
                 <span className="text-sm text-gray-900 text-right tabular-nums">{formatCurrency(inst.amount)}</span>
                 <span className="text-sm text-gray-700 text-right tabular-nums">{formatCurrency(paid)}</span>
                 <span className="text-sm text-gray-700 text-right tabular-nums">{formatCurrency(balance)}</span>
-                <div className="flex justify-center">{installmentStatusBadge(inst)}</div>
                 <div className="flex justify-center">
-                  {canRecordPayment ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() => onRecordPayment!(inst, i + 1)}
-                          aria-label="Record Payment"
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#FF5000] hover:bg-[#FFF3EB] transition-colors"
-                        >
-                          <Receipt className="w-4 h-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>Record Payment</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className="text-xs text-gray-300">—</span>
-                  )}
+                  {installmentStatusBadge(inst, () => onStatusClick!(inst, i + 1))}
                 </div>
               </div>
             );
@@ -244,14 +255,14 @@ function InstallmentScheduleTable({
 
   return (
     <div className="rounded-lg overflow-hidden">
-      <div className={`${proposalGrid} gap-4 px-4 py-2.5 text-xs font-medium text-gray-400 border-b border-gray-100`}>
+      <div className={`${proposalGrid} gap-6 px-4 py-2.5 text-xs font-medium text-gray-400 border-b border-gray-100`}>
         <span className="text-left">Due Date</span>
         <span className="text-right">Amount</span>
         <span className="text-center">Status</span>
       </div>
       <div className="divide-y divide-gray-100">
         {installments.map((inst) => (
-          <div key={inst.id} className={`${proposalGrid} gap-4 px-4 py-3.5`}>
+          <div key={inst.id} className={`${proposalGrid} gap-6 px-4 py-3.5`}>
             <span className="text-sm text-gray-700 text-left">{formatDate(inst.dueDate)}</span>
             <span className="text-sm text-gray-900 text-right tabular-nums">{formatCurrency(inst.amount)}</span>
             <div className="flex justify-center">
@@ -280,11 +291,11 @@ function InstallmentScheduleTable({
 function VersionCard({
   event,
   isCurrentSchedule = false,
-  onRecordPayment,
+  onStatusClick,
 }: {
   event: ThreadEvent;
   isCurrentSchedule?: boolean;
-  onRecordPayment?: (installment: ProposalInstallment, index: number) => void;
+  onStatusClick?: (installment: ProposalInstallment, index: number) => void;
 }) {
   const label = versionLabel(event);
   // The tenant's original ask is a request, not yet a structured plan — no installment
@@ -334,7 +345,7 @@ function VersionCard({
           {showsTable ? (
             <InstallmentScheduleTable
               installments={event.proposal.installments}
-              onRecordPayment={isCurrentSchedule ? onRecordPayment : undefined}
+              onStatusClick={isCurrentSchedule ? onStatusClick : undefined}
             />
           ) : (
             !isTenantRequest && (
@@ -497,6 +508,10 @@ export default function PaymentPlanThreadDetail() {
     installment: ProposalInstallment;
     index: number;
   } | null>(null);
+  const [paymentDetailsTarget, setPaymentDetailsTarget] = useState<{
+    installment: ProposalInstallment;
+    index: number;
+  } | null>(null);
 
   useEffect(() => {
     function sync() { setThread(getPaymentPlanThread(threadId) ?? null); }
@@ -644,7 +659,13 @@ export default function PaymentPlanThreadDetail() {
                   <VersionCard
                     event={event}
                     isCurrentSchedule={isCurrentScheduleEvent(event)}
-                    onRecordPayment={(installment, index) => setRecordPaymentTarget({ installment, index })}
+                    onStatusClick={(installment, index) => {
+                      if (installment.status === "paid") {
+                        setPaymentDetailsTarget({ installment, index });
+                      } else {
+                        setRecordPaymentTarget({ installment, index });
+                      }
+                    }}
                   />
                 )}
               </div>
@@ -749,7 +770,7 @@ export default function PaymentPlanThreadDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Record Installment Payment modal */}
+      {/* Record Installment Payment modal — opened by clicking a Pending/Partially Paid badge */}
       <RecordInstallmentPaymentModal
         open={!!recordPaymentTarget}
         installment={recordPaymentTarget?.installment ?? null}
@@ -757,6 +778,15 @@ export default function PaymentPlanThreadDetail() {
         installmentTotal={currentRevision?.installments.length ?? 0}
         onClose={() => setRecordPaymentTarget(null)}
         onSave={handleRecordPayment}
+      />
+
+      {/* Payment Details modal — opened by clicking a Paid badge */}
+      <InstallmentPaymentDetailsModal
+        open={!!paymentDetailsTarget}
+        installment={paymentDetailsTarget?.installment ?? null}
+        installmentIndex={paymentDetailsTarget?.index ?? 0}
+        installmentTotal={currentRevision?.installments.length ?? 0}
+        onClose={() => setPaymentDetailsTarget(null)}
       />
     </div>
   );
