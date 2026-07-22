@@ -644,23 +644,33 @@ export default function PaymentPlanThreadDetail() {
         {/* Payment Plan Thread — one continuous version history. The first entry IS the current
             active payment plan; every card beneath it is an earlier version of the same plan.
             Three clear columns: a narrow timeline gutter (line + dot), a fixed whitespace gap,
-            then the event card — the timeline is a structural guide, not something attached to
-            the cards. */}
-        <div className="relative">
-          {/* Vertical rail — centered on the dots (gutter is 24px wide, dot is 12px, so the rail
-              sits at the 12px midpoint), running behind every dot, never touching the cards. */}
-          <div className="absolute left-[11px] top-7 bottom-7 w-0.5 bg-gray-200" aria-hidden="true" />
-          <div className="space-y-8">
-            {/* The thread itself is the complete record — newest event first, oldest (the
-                tenant's original request) last. No separate "current state" card. */}
-            {history.map((event) => (
-              <div key={event.id} className="flex items-start gap-8">
-                {/* Timeline gutter — fixed width, dot aligned to the card title's line, not the
-                    card's vertical center. */}
-                <div className="w-6 shrink-0 flex justify-center pt-7">
-                  <span className="w-3 h-3 rounded-full bg-gray-400 ring-4 ring-gray-50" aria-hidden="true" />
+            then the event card. Each dot is the anchor for its row — the card's top edge aligns
+            exactly with the dot's center, and the rail is built as a chain of segments that stop
+            just above and resume just below every dot, so the dot always reads as a milestone
+            cutting the line rather than the line running through it. */}
+        <div>
+          {history.map((event, i) => {
+            const isLast = i === history.length - 1;
+            return (
+              <div key={event.id} className="flex items-stretch gap-8">
+                {/* Timeline gutter — the dot is pinned to the row's top, exactly level with the
+                    card's top edge. The connecting line lives entirely in the space below the dot,
+                    starting after a dot-sized gap and stretching down to the next row's dot, so the
+                    dot always interrupts the rail instead of the rail passing through it. */}
+                <div className="w-6 shrink-0 relative">
+                  <span
+                    className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-gray-400 ring-4 ring-gray-50 z-10"
+                    aria-hidden="true"
+                  />
+                  {!isLast && (
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 w-0.5 bg-gray-200"
+                      style={{ top: 7, bottom: 7 }}
+                      aria-hidden="true"
+                    />
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className={`flex-1 min-w-0 ${isLast ? "" : "pb-8"}`}>
                   {isPaymentEvent(event) ? (
                     <PaymentEventCard event={event} />
                   ) : (
@@ -678,8 +688,8 @@ export default function PaymentPlanThreadDetail() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
 
