@@ -13,18 +13,15 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import {
-  installmentAmountPaid,
   installmentBalance,
   type InstallmentPaymentMethod,
   type ProposalInstallment,
 } from "@/lib/paymentPlanThreadStore";
+
+// The modal no longer asks how the payment was made — everything recorded here is attributed to
+// this default method so the underlying data model (and Payment Details audit view) still has a
+// value to display, without adding a field to this quick-entry flow.
+const DEFAULT_PAYMENT_METHOD: InstallmentPaymentMethod = "Bank Transfer";
 
 function parseCurrency(value: string): number {
   return parseFloat(value.replace(/[^0-9.]/g, "")) || 0;
@@ -43,8 +40,6 @@ function formatDate(iso: string): string {
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
-
-const PAYMENT_METHODS: InstallmentPaymentMethod[] = ["Bank Transfer", "Cash", "POS", "Cheque", "Other"];
 
 export interface RecordInstallmentPaymentResult {
   amount: number;
@@ -73,7 +68,6 @@ export function RecordInstallmentPaymentModal({
 }: Props) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(toISODate(new Date()));
-  const [method, setMethod] = useState<InstallmentPaymentMethod>("Bank Transfer");
   const [errors, setErrors] = useState<string[]>([]);
 
   const balance = installment ? installmentBalance(installment) : 0;
@@ -82,7 +76,6 @@ export function RecordInstallmentPaymentModal({
     if (open && installment) {
       setAmount(String(installmentBalance(installment)));
       setDate(toISODate(new Date()));
-      setMethod("Bank Transfer");
       setErrors([]);
     }
   }, [open, installment]);
@@ -99,7 +92,7 @@ export function RecordInstallmentPaymentModal({
       setErrors(nextErrors);
       return;
     }
-    onSave({ amount: parsedAmount, date, method });
+    onSave({ amount: parsedAmount, date, method: DEFAULT_PAYMENT_METHOD });
   }
 
   return (
@@ -147,28 +140,13 @@ export function RecordInstallmentPaymentModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Payment Date</Label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Payment Method</Label>
-              <Select value={method} onValueChange={(v) => setMethod(v as InstallmentPaymentMethod)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label>Payment Date</Label>
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
           </div>
         </div>
 
