@@ -133,6 +133,8 @@ export interface ThreadEvent {
   paymentReference?: string;
   /** The amount recorded in this specific payment (installment_payment_recorded only). */
   paymentAmountRecorded?: number;
+  /** The date the payment was actually made, as entered by the Property Manager (ISO YYYY-MM-DD) — distinct from installmentDueDate. */
+  paymentDate?: string;
   /** Remaining balance on the installment after this payment. */
   remainingBalance?: number;
   /** Who recorded the payment, e.g. "Tunji Oginni" — shown alongside actor for manual entries. */
@@ -913,6 +915,7 @@ export function recordInstallmentPayment(
     paymentMethod: input.method,
     paymentReference: input.reference,
     paymentAmountRecorded: input.amount,
+    paymentDate: input.date,
     remainingBalance: remaining,
     recordedBy: input.recordedBy,
   });

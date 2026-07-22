@@ -100,6 +100,21 @@ function isVersionEvent(event: ThreadEvent): boolean {
 }
 
 /**
+ * Of the version events, only the ones that actually change what the payment schedule looks
+ * like are worth a full installment-table snapshot. Accept/decline/delete/cancel events reference
+ * a schedule but didn't just create or edit one, so they get a compact one-line summary instead.
+ */
+const SCHEDULE_SNAPSHOT_EVENT_TYPES = new Set<ThreadEvent["type"]>([
+  "proposal_created",
+  "proposal_revised",
+  "plan_approved",
+]);
+
+function showsScheduleSnapshot(event: ThreadEvent): boolean {
+  return SCHEDULE_SNAPSHOT_EVENT_TYPES.has(event.type);
+}
+
+/**
  * Newest-first display order, with one deliberate exception: a plan_approved card is shown
  * directly *above* the revision/response event that immediately precedes it in time (instead of
  * above it, which strict chronological order would do), so the thread leads with "what the plan
@@ -172,13 +187,14 @@ function InstallmentScheduleTable({
 
   if (interactive) {
     return (
-      <div className="rounded-lg border border-gray-100 overflow-hidden">
-        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-400">
+      <div className="rounded-xl border border-gray-100 overflow-hidden">
+        <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto_auto] gap-6 px-5 py-3 bg-gray-50 text-xs font-medium text-gray-400 uppercase tracking-wide">
           <span>Due Date</span>
           <span className="text-right">Amount</span>
           <span className="text-right">Paid</span>
           <span className="text-right">Balance</span>
           <span className="text-right">Status</span>
+          <span className="text-right">Action</span>
         </div>
         <div className="divide-y divide-gray-50">
           {installments.map((inst, i) => {
@@ -186,25 +202,28 @@ function InstallmentScheduleTable({
             const balance = installmentBalance(inst);
             const canRecordPayment = inst.status !== "paid";
             return (
-              <div key={inst.id} className="px-3 py-2.5">
-                <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center">
-                  <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
-                  <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
-                  <span className="text-sm text-gray-700 text-right">{formatCurrency(paid)}</span>
-                  <span className="text-sm text-gray-700 text-right">{formatCurrency(balance)}</span>
-                  <div className="flex justify-end">{installmentStatusBadge(inst)}</div>
-                </div>
-                {canRecordPayment && (
-                  <div className="flex justify-end mt-1.5">
+              <div
+                key={inst.id}
+                className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto_auto] gap-6 px-5 py-4 items-center"
+              >
+                <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
+                <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
+                <span className="text-sm text-gray-700 text-right">{formatCurrency(paid)}</span>
+                <span className="text-sm text-gray-700 text-right">{formatCurrency(balance)}</span>
+                <div className="flex justify-end">{installmentStatusBadge(inst)}</div>
+                <div className="flex justify-end">
+                  {canRecordPayment ? (
                     <button
                       type="button"
                       onClick={() => onRecordPayment!(inst, i + 1)}
-                      className="text-xs font-medium text-[#FF5000] hover:underline"
+                      className="text-xs font-medium text-[#FF5000] hover:underline whitespace-nowrap"
                     >
                       Record Payment
                     </button>
-                  </div>
-                )}
+                  ) : (
+                    <span className="text-xs text-gray-300">—</span>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -214,18 +233,18 @@ function InstallmentScheduleTable({
   }
 
   return (
-    <div className="rounded-lg border border-gray-100 overflow-hidden">
-      <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-400">
+    <div className="rounded-xl border border-gray-100 overflow-hidden">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-6 px-5 py-3 bg-gray-50 text-xs font-medium text-gray-400 uppercase tracking-wide">
         <span>Due Date</span>
         <span className="text-right">Amount</span>
-        <span className="text-right w-24">Status</span>
+        <span className="text-right w-28">Status</span>
       </div>
       <div className="divide-y divide-gray-50">
         {installments.map((inst) => (
-          <div key={inst.id} className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2.5 items-center">
+          <div key={inst.id} className="grid grid-cols-[1fr_auto_auto] gap-6 px-5 py-4 items-center">
             <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
             <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
-            <div className="w-24 flex justify-end">
+            <div className="w-28 flex justify-end">
               {isProposal ? (
                 <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-gray-100 text-gray-500">
                   Proposed
@@ -277,30 +296,45 @@ function VersionCard({
       ? "Cancelled on"
       : "Recorded on";
 
+  // Only Created / Edited / Approved events show the full installment table — every other
+  // version event (accept/decline/delete/cancel) gets a compact one-line summary instead, so the
+  // timeline isn't dominated by repeated tables for events that didn't change the schedule.
+  const showsTable = !isTenantRequest && showsScheduleSnapshot(event);
+
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 space-y-4">
+      {/* Header — event title, date & time, actor */}
       <div>
-        <p className="text-sm font-semibold text-gray-900">{label}</p>
+        <p className="text-lg font-semibold text-gray-900">{label}</p>
         {!isTenantRequest && (
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-sm text-gray-400 mt-1">
             {dateLabel} {formatFullTimestamp(event.createdAt)}
           </p>
         )}
       </div>
 
-      {/* Total Amount — always shown; the schedule table only once a structured plan exists */}
+      {/* Total Amount — always shown; the schedule table only for events that changed the schedule */}
       {event.proposal && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Total Amount</p>
-            <p className="text-lg font-semibold text-gray-900">{formatCurrency(event.proposal.totalAmount)}</p>
+            <p className="text-xl font-semibold text-gray-900">{formatCurrency(event.proposal.totalAmount)}</p>
             {!isTenantRequest && <p className="text-sm text-gray-700 mt-0.5">{proposalLine(event.proposal)}</p>}
           </div>
-          {!isTenantRequest && (
+          {showsTable ? (
             <InstallmentScheduleTable
               installments={event.proposal.installments}
               onRecordPayment={isCurrentSchedule ? onRecordPayment : undefined}
             />
+          ) : (
+            !isTenantRequest && (
+              <p className="text-sm text-gray-500">
+                {event.proposal.installmentCount === 1
+                  ? "One-time payment"
+                  : `${event.proposal.installmentCount} installments`}{" "}
+                — see the current schedule above for full payment status.
+              </p>
+            )
           )}
         </div>
       )}
@@ -375,12 +409,19 @@ function paymentEventLabel(event: ThreadEvent): string {
   }
 }
 
+function PaymentDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-gray-500">{label}</span>
+      <span className="text-gray-900 font-medium">{value}</span>
+    </div>
+  );
+}
+
 /**
- * A lightweight timeline entry for payment activity — no card frame, no payment details, just the
- * headline and when it happened. Kept visually minimal so it reads as a passing history entry,
- * distinct from the full payment-plan version cards (Active Payment Plan, Payment Plan Edited, etc.).
- * `installment_payment_recorded` and the "fully paid" `installment_paid` events additionally show
- * a one-line description and remaining balance, per the manual-payment-recording flow.
+ * A full-width payment-activity card, matching the same header hierarchy as VersionCard (title,
+ * date & time, actor) but with structured "Payment Details" instead of a repeated schedule table —
+ * only the one installment this event concerns is relevant, so it's shown as a compact list.
  */
 function PaymentEventCard({ event }: { event: ThreadEvent }) {
   const label = paymentEventLabel(event);
@@ -392,19 +433,40 @@ function PaymentEventCard({ event }: { event: ThreadEvent }) {
       ? `The remaining balance of ${formatCurrency(event.remainingBalance)} was received. Installment ${event.installmentIndex} has now been marked as Paid.`
       : undefined;
 
+  const showsPaymentDetails = event.type === "installment_payment_recorded";
+
   return (
-    <div className="py-1">
-      <p className="text-sm font-semibold text-gray-900">{label}</p>
-      {description && <p className="text-sm text-gray-600 mt-0.5">{description}</p>}
-      {event.type === "installment_payment_recorded" && event.remainingBalance !== undefined && event.remainingBalance > 0 && (
-        <p className="text-xs text-gray-500 mt-0.5">
-          Remaining Balance: {formatCurrency(event.remainingBalance)}
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 space-y-4">
+      <div>
+        <p className="text-lg font-semibold text-gray-900">{label}</p>
+        <p className="text-sm text-gray-400 mt-1">
+          {formatFullTimestamp(event.createdAt)}
+          {event.recordedBy && ` · Recorded by ${event.recordedBy}`}
         </p>
+      </div>
+
+      {description && <p className="text-sm text-gray-700">{description}</p>}
+
+      {showsPaymentDetails && (
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-2">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Payment Details</p>
+          <PaymentDetailRow
+            label="Installment"
+            value={`${event.installmentIndex} of ${event.installmentTotal}`}
+          />
+          <PaymentDetailRow label="Amount Paid" value={formatCurrency(event.paymentAmountRecorded ?? 0)} />
+          <PaymentDetailRow
+            label="Remaining Balance"
+            value={formatCurrency(event.remainingBalance ?? 0)}
+          />
+          {event.paymentDate && (
+            <PaymentDetailRow label="Payment Date" value={formatDate(event.paymentDate)} />
+          )}
+          {event.paymentMethod && <PaymentDetailRow label="Payment Method" value={event.paymentMethod} />}
+          {event.paymentReference && <PaymentDetailRow label="Reference" value={event.paymentReference} />}
+          {event.recordedBy && <PaymentDetailRow label="Recorded By" value={event.recordedBy} />}
+        </div>
       )}
-      <p className="text-xs text-gray-400 mt-0.5">
-        {formatFullTimestamp(event.createdAt)}
-        {event.recordedBy && ` by ${event.recordedBy}`}
-      </p>
     </div>
   );
 }
@@ -515,7 +577,7 @@ export default function PaymentPlanThreadDetail() {
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-3xl px-4 sm:px-6 h-14 flex items-center justify-between">
+        <div className="max-w-6xl px-6 sm:px-10 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -553,30 +615,30 @@ export default function PaymentPlanThreadDetail() {
         </div>
       </div>
 
-      <div className="max-w-3xl px-4 sm:px-6 py-6 space-y-6">
+      <div className="max-w-6xl px-6 sm:px-10 py-8">
         {/* Payment Plan Thread — one continuous version history. The first entry IS the current
-            active payment plan; every card beneath it is an earlier version of the same plan. */}
-        <div>
-          <div className="relative pl-6">
-            <div className="absolute left-[5px] top-5 bottom-2 w-0.5 bg-gray-200" aria-hidden="true" />
-            <div className="space-y-5">
-              {/* The thread itself is the complete record — newest event first, oldest (the
-                  tenant's original request) last. No separate "current state" card. */}
-              {history.map((event) => (
-                <div key={event.id} className="relative">
-                  <span className="absolute -left-6 top-5 w-2.5 h-2.5 rounded-full bg-gray-400 ring-4 ring-gray-50" aria-hidden="true" />
-                  {isPaymentEvent(event) ? (
-                    <PaymentEventCard event={event} />
-                  ) : (
-                    <VersionCard
-                      event={event}
-                      isCurrentSchedule={isCurrentScheduleEvent(event)}
-                      onRecordPayment={(installment, index) => setRecordPaymentTarget({ installment, index })}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+            active payment plan; every card beneath it is an earlier version of the same plan.
+            The rail sits a fixed distance from the left edge (not centered), and cards fill the
+            remaining width so the page doesn't leave a large empty column on the left. */}
+        <div className="relative pl-[100px]">
+          <div className="absolute left-[94px] top-6 bottom-6 w-0.5 bg-gray-200" aria-hidden="true" />
+          <div className="space-y-8">
+            {/* The thread itself is the complete record — newest event first, oldest (the
+                tenant's original request) last. No separate "current state" card. */}
+            {history.map((event) => (
+              <div key={event.id} className="relative">
+                <span className="absolute -left-[11px] top-6 w-3 h-3 rounded-full bg-gray-400 ring-4 ring-gray-50" aria-hidden="true" />
+                {isPaymentEvent(event) ? (
+                  <PaymentEventCard event={event} />
+                ) : (
+                  <VersionCard
+                    event={event}
+                    isCurrentSchedule={isCurrentScheduleEvent(event)}
+                    onRecordPayment={(installment, index) => setRecordPaymentTarget({ installment, index })}
+                  />
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
