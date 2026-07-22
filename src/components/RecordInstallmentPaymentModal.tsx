@@ -12,7 +12,6 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Textarea } from "./ui/textarea";
 import {
   Select,
   SelectContent,
@@ -75,20 +74,15 @@ export function RecordInstallmentPaymentModal({
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(toISODate(new Date()));
   const [method, setMethod] = useState<InstallmentPaymentMethod>("Bank Transfer");
-  const [reference, setReference] = useState("");
-  const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
 
   const balance = installment ? installmentBalance(installment) : 0;
-  const alreadyPaid = installment ? installmentAmountPaid(installment) : 0;
 
   useEffect(() => {
     if (open && installment) {
       setAmount(String(installmentBalance(installment)));
       setDate(toISODate(new Date()));
       setMethod("Bank Transfer");
-      setReference("");
-      setNotes("");
       setErrors([]);
     }
   }, [open, installment]);
@@ -105,24 +99,18 @@ export function RecordInstallmentPaymentModal({
       setErrors(nextErrors);
       return;
     }
-    onSave({
-      amount: parsedAmount,
-      date,
-      method,
-      reference: reference.trim() || undefined,
-      notes: notes.trim() || undefined,
-    });
+    onSave({ amount: parsedAmount, date, method });
   }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md w-full">
         <DialogHeader>
           <DialogTitle>Record Installment Payment</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          {/* Installment being updated */}
+        <div className="space-y-5 py-2">
+          {/* Installment being updated — read-only */}
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-1.5">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">Installment</span>
@@ -136,34 +124,7 @@ export function RecordInstallmentPaymentModal({
               <span className="text-gray-500">Expected Amount</span>
               <span className="font-medium text-gray-900">{formatCurrency(installment.amount)}</span>
             </div>
-            {alreadyPaid > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Total Paid</span>
-                <span className="font-medium text-gray-900">{formatCurrency(alreadyPaid)}</span>
-              </div>
-            )}
-            {alreadyPaid > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Remaining Balance</span>
-                <span className="font-medium text-gray-900">{formatCurrency(balance)}</span>
-              </div>
-            )}
           </div>
-
-          {/* Previous payments — only relevant once at least one payment has been recorded */}
-          {installment.payments && installment.payments.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-500">Previous Payments</p>
-              <div className="rounded-lg border border-gray-100 divide-y divide-gray-100">
-                {installment.payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                    <span className="text-gray-700">{formatDate(p.date)} · {p.method}</span>
-                    <span className="font-medium text-gray-900">{formatCurrency(p.amount)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {errors.length > 0 && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 space-y-1">
@@ -208,25 +169,6 @@ export function RecordInstallmentPaymentModal({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Reference (Optional)</Label>
-            <Input
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              placeholder="Transaction reference or receipt number"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Notes (Optional)</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional context about this payment…"
-              rows={3}
-            />
           </div>
         </div>
 
