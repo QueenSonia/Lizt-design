@@ -19,11 +19,41 @@ export type ThreadStatus =
 
 export type ProposalStatus = "pending" | "accepted" | "declined" | "current" | "deleted";
 
+export type InstallmentPaymentMethod = "Bank Transfer" | "Cash" | "POS" | "Cheque" | "Other";
+
+/** A single manually-recorded payment against an installment. Multiple can accumulate. */
+export interface InstallmentPayment {
+  id: string;
+  amount: number;
+  date: string; // ISO YYYY-MM-DD
+  method: InstallmentPaymentMethod;
+  reference?: string;
+  notes?: string;
+  recordedBy: string; // e.g. "Tunji Oginni"
+  recordedAt: string; // ISO — when the entry was made
+}
+
 export interface ProposalInstallment {
   id: string;
   amount: number;
   dueDate: string; // ISO YYYY-MM-DD
-  status: "pending" | "paid";
+  status: "pending" | "partial" | "paid";
+  payments?: InstallmentPayment[];
+}
+
+/**
+ * Total recorded against an installment. Falls back to the full amount for legacy seed data
+ * that was marked "paid" before individual payments were tracked (no `payments` array).
+ */
+export function installmentAmountPaid(installment: ProposalInstallment): number {
+  if (installment.payments && installment.payments.length > 0) {
+    return installment.payments.reduce((sum, p) => sum + p.amount, 0);
+  }
+  return installment.status === "paid" ? installment.amount : 0;
+}
+
+export function installmentBalance(installment: ProposalInstallment): number {
+  return Math.max(0, installment.amount - installmentAmountPaid(installment));
 }
 
 export interface ProposalRevision {
@@ -50,6 +80,7 @@ export type ThreadEventType =
   | "plan_completed"
   | "plan_cancelled"       // Property Manager cancels an already-active plan
   | "installment_paid"
+  | "installment_payment_recorded" // a manually-recorded payment against an installment (partial or full)
   | "installment_overdue"
   | "reminder_sent"
   | "payment_failed"
@@ -93,13 +124,19 @@ export interface ThreadEvent {
   resultingStatusLabel?: string;
   effectiveDate?: string; // ISO — for plan_approved
 
-  // installment_paid / installment_overdue context
+  // installment_paid / installment_overdue / installment_payment_recorded context
   installmentIndex?: number;
   installmentTotal?: number;
   installmentAmount?: number;
   installmentDueDate?: string;
   paymentMethod?: string;
   paymentReference?: string;
+  /** The amount recorded in this specific payment (installment_payment_recorded only). */
+  paymentAmountRecorded?: number;
+  /** Remaining balance on the installment after this payment. */
+  remainingBalance?: number;
+  /** Who recorded the payment, e.g. "Tunji Oginni" — shown alongside actor for manual entries. */
+  recordedBy?: string;
 
   // Rich free-form context on the tenant's original request (proposal_requested only)
   chargesBreakdown?: ChargeLine[];
@@ -813,6 +850,102 @@ export function markInstallmentPaid(threadId: string, revisionId: string, instal
       resultingStatus: "completed",
     });
   }
+  touch(thread, now);
+  _notify();
+}
+
+/**
+ * Manually record a payment against an installment (Property Manager action). Supports partial
+ * and multiple payments — status is always derived from the recorded total, never set directly.
+ * Pushes an `installment_payment_recorded` event, plus an `installment_paid` "fully paid" event
+ * and a `plan_completed` event if this payment completes the installment/plan.
+ */
+export function recordInstallmentPayment(
+  threadId: string,
+  revisionId: string,
+  installmentId: string,
+  input: {
+    amount: number;
+    date: string; // ISO YYYY-MM-DD
+    method: InstallmentPaymentMethod;
+    reference?: string;
+    notes?: string;
+    recordedBy: string;
+  }
+) {
+  const thread = _threads.find((t) => t.id === threadId);
+  if (!thread) return;
+  const revision = thread.revisions.find((r) => r.id === revisionId);
+  if (!revision) return;
+  const installment = revision.installments.find((i) => i.id === installmentId);
+  if (!installment || installment.status === "paid" || input.amount <= 0) return;
+
+  const now = new Date().toISOString();
+  const payment: InstallmentPayment = {
+    id: generateId("pay"),
+    amount: input.amount,
+    date: input.date,
+    method: input.method,
+    reference: input.reference,
+    notes: input.notes,
+    recordedBy: input.recordedBy,
+    recordedAt: now,
+  };
+  installment.payments = [...(installment.payments ?? []), payment];
+
+  const totalPaid = installmentAmountPaid(installment);
+  const remaining = installmentBalance(installment);
+  const idx = revision.installments.indexOf(installment) + 1;
+  const total = revision.installments.length;
+  const isNowFullyPaid = remaining <= 0;
+  installment.status = isNowFullyPaid ? "paid" : "partial";
+
+  thread.events.push({
+    id: generateId("evt"),
+    type: "installment_payment_recorded",
+    actor: "landlord",
+    headline: `Installment ${idx} Payment Recorded`,
+    createdAt: now,
+    installmentIndex: idx,
+    installmentTotal: total,
+    installmentAmount: installment.amount,
+    installmentDueDate: installment.dueDate,
+    paymentMethod: input.method,
+    paymentReference: input.reference,
+    paymentAmountRecorded: input.amount,
+    remainingBalance: remaining,
+    recordedBy: input.recordedBy,
+  });
+
+  if (isNowFullyPaid) {
+    thread.events.push({
+      id: generateId("evt"),
+      type: "installment_paid",
+      actor: "system",
+      headline: `Installment ${idx} Fully Paid`,
+      createdAt: now,
+      installmentIndex: idx,
+      installmentTotal: total,
+      installmentAmount: installment.amount,
+      installmentDueDate: installment.dueDate,
+      remainingBalance: 0,
+    });
+
+    const allPaid = revision.installments.every((i) => i.status === "paid");
+    if (allPaid && getCurrentRevision(thread)?.id === revision.id) {
+      thread.status = "completed";
+      thread.events.push({
+        id: generateId("evt"),
+        type: "plan_completed",
+        actor: "system",
+        headline: "Payment Plan Completed",
+        createdAt: now,
+        proposal: snapshotFromInstallments(revision.installments),
+        resultingStatus: "completed",
+      });
+    }
+  }
+
   touch(thread, now);
   _notify();
 }

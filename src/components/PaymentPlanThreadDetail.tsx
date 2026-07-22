@@ -31,15 +31,23 @@ import {
   deleteCurrentProposal,
   cancelThread,
   markInstallmentPaid,
+  recordInstallmentPayment,
   sendReminder,
   formatFullTimestamp,
+  installmentAmountPaid,
+  installmentBalance,
   THREAD_STATUS_LABELS,
   THREAD_STATUS_STYLES,
   type PaymentPlanThread,
   type ThreadEvent,
   type ProposalSnapshot,
+  type ProposalInstallment,
 } from "@/lib/paymentPlanThreadStore";
 import { CreatePaymentPlanModal, type CreatePaymentPlanResult } from "./CreatePaymentPlanModal";
+import {
+  RecordInstallmentPaymentModal,
+  type RecordInstallmentPaymentResult,
+} from "./RecordInstallmentPaymentModal";
 import type { PlanScope } from "./PlanScopePickerModal";
 
 function formatCurrency(n: number): string {
@@ -65,6 +73,7 @@ function proposalLine(p: ProposalSnapshot): string {
 /** Compact receipt-style entries — payment activity, distinct from negotiation snapshots. */
 const PAYMENT_EVENT_TYPES = new Set<ThreadEvent["type"]>([
   "installment_paid",
+  "installment_payment_recorded",
   "payment_failed",
   "payment_refunded",
   "plan_completed",
@@ -133,43 +142,96 @@ function versionLabel(event: ThreadEvent): string {
   }
 }
 
+function installmentStatusBadge(inst: ProposalInstallment) {
+  if (inst.status === "paid") {
+    return <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-green-100 text-green-700">Paid</Badge>;
+  }
+  if (inst.status === "partial") {
+    return <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-blue-50 text-blue-600">Partially Paid</Badge>;
+  }
+  return <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-amber-50 text-amber-600">Pending</Badge>;
+}
+
 /**
- * The same read-only Due Date / Amount / Status table used on the Active Payment Plan card.
- * Pass isProposal for a not-yet-reviewed submission (e.g. the tenant's original request) so
- * every row reads "Proposed" instead of implying it's already an active Pending/Paid schedule.
+ * The Due Date / Amount / Status table used on the Active Payment Plan card. Pass isProposal for
+ * a not-yet-reviewed submission (e.g. the tenant's original request) so every row reads
+ * "Proposed" instead of implying it's already an active Pending/Paid schedule. Pass
+ * onRecordPayment (only relevant for the live, current schedule) to show Paid/Balance columns
+ * and a Record Payment action on every not-yet-fully-paid row.
  */
 function InstallmentScheduleTable({
   installments,
   isProposal = false,
+  onRecordPayment,
 }: {
   installments: ProposalSnapshot["installments"];
   isProposal?: boolean;
+  onRecordPayment?: (installment: ProposalInstallment, index: number) => void;
 }) {
+  const interactive = !isProposal && !!onRecordPayment;
+
+  if (interactive) {
+    return (
+      <div className="rounded-lg border border-gray-100 overflow-hidden">
+        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-400">
+          <span>Due Date</span>
+          <span className="text-right">Amount</span>
+          <span className="text-right">Paid</span>
+          <span className="text-right">Balance</span>
+          <span className="text-right">Status</span>
+        </div>
+        <div className="divide-y divide-gray-50">
+          {installments.map((inst, i) => {
+            const paid = installmentAmountPaid(inst);
+            const balance = installmentBalance(inst);
+            const canRecordPayment = inst.status !== "paid";
+            return (
+              <div key={inst.id} className="px-3 py-2.5">
+                <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center">
+                  <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
+                  <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
+                  <span className="text-sm text-gray-700 text-right">{formatCurrency(paid)}</span>
+                  <span className="text-sm text-gray-700 text-right">{formatCurrency(balance)}</span>
+                  <div className="flex justify-end">{installmentStatusBadge(inst)}</div>
+                </div>
+                {canRecordPayment && (
+                  <div className="flex justify-end mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onRecordPayment!(inst, i + 1)}
+                      className="text-xs font-medium text-[#FF5000] hover:underline"
+                    >
+                      Record Payment
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-gray-100 overflow-hidden">
       <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-400">
         <span>Due Date</span>
         <span className="text-right">Amount</span>
-        <span className="text-right w-20">Status</span>
+        <span className="text-right w-24">Status</span>
       </div>
       <div className="divide-y divide-gray-50">
         {installments.map((inst) => (
           <div key={inst.id} className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2.5 items-center">
             <span className="text-sm text-gray-700">{formatDate(inst.dueDate)}</span>
             <span className="text-sm font-medium text-gray-900 text-right">{formatCurrency(inst.amount)}</span>
-            <div className="w-20 flex justify-end">
+            <div className="w-24 flex justify-end">
               {isProposal ? (
                 <Badge className="text-xs border-0 rounded-full px-2 py-0.5 bg-gray-100 text-gray-500">
                   Proposed
                 </Badge>
               ) : (
-                <Badge
-                  className={`text-xs border-0 rounded-full px-2 py-0.5 ${
-                    inst.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-50 text-amber-600"
-                  }`}
-                >
-                  {inst.status === "paid" ? "Paid" : "Pending"}
-                </Badge>
+                installmentStatusBadge(inst)
               )}
             </div>
           </div>
@@ -186,7 +248,15 @@ function InstallmentScheduleTable({
  * plan exactly as it existed at that moment. No status pill here — the only status badge on this
  * page lives on the Active Payment Plan card.
  */
-function VersionCard({ event }: { event: ThreadEvent }) {
+function VersionCard({
+  event,
+  isCurrentSchedule = false,
+  onRecordPayment,
+}: {
+  event: ThreadEvent;
+  isCurrentSchedule?: boolean;
+  onRecordPayment?: (installment: ProposalInstallment, index: number) => void;
+}) {
   const label = versionLabel(event);
   // The tenant's original ask is a request, not yet a structured plan — no installment
   // schedule or "preferred schedule" line exists until the Property Manager turns it into one.
@@ -226,7 +296,12 @@ function VersionCard({ event }: { event: ThreadEvent }) {
             <p className="text-lg font-semibold text-gray-900">{formatCurrency(event.proposal.totalAmount)}</p>
             {!isTenantRequest && <p className="text-sm text-gray-700 mt-0.5">{proposalLine(event.proposal)}</p>}
           </div>
-          {!isTenantRequest && <InstallmentScheduleTable installments={event.proposal.installments} />}
+          {!isTenantRequest && (
+            <InstallmentScheduleTable
+              installments={event.proposal.installments}
+              onRecordPayment={isCurrentSchedule ? onRecordPayment : undefined}
+            />
+          )}
         </div>
       )}
 
@@ -286,7 +361,9 @@ function VersionCard({ event }: { event: ThreadEvent }) {
 function paymentEventLabel(event: ThreadEvent): string {
   switch (event.type) {
     case "installment_paid":
-      return `Tenant Paid Installment ${event.installmentIndex} of ${event.installmentTotal}`;
+      return event.headline || `Installment ${event.installmentIndex} Fully Paid`;
+    case "installment_payment_recorded":
+      return event.headline || `Installment ${event.installmentIndex} Payment Recorded`;
     case "payment_failed":
       return `Installment ${event.installmentIndex} of ${event.installmentTotal} Payment Failed`;
     case "payment_refunded":
@@ -302,14 +379,32 @@ function paymentEventLabel(event: ThreadEvent): string {
  * A lightweight timeline entry for payment activity — no card frame, no payment details, just the
  * headline and when it happened. Kept visually minimal so it reads as a passing history entry,
  * distinct from the full payment-plan version cards (Active Payment Plan, Payment Plan Edited, etc.).
+ * `installment_payment_recorded` and the "fully paid" `installment_paid` events additionally show
+ * a one-line description and remaining balance, per the manual-payment-recording flow.
  */
 function PaymentEventCard({ event }: { event: ThreadEvent }) {
   const label = paymentEventLabel(event);
 
+  const description =
+    event.type === "installment_payment_recorded"
+      ? `${formatCurrency(event.paymentAmountRecorded ?? 0)} was recorded against Installment ${event.installmentIndex}.`
+      : event.type === "installment_paid" && event.remainingBalance !== undefined
+      ? `The remaining balance of ${formatCurrency(event.remainingBalance)} was received. Installment ${event.installmentIndex} has now been marked as Paid.`
+      : undefined;
+
   return (
     <div className="py-1">
       <p className="text-sm font-semibold text-gray-900">{label}</p>
-      <p className="text-xs text-gray-400 mt-0.5">{formatFullTimestamp(event.createdAt)}</p>
+      {description && <p className="text-sm text-gray-600 mt-0.5">{description}</p>}
+      {event.type === "installment_payment_recorded" && event.remainingBalance !== undefined && event.remainingBalance > 0 && (
+        <p className="text-xs text-gray-500 mt-0.5">
+          Remaining Balance: {formatCurrency(event.remainingBalance)}
+        </p>
+      )}
+      <p className="text-xs text-gray-400 mt-0.5">
+        {formatFullTimestamp(event.createdAt)}
+        {event.recordedBy && ` by ${event.recordedBy}`}
+      </p>
     </div>
   );
 }
@@ -326,6 +421,10 @@ export default function PaymentPlanThreadDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [recordPaymentTarget, setRecordPaymentTarget] = useState<{
+    installment: ProposalInstallment;
+    index: number;
+  } | null>(null);
 
   useEffect(() => {
     function sync() { setThread(getPaymentPlanThread(threadId) ?? null); }
@@ -356,6 +455,29 @@ export default function PaymentPlanThreadDetail() {
   const history = orderThreadHistory(
     thread.events.filter((e) => isVersionEvent(e) || isPaymentEvent(e))
   );
+
+  /** Whether this version-card event's snapshot IS the live current-revision schedule
+   *  (same installment objects — not a historical snapshot), so its table can be interactive. */
+  function isCurrentScheduleEvent(event: ThreadEvent): boolean {
+    return (
+      !!currentRevision &&
+      !!event.proposal &&
+      event.proposal.installments === currentRevision.installments
+    );
+  }
+
+  function handleRecordPayment(result: RecordInstallmentPaymentResult) {
+    if (!recordPaymentTarget || !currentRevision) return;
+    recordInstallmentPayment(thread!.id, currentRevision.id, recordPaymentTarget.installment.id, {
+      amount: result.amount,
+      date: result.date,
+      method: result.method,
+      reference: result.reference,
+      notes: result.notes,
+      recordedBy: "Tunji Oginni",
+    });
+    setRecordPaymentTarget(null);
+  }
 
   function handleApprove() {
     if (!latestRevision) return;
@@ -443,7 +565,15 @@ export default function PaymentPlanThreadDetail() {
               {history.map((event) => (
                 <div key={event.id} className="relative">
                   <span className="absolute -left-6 top-5 w-2.5 h-2.5 rounded-full bg-gray-400 ring-4 ring-gray-50" aria-hidden="true" />
-                  {isPaymentEvent(event) ? <PaymentEventCard event={event} /> : <VersionCard event={event} />}
+                  {isPaymentEvent(event) ? (
+                    <PaymentEventCard event={event} />
+                  ) : (
+                    <VersionCard
+                      event={event}
+                      isCurrentSchedule={isCurrentScheduleEvent(event)}
+                      onRecordPayment={(installment, index) => setRecordPaymentTarget({ installment, index })}
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -546,6 +676,16 @@ export default function PaymentPlanThreadDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Record Installment Payment modal */}
+      <RecordInstallmentPaymentModal
+        open={!!recordPaymentTarget}
+        installment={recordPaymentTarget?.installment ?? null}
+        installmentIndex={recordPaymentTarget?.index ?? 0}
+        installmentTotal={currentRevision?.installments.length ?? 0}
+        onClose={() => setRecordPaymentTarget(null)}
+        onSave={handleRecordPayment}
+      />
     </div>
   );
 }
