@@ -643,31 +643,40 @@ export default function PaymentPlanThreadDetail() {
       <div className="max-w-6xl px-6 sm:px-10 py-8">
         {/* Payment Plan Thread — one continuous version history. The first entry IS the current
             active payment plan; every card beneath it is an earlier version of the same plan.
-            The rail sits close to the content's left edge (not centered), and cards fill the
-            remaining width so the page doesn't leave a large empty column on the left. */}
-        <div className="relative pl-8">
-          <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-gray-200" aria-hidden="true" />
+            Three clear columns: a narrow timeline gutter (line + dot), a fixed whitespace gap,
+            then the event card — the timeline is a structural guide, not something attached to
+            the cards. */}
+        <div className="relative">
+          {/* Vertical rail — centered on the dots (gutter is 24px wide, dot is 12px, so the rail
+              sits at the 12px midpoint), running behind every dot, never touching the cards. */}
+          <div className="absolute left-[11px] top-7 bottom-7 w-0.5 bg-gray-200" aria-hidden="true" />
           <div className="space-y-8">
             {/* The thread itself is the complete record — newest event first, oldest (the
                 tenant's original request) last. No separate "current state" card. */}
             {history.map((event) => (
-              <div key={event.id} className="relative">
-                <span className="absolute -left-[11px] top-6 w-3 h-3 rounded-full bg-gray-400 ring-4 ring-gray-50" aria-hidden="true" />
-                {isPaymentEvent(event) ? (
-                  <PaymentEventCard event={event} />
-                ) : (
-                  <VersionCard
-                    event={event}
-                    isCurrentSchedule={isCurrentScheduleEvent(event)}
-                    onStatusClick={(installment, index) => {
-                      if (installment.status === "paid") {
-                        setPaymentDetailsTarget({ installment, index });
-                      } else {
-                        setRecordPaymentTarget({ installment, index });
-                      }
-                    }}
-                  />
-                )}
+              <div key={event.id} className="flex items-start gap-8">
+                {/* Timeline gutter — fixed width, dot aligned to the card title's line, not the
+                    card's vertical center. */}
+                <div className="w-6 shrink-0 flex justify-center pt-7">
+                  <span className="w-3 h-3 rounded-full bg-gray-400 ring-4 ring-gray-50" aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  {isPaymentEvent(event) ? (
+                    <PaymentEventCard event={event} />
+                  ) : (
+                    <VersionCard
+                      event={event}
+                      isCurrentSchedule={isCurrentScheduleEvent(event)}
+                      onStatusClick={(installment, index) => {
+                        if (installment.status === "paid") {
+                          setPaymentDetailsTarget({ installment, index });
+                        } else {
+                          setRecordPaymentTarget({ installment, index });
+                        }
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             ))}
           </div>
