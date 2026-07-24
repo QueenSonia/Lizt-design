@@ -12,7 +12,12 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-import { OnboardingSubmission, OnboardingProperty } from "@/types/onboarding";
+import {
+  OnboardingSubmission,
+  OnboardingProperty,
+  OnboardingDocument,
+  OnboardingLandlordInfo,
+} from "@/types/onboarding";
 
 function formatDateTime(dateString: string): string {
   const date = new Date(dateString);
@@ -42,6 +47,98 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-xs font-medium text-gray-500 mb-0.5">{label}</p>
       <p className="text-sm text-gray-900">{value}</p>
+    </div>
+  );
+}
+
+/** A single uploaded document — icon, filename, and a "View" button opening it in a new tab. */
+function DocumentRow({ document }: { document: OnboardingDocument }) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+      <FileText className="w-5 h-5 text-gray-500 shrink-0" />
+      <span className="text-sm text-gray-900 flex-1 truncate">{document.name}</span>
+      <a href={document.url} target="_blank" rel="noopener noreferrer">
+        <Button size="sm" variant="outline">View</Button>
+      </a>
+    </div>
+  );
+}
+
+const SERVICE_BADGE_STYLE = "bg-orange-50 text-[#FF5000] border-orange-100";
+
+/** Landlord identity section — layout depends on whether onboarding was Individual or Corporate. */
+function LandlordInformationSection({ info }: { info: OnboardingLandlordInfo }) {
+  const isIndividual = info.landlordType === "individual";
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+        Landlord Information
+      </h3>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          <InfoRow label="Landlord Type" value={isIndividual ? "Individual" : "Corporate"} />
+          {isIndividual ? (
+            <>
+              <InfoRow label="First Name" value={info.firstName} />
+              <InfoRow label="Last Name" value={info.lastName} />
+              <InfoRow label="Date of Birth" value={formatDate(info.dateOfBirth)} />
+              <InfoRow label="Email Address" value={info.email} />
+              <InfoRow label="Contact Phone Number" value={info.phone} />
+              <InfoRow label="Residential Address" value={info.residentialAddress} />
+            </>
+          ) : (
+            <>
+              <InfoRow label="Company / Entity Name" value={info.companyName} />
+              <InfoRow label="Office Address" value={info.officeAddress} />
+              <InfoRow label="Contact First Name" value={info.contactFirstName} />
+              <InfoRow label="Contact Last Name" value={info.contactLastName} />
+              <InfoRow label="Contact Phone Number" value={info.contactPhone} />
+            </>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          {isIndividual ? (
+            <>
+              <DocumentRow document={info.meansOfIdentification} />
+              <DocumentRow document={info.photoOfIdentification} />
+            </>
+          ) : (
+            <DocumentRow document={info.cacDocument} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Every service the landlord selected during onboarding, shown as badges/chips. */
+function ScopeOfServicesSection({
+  services,
+  otherServiceDescription,
+}: {
+  services: OnboardingSubmission["services"];
+  otherServiceDescription?: string;
+}) {
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+        Scope of Services
+      </h3>
+      <div className="flex flex-wrap gap-2">
+        {services.map((service) => (
+          <span
+            key={service}
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${SERVICE_BADGE_STYLE}`}
+          >
+            {service}
+          </span>
+        ))}
+      </div>
+      {services.includes("Others") && otherServiceDescription && (
+        <p className="text-sm text-gray-600 mt-3">{otherServiceDescription}</p>
+      )}
     </div>
   );
 }
@@ -141,17 +238,23 @@ function PropertyCard({
               ) : (
                 <div className="space-y-2">
                   {property.documents.map((doc, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <FileText className="w-5 h-5 text-gray-500 shrink-0" />
-                      <span className="text-sm text-gray-900 flex-1 truncate">{doc.name}</span>
-                      <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" variant="outline">View</Button>
-                      </a>
-                    </div>
+                    <DocumentRow key={idx} document={doc} />
                   ))}
                 </div>
               )}
             </div>
+
+            {/* Ownership Documents */}
+            {property.ownershipDocument && (
+              <div>
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  Ownership Documents
+                </h4>
+                <div className="space-y-2">
+                  <DocumentRow document={property.ownershipDocument} />
+                </div>
+              </div>
+            )}
           </div>
         </CollapsibleContent>
       </div>
@@ -202,6 +305,15 @@ export default function LandlordOnboardingDetail({
 
       {/* Content */}
       <div className="max-w-5xl space-y-6">
+        {/* Landlord Information */}
+        <LandlordInformationSection info={submission.landlordInfo} />
+
+        {/* Scope of Services */}
+        <ScopeOfServicesSection
+          services={submission.services}
+          otherServiceDescription={submission.otherServiceDescription}
+        />
+
         {/* Submitted Properties */}
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
