@@ -380,16 +380,21 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
               {/* Desktop table */}
               <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                 <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto">
-                <table className="w-auto min-w-full text-sm">
+                <table className="w-full text-sm table-fixed">
+                  <colgroup>
+                    <col className="w-64" />
+                    <col />
+                    <col className="w-40" />
+                  </colgroup>
                   <thead className={stickyHeadClass(tableScrolled)}>
                     <tr>
-                      <th className="text-left px-6 py-3 w-56">
+                      <th className="text-left px-6 py-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
                       </th>
-                      <th className="text-left px-4 py-3 pr-8 w-px whitespace-nowrap">
+                      <th className="text-left px-4 py-3 pr-6">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Agent Name(s)</span>
                       </th>
-                      <th className="text-right px-4 py-3 pr-6 w-px whitespace-nowrap">
+                      <th className="text-right px-4 py-3 pr-6">
                         <button
                           onClick={toggleActivitySort}
                           className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-700 transition-colors"
@@ -404,7 +409,6 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                           )}
                         </button>
                       </th>
-                      <th className="px-4 py-3 w-full" aria-hidden="true" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -415,10 +419,10 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                         className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                       >
                         <td className="px-6 py-4 text-gray-900">{agent.phone}</td>
-                        <td className="px-4 py-4 pr-8">
-                          <p className="font-medium text-gray-900 whitespace-nowrap">{agent.primaryName}</p>
+                        <td className="px-4 py-4 pr-6">
+                          <p className="font-medium text-gray-900">{agent.primaryName}</p>
                           {agent.aliases.length > 0 && (
-                            <p className="text-xs text-gray-500 mt-0.5 max-w-xs truncate">
+                            <p className="text-xs text-gray-500 mt-0.5">
                               Also referenced as: {agent.aliases.join(", ")}
                             </p>
                           )}
@@ -426,7 +430,6 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                         <td className="px-4 py-4 pr-6 text-right">
                           <ActivityBadge count={agent.referralCount} />
                         </td>
-                        <td aria-hidden="true" />
                       </tr>
                     ))}
                   </tbody>
