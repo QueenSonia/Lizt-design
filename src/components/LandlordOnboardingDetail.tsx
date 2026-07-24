@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronDown,
@@ -9,15 +9,28 @@ import {
   Building2,
   Phone,
   Calendar,
+  Check,
+  Plus,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { Checkbox } from "./ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import {
   OnboardingSubmission,
   OnboardingProperty,
   OnboardingDocument,
   OnboardingLandlordInfo,
 } from "@/types/onboarding";
+import {
+  isLandlordOnboarded,
+  isPropertyAdded,
+  onboardLandlord,
+  markPropertyAdded,
+  generateLandlordId,
+  subscribeToOnboardingConversionStore,
+} from "@/lib/onboardingConversionStore";
 
 function formatDateTime(dateString: string): string {
   const date = new Date(dateString);
@@ -143,42 +156,165 @@ function ScopeOfServicesSection({
   );
 }
 
+/**
+ * Confirmation modal for "Onboard Landlord" — creates the landlord and, optionally, any
+ * properties the Property Manager checks off from the submission's property list.
+ */
+function OnboardLandlordModal({
+  open,
+  properties,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  properties: OnboardingProperty[];
+  onClose: () => void;
+  onConfirm: (selectedPropertyIds: string[]) => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (open) setSelected(new Set());
+  }, [open]);
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg w-full">
+        <DialogHeader>
+          <DialogTitle>Onboard Landlord</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-gray-600">
+            This will create the landlord in the Landlords module using the information submitted
+            during onboarding.
+          </p>
+
+          {properties.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-2">Add Submitted Properties</p>
+              <div className="rounded-lg border border-gray-100 divide-y divide-gray-100">
+                {properties.map((property) => (
+                  <label
+                    key={property.id}
+                    className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50"
+                  >
+                    <Checkbox
+                      checked={selected.has(property.id)}
+                      onCheckedChange={() => toggle(property.id)}
+                    />
+                    <span className="text-sm text-gray-900">{property.description}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="bg-[#FF5000] hover:bg-[#e04600] text-white"
+            onClick={() => onConfirm(Array.from(selected))}
+          >
+            Onboard Landlord
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PropertyCard({
   property,
   defaultOpen,
+  isLandlordOnboarded: landlordOnboarded,
+  isAdded,
+  onAddProperty,
 }: {
   property: OnboardingProperty;
   defaultOpen: boolean;
+  isLandlordOnboarded: boolean;
+  isAdded: boolean;
+  onAddProperty: () => void;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const isOccupied = property.occupancyStatus === "occupied";
 
+  const addPropertyControl = isAdded ? (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 whitespace-nowrap">
+      <Check className="w-3.5 h-3.5" />
+      Property Added
+    </span>
+  ) : landlordOnboarded ? (
+    <Button
+      size="sm"
+      onClick={(e) => {
+        e.stopPropagation();
+        onAddProperty();
+      }}
+      className="bg-[#FF5000] hover:bg-[#e04600] text-white h-7 px-2.5 text-xs whitespace-nowrap"
+    >
+      <Plus className="w-3.5 h-3.5 mr-1" />
+      Add Property
+    </Button>
+  ) : (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span>
+          <Button
+            size="sm"
+            disabled
+            onClick={(e) => e.stopPropagation()}
+            className="h-7 px-2.5 text-xs whitespace-nowrap"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Add Property
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>Onboard the landlord before adding properties.</TooltipContent>
+    </Tooltip>
+  );
+
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-        <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors">
-            <div className="flex items-center gap-3 min-w-0">
+        <div className="w-full flex items-center justify-between gap-3 px-5 py-4">
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-3 min-w-0 flex-1 text-left">
               <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{property.description}</p>
                 <p className="text-xs text-gray-500 truncate">{property.address}</p>
               </div>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${OCCUPANCY_BADGE_STYLES[property.occupancyStatus]}`}
-              >
-                {isOccupied ? "Occupied" : "Vacant"}
-              </span>
-              {open ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              )}
-            </div>
-          </button>
-        </CollapsibleTrigger>
+            </button>
+          </CollapsibleTrigger>
+          <div className="flex items-center gap-3 shrink-0">
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${OCCUPANCY_BADGE_STYLES[property.occupancyStatus]}`}
+            >
+              {isOccupied ? "Occupied" : "Vacant"}
+            </span>
+            {addPropertyControl}
+            <CollapsibleTrigger asChild>
+              <button className="text-gray-400 hover:text-gray-600">
+                {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </CollapsibleTrigger>
+          </div>
+        </div>
 
         <CollapsibleContent>
           <div className="border-t border-gray-100 px-5 py-5 space-y-6">
@@ -271,6 +407,20 @@ export default function LandlordOnboardingDetail({
   submission,
   onBack,
 }: LandlordOnboardingDetailProps) {
+  const [, forceTick] = useState(0);
+  const [showOnboardModal, setShowOnboardModal] = useState(false);
+
+  useEffect(() => {
+    return subscribeToOnboardingConversionStore(() => forceTick((n) => n + 1));
+  }, []);
+
+  const landlordOnboarded = isLandlordOnboarded(submission.id);
+
+  function handleConfirmOnboard(selectedPropertyIds: string[]) {
+    onboardLandlord(submission.id, generateLandlordId(), selectedPropertyIds);
+    setShowOnboardModal(false);
+  }
+
   return (
     <div className="page-container">
       {/* Header card */}
@@ -288,18 +438,35 @@ export default function LandlordOnboardingDetail({
 
         <div className="border-t border-gray-100" />
 
-        <div className="px-6 sm:px-8 py-5">
-          <h1 className="text-xl font-semibold text-slate-900 leading-snug">
-            {submission.landlordName}
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
-            <Phone className="w-3.5 h-3.5" />
-            {submission.landlordPhone}
-          </p>
-          <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5" />
-            Submitted {formatDateTime(submission.submittedAt)}
-          </p>
+        <div className="px-6 sm:px-8 py-5 flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-slate-900 leading-snug">
+              {submission.landlordName}
+            </h1>
+            <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5" />
+              {submission.landlordPhone}
+            </p>
+            <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              Submitted {formatDateTime(submission.submittedAt)}
+            </p>
+          </div>
+          <div className="shrink-0">
+            {landlordOnboarded ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-green-50 text-green-700 border border-green-200">
+                <Check className="w-3.5 h-3.5" />
+                Landlord Onboarded
+              </span>
+            ) : (
+              <Button
+                onClick={() => setShowOnboardModal(true)}
+                className="bg-[#FF5000] hover:bg-[#e04600] text-white"
+              >
+                Onboard Landlord
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -321,11 +488,25 @@ export default function LandlordOnboardingDetail({
           </h3>
           <div className="space-y-3">
             {submission.properties.map((property, idx) => (
-              <PropertyCard key={property.id} property={property} defaultOpen={idx === 0} />
+              <PropertyCard
+                key={property.id}
+                property={property}
+                defaultOpen={idx === 0}
+                isLandlordOnboarded={landlordOnboarded}
+                isAdded={isPropertyAdded(submission.id, property.id)}
+                onAddProperty={() => markPropertyAdded(submission.id, property.id)}
+              />
             ))}
           </div>
         </div>
       </div>
+
+      <OnboardLandlordModal
+        open={showOnboardModal}
+        properties={submission.properties}
+        onClose={() => setShowOnboardModal(false)}
+        onConfirm={handleConfirmOnboard}
+      />
     </div>
   );
 }
