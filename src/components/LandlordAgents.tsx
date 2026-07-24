@@ -382,9 +382,10 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                 <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto">
                 <table className="w-full text-sm table-fixed">
                   <colgroup>
-                    <col className="w-64" />
-                    <col />
+                    <col className="w-[220px]" />
+                    <col className="w-[360px]" />
                     <col className="w-40" />
+                    <col />
                   </colgroup>
                   <thead className={stickyHeadClass(tableScrolled)}>
                     <tr>
@@ -409,6 +410,7 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                           )}
                         </button>
                       </th>
+                      <th className="px-4 py-3" aria-hidden="true" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -430,6 +432,7 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                         <td className="px-4 py-4 pr-6 text-right">
                           <ActivityBadge count={agent.referralCount} />
                         </td>
+                        <td aria-hidden="true" />
                       </tr>
                     ))}
                   </tbody>
