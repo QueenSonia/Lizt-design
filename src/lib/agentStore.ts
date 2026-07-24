@@ -77,6 +77,8 @@ export interface Agent {
   primaryName: string;
   /** Other names used for this phone number, excluding the primary name. */
   aliases: string[];
+  /** Total number of tenant applications (referrals) linked to this phone number. */
+  referralCount: number;
 }
 
 export function normalizePhone(phone: string): string {
@@ -88,6 +90,7 @@ export function deriveAgents(applications: KYCApplication[]): Agent[] {
     phone: string;
     nameCounts: Map<string, number>;
     nameFirstSeen: Map<string, number>;
+    referralCount: number;
   }
 
   const byPhone = new Map<string, AgentBucket>();
@@ -102,19 +105,20 @@ export function deriveAgents(applications: KYCApplication[]): Agent[] {
 
     let bucket = byPhone.get(id);
     if (!bucket) {
-      bucket = { phone: agent.phoneNumber, nameCounts: new Map(), nameFirstSeen: new Map() };
+      bucket = { phone: agent.phoneNumber, nameCounts: new Map(), nameFirstSeen: new Map(), referralCount: 0 };
       byPhone.set(id, bucket);
     }
 
     bucket.nameCounts.set(name, (bucket.nameCounts.get(name) ?? 0) + 1);
     if (!bucket.nameFirstSeen.has(name)) bucket.nameFirstSeen.set(name, order++);
+    bucket.referralCount += 1;
   }
 
   // Extra aliases (e.g. from KYC form name edits) can introduce phone numbers that have no
   // referralAgent-bearing application yet — make sure those still surface as agents.
   for (const id of _extraAliases.keys()) {
     if (!byPhone.has(id)) {
-      byPhone.set(id, { phone: id, nameCounts: new Map(), nameFirstSeen: new Map() });
+      byPhone.set(id, { phone: id, nameCounts: new Map(), nameFirstSeen: new Map(), referralCount: 0 });
     }
   }
 
@@ -150,7 +154,7 @@ export function deriveAgents(applications: KYCApplication[]): Agent[] {
       );
       const aliases = [...baseAliases, ...extra];
 
-      return { id, phone: bucket.phone, primaryName, aliases };
+      return { id, phone: bucket.phone, primaryName, aliases, referralCount: bucket.referralCount };
     })
     .filter((a) => a.primaryName)
     .sort((a, b) => a.primaryName.localeCompare(b.primaryName));

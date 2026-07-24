@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, Users, X, Pencil } from "lucide-react";
+import { Search, Users, X, Pencil, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Input } from "./ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -67,6 +67,18 @@ const STATUS_TAG_STYLES: Record<LinkedPerson["status"], string> = {
   Applicant: "bg-gray-100 text-gray-700 border-gray-200",
   Tenant: "bg-green-100 text-green-700 border-green-200",
 };
+
+function formatReferralCount(count: number): string {
+  return `${count} ${count === 1 ? "Referral" : "Referrals"}`;
+}
+
+function ActivityBadge({ count }: { count: number }) {
+  return (
+    <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium tabular-nums">
+      {formatReferralCount(count)}
+    </span>
+  );
+}
 
 function formatDate(dateString?: string) {
   if (!dateString) return undefined;
@@ -239,6 +251,7 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
   const [search, setSearch] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
+  const [activitySort, setActivitySort] = useState<"desc" | "asc" | null>(null);
   const [, agentStoreTick] = useState(0);
 
   useEffect(() => {
@@ -271,7 +284,17 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
     );
   }, [agents, search]);
 
-  const pagination = useTablePagination(filtered, search);
+  const sorted = useMemo(() => {
+    if (!activitySort) return filtered;
+    const dir = activitySort === "desc" ? -1 : 1;
+    return [...filtered].sort((a, b) => (a.referralCount - b.referralCount) * dir);
+  }, [filtered, activitySort]);
+
+  const toggleActivitySort = () => {
+    setActivitySort((prev) => (prev === "desc" ? "asc" : prev === "asc" ? null : "desc"));
+  };
+
+  const pagination = useTablePagination(sorted, `${search}|${activitySort ?? ""}`);
 
   const selectedAgent = useMemo(
     () => (selectedAgentId ? agents.find((a) => a.id === selectedAgentId) ?? null : null),
@@ -366,6 +389,21 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                       <th className="text-left px-4 py-3 pr-6">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Agent Name(s)</span>
                       </th>
+                      <th className="text-right px-4 py-3 pr-6">
+                        <button
+                          onClick={toggleActivitySort}
+                          className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                          Activity
+                          {activitySort === "desc" ? (
+                            <ArrowDown className="w-3 h-3" />
+                          ) : activitySort === "asc" ? (
+                            <ArrowUp className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                          )}
+                        </button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -384,6 +422,9 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                             </p>
                           )}
                         </td>
+                        <td className="px-4 py-4 pr-6 text-right">
+                          <ActivityBadge count={agent.referralCount} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -399,13 +440,20 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                     onClick={() => setSelectedAgentId(agent.id)}
                     className="px-4 py-4 active:bg-gray-50"
                   >
-                    <p className="text-xs text-gray-500">{agent.phone}</p>
-                    <p className="font-medium text-gray-900 mt-0.5">{agent.primaryName}</p>
-                    {agent.aliases.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Also referenced as: {agent.aliases.join(", ")}
-                      </p>
-                    )}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500">{agent.phone}</p>
+                        <p className="font-medium text-gray-900 mt-0.5">{agent.primaryName}</p>
+                        {agent.aliases.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Also referenced as: {agent.aliases.join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="shrink-0">
+                        <ActivityBadge count={agent.referralCount} />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
