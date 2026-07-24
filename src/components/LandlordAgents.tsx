@@ -340,7 +340,7 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
 
         {/* Search row */}
         <div className="px-4 lg:px-8 py-4 flex items-center gap-2">
-          <div className="relative w-72 max-w-full">
+          <div className="relative w-[740px] max-w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
               value={search}
@@ -378,14 +378,13 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
           ) : (
             <>
               {/* Desktop table */}
-              <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="hidden sm:block w-fit max-w-full bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                 <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto">
-                <table className="w-full text-sm table-fixed">
+                <table className="w-auto text-sm table-fixed">
                   <colgroup>
                     <col className="w-[220px]" />
                     <col className="w-[360px]" />
                     <col className="w-40" />
-                    <col />
                   </colgroup>
                   <thead className={stickyHeadClass(tableScrolled)}>
                     <tr>
@@ -410,7 +409,6 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                           )}
                         </button>
                       </th>
-                      <th className="px-4 py-3" aria-hidden="true" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -432,7 +430,6 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                         <td className="px-4 py-4 pr-6 text-right">
                           <ActivityBadge count={agent.referralCount} />
                         </td>
-                        <td aria-hidden="true" />
                       </tr>
                     ))}
                   </tbody>
@@ -466,18 +463,20 @@ export default function LandlordAgents({ onMenuClick, isMobile }: LandlordAgents
                 ))}
               </div>
 
-              <TablePagination
-                page={pagination.page}
-                totalPages={pagination.totalPages}
-                pageSize={pagination.pageSize}
-                onPageChange={pagination.setPage}
-                onPageSizeChange={pagination.setPageSize}
-                rangeStart={pagination.rangeStart}
-                rangeEnd={pagination.rangeEnd}
-                total={pagination.total}
-                itemLabel="agents"
-                getPageNumbers={pagination.getPageNumbers}
-              />
+              <div className="w-[740px] max-w-full">
+                <TablePagination
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  pageSize={pagination.pageSize}
+                  onPageChange={pagination.setPage}
+                  onPageSizeChange={pagination.setPageSize}
+                  rangeStart={pagination.rangeStart}
+                  rangeEnd={pagination.rangeEnd}
+                  total={pagination.total}
+                  itemLabel="agents"
+                  getPageNumbers={pagination.getPageNumbers}
+                />
+              </div>
             </>
           )}
         </div>
