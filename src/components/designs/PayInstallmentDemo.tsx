@@ -301,21 +301,30 @@ export default function PayInstallmentDemo() {
                   {formatCurrency(isPaid ? installment.amount : remainingDue)}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-[11px] text-[#1a1b23]">
+            </div>
+          </div>
+
+          {/* Payment Plan Summary */}
+          <div className="mb-8">
+            <h2 className="text-[12px] leading-[16px] font-bold text-[#1a1b23] mb-4 uppercase">
+              Payment Plan Summary
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <p className="text-[11px] leading-[15px] text-gray-500 mb-1">
                   Total Payment Plan Value
-                </span>
-                <span className="text-[11px] text-[#1a1b23] font-bold">
+                </p>
+                <p className="text-[18px] leading-[24px] text-[#1a1b23] font-bold">
                   {formatCurrency(plan.totalValue)}
-                </span>
+                </p>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-[11px] text-[#1a1b23]">
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <p className="text-[11px] leading-[15px] text-gray-500 mb-1">
                   Amount Paid Till Date
-                </span>
-                <span className="text-[11px] text-[#1a1b23] font-bold">
+                </p>
+                <p className="text-[18px] leading-[24px] text-[#1a1b23] font-bold">
                   {formatCurrency(plan.amountPaidToDate)}
-                </span>
+                </p>
               </div>
             </div>
           </div>
