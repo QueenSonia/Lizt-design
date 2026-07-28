@@ -319,18 +319,6 @@ export default function PayInstallmentDemo() {
 
           {!isPaid ? (
             <>
-              <div className="mb-4">
-                <label className="text-[11px] leading-[15px] text-gray-500 mb-1 block">
-                  Email for receipt
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full sm:w-80 h-9 px-3 text-[13px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF5722]/30 focus:border-[#FF5722]"
-                  placeholder="you@example.com"
-                />
-              </div>
               <div>
                 <Button
                   onClick={handlePayment}
