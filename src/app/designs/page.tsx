@@ -7,6 +7,12 @@ export const metadata: Metadata = {
 
 const DESIGNS = [
   {
+    slug: "pay-installment/demo",
+    title: "Pay Installment",
+    description:
+      "Tenant-facing installment payment page — property/plan overview, invoice details, and paid state with receipt.",
+  },
+  {
     slug: "tenant-renewal-acceptance-flow",
     title: "Tenant Renewal Acceptance Flow",
     description:
