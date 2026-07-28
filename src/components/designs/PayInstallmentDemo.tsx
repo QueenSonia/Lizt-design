@@ -169,17 +169,6 @@ export default function PayInstallmentDemo() {
             </div>
           )}
 
-          {/* Landlord branding header */}
-          <div className="flex justify-between items-start gap-4 mb-8">
-            <div className="text-[10px] leading-[14px] text-[#1a1b23]">
-              <p className="text-[12px] leading-[16px] font-bold mb-1.5">
-                {landlordBranding.businessName}
-              </p>
-              <p className="text-gray-600">{landlordBranding.contactPhone}</p>
-              <p className="text-gray-600">{landlordBranding.contactEmail}</p>
-            </div>
-          </div>
-
           {/* Title */}
           <h1 className="text-[16px] leading-[22px] font-bold text-[#1a1b23] mb-2 uppercase text-center">
             Payment Plan Installment
@@ -367,6 +356,15 @@ export default function PayInstallmentDemo() {
               </Button>
             </div>
           )}
+
+          {/* Footer */}
+          <div className="h-[1px] bg-gray-200 mt-10 mb-4" />
+          <div className="text-center text-[10px] leading-[14px] text-gray-400">
+            <p>{landlordBranding.businessName}</p>
+            <p>
+              {landlordBranding.contactPhone} &bull; {landlordBranding.contactEmail}
+            </p>
+          </div>
         </div>
       </div>
     </div>
