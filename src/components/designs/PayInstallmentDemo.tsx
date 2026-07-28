@@ -169,6 +169,24 @@ export default function PayInstallmentDemo() {
             </div>
           )}
 
+          {/* Invoice branding row */}
+          <div className="flex items-center justify-between mb-10">
+            <Image
+              alt="Lizt"
+              src="/lizt.svg"
+              width={120}
+              height={40}
+              className="h-[36px] w-auto"
+            />
+            <Image
+              alt="Property Kraft"
+              src="/designs/receipt/property-kraft.png"
+              width={120}
+              height={40}
+              className="h-[32px] w-auto"
+            />
+          </div>
+
           {/* Title */}
           <h1 className="text-[16px] leading-[22px] font-bold text-[#1a1b23] mb-2 uppercase text-center">
             Payment Plan Installment
