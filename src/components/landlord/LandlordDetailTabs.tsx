@@ -3,12 +3,6 @@
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { MOCK_LANDLORDS, type MockLandlord } from "@/components/LandlordLandlords";
 import KycFormBuilder from "@/components/landlord/KycFormBuilder";
 
@@ -58,46 +52,8 @@ export default function LandlordDetailTabs({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
-        <Tabs defaultValue="overview">
-          <TabsList className="w-full max-w-md grid grid-cols-2 mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="kyc-form">KYC Form</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <div className="bg-white rounded-xl shadow-sm px-5 py-5 flex items-start justify-between gap-6 max-w-2xl">
-              <div className="min-w-0">
-                <p className="text-base font-semibold text-gray-900">
-                  {landlord.name}
-                </p>
-                {landlord.type === "corporate" && landlord.contactName && (
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Contact: {landlord.contactName}
-                  </p>
-                )}
-                <p className="text-sm text-gray-500 mt-2">{landlord.email}</p>
-                <p className="text-sm text-gray-500 mt-1">{landlord.phone}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-semibold text-gray-900">
-                  {landlord.properties}{" "}
-                  {landlord.properties === 1 ? "Property" : "Properties"}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {landlord.tenantList.length}{" "}
-                  {landlord.tenantList.length === 1 ? "Tenant" : "Tenants"}
-                </p>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="kyc-form">
-            <div className="bg-white rounded-xl shadow-sm px-5 py-5 max-w-3xl">
-              <KycFormBuilder landlordId={landlord.id} />
-            </div>
-          </TabsContent>
-        </Tabs>
+      <div className="flex-1 overflow-y-auto">
+        <KycFormBuilder landlordId={landlord.id} landlordName={landlord.name} />
       </div>
     </div>
   );
