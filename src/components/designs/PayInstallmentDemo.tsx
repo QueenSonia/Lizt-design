@@ -241,6 +241,31 @@ export default function PayInstallmentDemo() {
 
           <div className="h-[1px] bg-gradient-to-r from-transparent via-gray-300 to-transparent my-8" />
 
+          {/* Payment Plan Summary */}
+          <div className="mb-8 pt-4 border-t border-gray-100">
+            <h3 className="text-[10px] leading-[13px] text-gray-400 mb-2 uppercase tracking-wide">
+              Payment Plan Summary
+            </h3>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center py-1">
+                <span className="text-[11px] text-gray-500">
+                  Total Payment Plan Value
+                </span>
+                <span className="text-[11px] text-gray-600 font-medium">
+                  {formatCurrency(plan.totalValue)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-[11px] text-gray-500">
+                  Amount Paid Till Date
+                </span>
+                <span className="text-[11px] text-gray-600 font-medium">
+                  {formatCurrency(plan.amountPaidToDate)}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* This installment detail */}
           <div className="mb-8">
             <h2 className="text-[12px] leading-[16px] font-bold text-[#1a1b23] mb-4 uppercase">
@@ -369,31 +394,6 @@ export default function PayInstallmentDemo() {
               </Button>
             </div>
           )}
-
-          {/* Payment Plan Summary */}
-          <div className="mt-8 pt-4 border-t border-gray-100">
-            <h3 className="text-[10px] leading-[13px] text-gray-400 mb-2 uppercase tracking-wide">
-              Payment Plan Summary
-            </h3>
-            <div className="space-y-1">
-              <div className="flex justify-between items-center py-1">
-                <span className="text-[11px] text-gray-500">
-                  Total Payment Plan Value
-                </span>
-                <span className="text-[11px] text-gray-600 font-medium">
-                  {formatCurrency(plan.totalValue)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-[11px] text-gray-500">
-                  Amount Paid Till Date
-                </span>
-                <span className="text-[11px] text-gray-600 font-medium">
-                  {formatCurrency(plan.amountPaidToDate)}
-                </span>
-              </div>
-            </div>
-          </div>
 
           {/* Footer */}
           <div className="h-[1px] bg-gray-200 mt-14 mb-4" />
