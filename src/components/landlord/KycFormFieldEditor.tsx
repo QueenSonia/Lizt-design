@@ -78,7 +78,7 @@ export function KycFormFieldEditor({
         </button>
 
         <div className="flex-1 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col xl:flex-row gap-4">
             <Input
               value={field.label}
               onChange={(e) => onChange({ ...field, label: e.target.value })}
@@ -91,7 +91,7 @@ export function KycFormFieldEditor({
                 onChange({ ...field, type: value as FormFieldType })
               }
             >
-              <SelectTrigger className="w-full sm:w-56 text-sm">
+              <SelectTrigger className="w-full xl:w-56 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -105,7 +105,7 @@ export function KycFormFieldEditor({
           </div>
 
           {showOptions && (
-            <div className="space-y-2 pl-1 max-w-xl">
+            <div className="space-y-2 pl-1">
               {(field.options ?? []).map((opt, idx) => (
                 <div key={idx} className="flex items-center gap-3">
                   <span className="text-xs text-gray-600 flex-1 border border-gray-200 rounded px-3 py-2">

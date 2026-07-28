@@ -14,7 +14,7 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
 
@@ -140,16 +140,18 @@ export function KycFormSectionEditor({
           >
             <SortableContext
               items={section.fields.map((f) => f.id)}
-              strategy={verticalListSortingStrategy}
+              strategy={rectSortingStrategy}
             >
-              {section.fields.map((field) => (
-                <KycFormFieldEditor
-                  key={field.id}
-                  field={field}
-                  onChange={updateField}
-                  onRemove={() => removeField(field.id)}
-                />
-              ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {section.fields.map((field) => (
+                  <KycFormFieldEditor
+                    key={field.id}
+                    field={field}
+                    onChange={updateField}
+                    onRemove={() => removeField(field.id)}
+                  />
+                ))}
+              </div>
             </SortableContext>
           </DndContext>
 
