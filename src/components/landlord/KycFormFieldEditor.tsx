@@ -62,11 +62,11 @@ export function KycFormFieldEditor({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-md border border-gray-200 bg-white p-3 ${
+      className={`rounded-md border border-gray-200 bg-white p-5 ${
         isDragging ? "opacity-50" : ""
       }`}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-4">
         <button
           type="button"
           aria-label="Drag to reorder field"
@@ -77,8 +77,8 @@ export function KycFormFieldEditor({
           <GripVertical className="w-4 h-4" />
         </button>
 
-        <div className="flex-1 space-y-2">
-          <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex-1 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <Input
               value={field.label}
               onChange={(e) => onChange({ ...field, label: e.target.value })}
@@ -91,7 +91,7 @@ export function KycFormFieldEditor({
                 onChange({ ...field, type: value as FormFieldType })
               }
             >
-              <SelectTrigger className="w-full sm:w-44 text-sm">
+              <SelectTrigger className="w-full sm:w-56 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -105,10 +105,10 @@ export function KycFormFieldEditor({
           </div>
 
           {showOptions && (
-            <div className="space-y-1.5 pl-1">
+            <div className="space-y-2 pl-1 max-w-xl">
               {(field.options ?? []).map((opt, idx) => (
-                <div key={idx} className="flex items-center gap-1.5">
-                  <span className="text-xs text-gray-600 flex-1 border border-gray-200 rounded px-2 py-1">
+                <div key={idx} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-600 flex-1 border border-gray-200 rounded px-3 py-2">
                     {opt}
                   </span>
                   <button
@@ -121,7 +121,7 @@ export function KycFormFieldEditor({
                   </button>
                 </div>
               ))}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-3">
                 <Input
                   value={newOption}
                   onChange={(e) => setNewOption(e.target.value)}
@@ -132,13 +132,13 @@ export function KycFormFieldEditor({
                     }
                   }}
                   placeholder="Add option"
-                  className="text-xs h-8 flex-1"
+                  className="text-xs h-9 flex-1"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2"
+                  className="h-9 px-3"
                   onClick={addOption}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -147,8 +147,8 @@ export function KycFormFieldEditor({
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 text-xs text-gray-600">
+          <div className="flex items-center justify-between pt-2">
+            <label className="flex items-center gap-3 text-xs text-gray-600">
               <Switch
                 checked={field.required}
                 onCheckedChange={(checked) =>

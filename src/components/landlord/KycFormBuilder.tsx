@@ -132,7 +132,7 @@ export default function KycFormBuilder({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="bg-white border-b border-gray-200 px-6 sm:px-10 lg:px-16 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-base font-semibold text-gray-900">
             KYC Form Builder
@@ -185,8 +185,8 @@ export default function KycFormBuilder({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
-        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm px-5 py-5 space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 sm:px-10 lg:px-16 py-8">
+        <div className="w-full bg-white rounded-xl shadow-sm px-6 sm:px-10 py-8 space-y-6">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -196,7 +196,7 @@ export default function KycFormBuilder({
               items={schema.sections.map((s) => s.id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="space-y-3">
+              <div className="space-y-6">
                 {schema.sections.map((section) => (
                   <KycFormSectionEditor
                     key={section.id}

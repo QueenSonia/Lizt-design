@@ -94,7 +94,7 @@ export function KycFormSectionEditor({
         isDragging ? "opacity-50" : ""
       }`}
     >
-      <div className="flex items-center gap-2 p-4">
+      <div className="flex items-center gap-4 p-6">
         <button
           type="button"
           aria-label="Drag to reorder section"
@@ -107,7 +107,7 @@ export function KycFormSectionEditor({
         <Input
           value={section.title}
           onChange={(e) => onChange({ ...section, title: e.target.value })}
-          className="text-sm font-semibold flex-1 bg-white"
+          className="text-base font-semibold flex-1 bg-white h-11"
         />
         <button
           type="button"
@@ -132,7 +132,7 @@ export function KycFormSectionEditor({
       </div>
 
       {!collapsed && (
-        <div className="px-4 pb-4 space-y-2">
+        <div className="px-6 pb-6 space-y-4">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
