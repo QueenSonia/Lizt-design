@@ -170,14 +170,7 @@ export default function PayInstallmentDemo() {
           )}
 
           {/* Invoice branding row */}
-          <div className="flex items-center justify-between mb-10">
-            <Image
-              alt="Lizt"
-              src="/lizt.svg"
-              width={120}
-              height={40}
-              className="h-[36px] w-auto"
-            />
+          <div className="flex items-center justify-end mb-10">
             <Image
               alt="Property Kraft"
               src="/designs/receipt/property-kraft.png"
