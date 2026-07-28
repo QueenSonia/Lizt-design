@@ -24,7 +24,7 @@ import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
 
 type LandlordType = "individual" | "corporate";
 
-interface MockLandlord {
+export interface MockLandlord {
   id: string;
   type: LandlordType;
   name: string;
@@ -153,7 +153,7 @@ function generateMockTenants(): MockTenant[] {
   return records;
 }
 
-const MOCK_LANDLORDS: MockLandlord[] = [
+export const MOCK_LANDLORDS: MockLandlord[] = [
   {
     id: "ll-001",
     type: "individual",
@@ -1041,6 +1041,13 @@ function LandlordDetailScreen({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900">Landlord Details</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push(`/${userRole}/landlords/${landlord.id}`)}
+        >
+          KYC Form
+        </Button>
       </div>
 
       {/* Search bar */}
