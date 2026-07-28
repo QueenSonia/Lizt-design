@@ -33,10 +33,10 @@ const MOCK = {
     email: "ifeoma.adeyemi@example.com",
   },
   landlordBranding: {
-    businessName: "Whitegate Properties Ltd.",
+    businessName: "Property Kraft Services",
     businessAddress: "22 Ozumba Mbadiwe Ave, Victoria Island, Lagos",
-    contactPhone: "+234 701 555 0199",
-    contactEmail: "billing@whitegateproperties.ng",
+    contactPhone: "08036322847",
+    contactEmail: "hello@propertykraft.africa",
   },
 };
 
