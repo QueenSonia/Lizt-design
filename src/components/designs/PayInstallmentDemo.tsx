@@ -172,10 +172,9 @@ export default function PayInstallmentDemo() {
           {/* Landlord branding header */}
           <div className="flex justify-between items-start gap-4 mb-8">
             <div className="text-[10px] leading-[14px] text-[#1a1b23]">
-              <p className="text-[12px] leading-[16px] font-bold mb-1">
+              <p className="text-[12px] leading-[16px] font-bold mb-1.5">
                 {landlordBranding.businessName}
               </p>
-              <p className="text-gray-600">{landlordBranding.businessAddress}</p>
               <p className="text-gray-600">{landlordBranding.contactPhone}</p>
               <p className="text-gray-600">{landlordBranding.contactEmail}</p>
             </div>
