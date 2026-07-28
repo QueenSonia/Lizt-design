@@ -22,6 +22,8 @@ const MOCK = {
     planType: "equal" as const,
     chargeName: "Tenancy",
     amountRemaining: 900000,
+    totalValue: 1800000,
+    amountPaidToDate: 450000,
   },
   property: {
     name: "Whitegate Apartments, Block C",
@@ -297,6 +299,22 @@ export default function PayInstallmentDemo() {
                 </span>
                 <span className="text-[18px] leading-[24px] text-[#1a1b23] font-bold">
                   {formatCurrency(isPaid ? installment.amount : remainingDue)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-[11px] text-[#1a1b23]">
+                  Total Payment Plan Value
+                </span>
+                <span className="text-[11px] text-[#1a1b23] font-bold">
+                  {formatCurrency(plan.totalValue)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-[11px] text-[#1a1b23]">
+                  Amount Paid Till Date
+                </span>
+                <span className="text-[11px] text-[#1a1b23] font-bold">
+                  {formatCurrency(plan.amountPaidToDate)}
                 </span>
               </div>
             </div>
