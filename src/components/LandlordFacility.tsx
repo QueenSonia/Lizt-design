@@ -137,12 +137,11 @@ interface PaymentRequest {
   maintenanceRequestId: string;
   maintenanceRequestTitle: string;
   requestedByName: string; // Facility Manager
-  artisanName: string;
   requestedAmount: number;
   requestDate: string;
   reason: string;
   status: PaymentRequestStatus;
-  attachments?: number;
+  attachments?: Array<{ url: string; type: "image" | "video" }>;
   updatedAt: string;
   approvedAt?: string;
   approvedBy?: string;
@@ -172,12 +171,14 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-001",
     maintenanceRequestTitle: "AC unit not cooling in master bedroom",
     requestedByName: "Chukwuemeka Obi",
-    artisanName: "CoolTech Refrigeration Services",
     requestedAmount: 145000,
     requestDate: "2026-07-24T09:15:00Z",
     reason: "Replacement of compressor and refrigerant for tenant's air conditioner.",
     status: "pending_approval",
-    attachments: 2,
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800", type: "image" },
+      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800", type: "image" },
+    ],
     updatedAt: "2026-07-24T09:15:00Z",
   },
   {
@@ -186,12 +187,13 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-002",
     maintenanceRequestTitle: "Kitchen sink pipe leaking",
     requestedByName: "Amaka Nwosu",
-    artisanName: "Femi Plumbing Works",
     requestedAmount: 38000,
     requestDate: "2026-07-25T11:40:00Z",
     reason: "Replacement of corroded under-sink pipework and sealant to stop the leak.",
     status: "pending_approval",
-    attachments: 1,
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=800", type: "image" },
+    ],
     updatedAt: "2026-07-25T11:40:00Z",
   },
   {
@@ -200,7 +202,6 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-003",
     maintenanceRequestTitle: "Generator not starting",
     requestedByName: "Tunde Adeyemi",
-    artisanName: "PowerFix Generators Ltd",
     requestedAmount: 92000,
     requestDate: "2026-07-22T14:05:00Z",
     reason: "Diagnosis and replacement of starter motor on the common-area generator.",
@@ -213,12 +214,15 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-004",
     maintenanceRequestTitle: "Bathroom tiles cracked and lifting",
     requestedByName: "Ngozi Eze",
-    artisanName: "Solid Ground Tiling Co.",
     requestedAmount: 210000,
     requestDate: "2026-07-18T10:20:00Z",
     reason: "Removal and re-laying of damaged bathroom floor tiles, including new grout.",
     status: "approved",
-    attachments: 3,
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800", type: "image" },
+      { url: "https://images.unsplash.com/photo-1585128792020-803d29415281?w=800", type: "image" },
+      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" },
+    ],
     updatedAt: "2026-07-19T08:00:00Z",
     approvedAt: "2026-07-19T08:00:00Z",
     approvedBy: "Michael Adeyemi",
@@ -229,7 +233,6 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-005",
     maintenanceRequestTitle: "Gate motor malfunctioning",
     requestedByName: "Chukwuemeka Obi",
-    artisanName: "SecureGate Automation",
     requestedAmount: 65000,
     requestDate: "2026-07-15T13:30:00Z",
     reason: "Replacement of gate motor control board after repeated tripping.",
@@ -244,12 +247,13 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-006",
     maintenanceRequestTitle: "Water heater not working",
     requestedByName: "Amaka Nwosu",
-    artisanName: "HeatWave Electricals",
     requestedAmount: 54000,
     requestDate: "2026-07-08T09:00:00Z",
     reason: "Replacement of faulty heating element in the tenant's water heater unit.",
     status: "paid",
-    attachments: 1,
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800", type: "image" },
+    ],
     updatedAt: "2026-07-10T16:45:00Z",
     approvedAt: "2026-07-09T10:00:00Z",
     approvedBy: "Michael Adeyemi",
@@ -262,7 +266,6 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-007",
     maintenanceRequestTitle: "Broken window latch",
     requestedByName: "Tunde Adeyemi",
-    artisanName: "SecureFit Windows & Doors",
     requestedAmount: 22500,
     requestDate: "2026-07-05T08:30:00Z",
     reason: "Supply and installation of a replacement window latch and frame repair.",
@@ -279,7 +282,6 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-008",
     maintenanceRequestTitle: "Common area lighting repair",
     requestedByName: "Ngozi Eze",
-    artisanName: "BrightSpark Electricals",
     requestedAmount: 31000,
     requestDate: "2026-07-02T10:10:00Z",
     reason: "Replacement of faulty wiring and fittings for the common-area corridor lights.",
@@ -293,12 +295,13 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-009",
     maintenanceRequestTitle: "Fumigation request",
     requestedByName: "Chukwuemeka Obi",
-    artisanName: "CleanPest Fumigation Services",
     requestedAmount: 40000,
     requestDate: "2026-06-28T11:00:00Z",
     reason: "Quarterly fumigation service requested outside the standard maintenance budget.",
     status: "declined",
-    attachments: 1,
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1587582423116-ec07293f0395?w=800", type: "image" },
+    ],
     updatedAt: "2026-06-29T08:30:00Z",
     declinedAt: "2026-06-29T08:30:00Z",
   },
@@ -308,12 +311,16 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     maintenanceRequestId: "sr-010",
     maintenanceRequestTitle: "Painting of exterior wall",
     requestedByName: "Amaka Nwosu",
-    artisanName: "ColorCraft Painters",
     requestedAmount: 180000,
     requestDate: "2026-07-27T09:45:00Z",
     reason: "Repainting of exterior wall following weather damage and peeling paint.",
     status: "pending_approval",
-    attachments: 4,
+    attachments: [
+      { url: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800", type: "image" },
+      { url: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800", type: "image" },
+      { url: "https://images.unsplash.com/photo-1523419409543-a5e549c1faa8?w=800", type: "image" },
+      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" },
+    ],
     updatedAt: "2026-07-27T09:45:00Z",
   },
 ];
@@ -724,7 +731,6 @@ export function LandlordFacility({
         q === "" ||
         p.propertyName.toLowerCase().includes(q) ||
         p.requestedByName.toLowerCase().includes(q) ||
-        p.artisanName.toLowerCase().includes(q) ||
         p.maintenanceRequestTitle.toLowerCase().includes(q);
       return matchesStatus && matchesSearch;
     });
@@ -1133,7 +1139,7 @@ export function LandlordFacility({
                 <Input
                   value={paymentSearchQuery}
                   onChange={(e) => setPaymentSearchQuery(e.target.value)}
-                  placeholder="Search by property, facility manager, artisan..."
+                  placeholder="Search by property, facility manager, maintenance request..."
                   className="pl-10"
                 />
               </div>
@@ -1181,16 +1187,7 @@ export function LandlordFacility({
                 {filteredPayments.map((payment) => (
                   <div
                     key={payment.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => router.push(`/${userRole}/payment-request-detail?id=${payment.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        router.push(`/${userRole}/payment-request-detail?id=${payment.id}`);
-                      }
-                    }}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3 mb-4">
@@ -1214,12 +1211,11 @@ export function LandlordFacility({
                         <span className="text-sm text-gray-600">Maintenance Request:</span>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={() =>
                             router.push(
                               `/${userRole}/maintenance-request-detail?id=${payment.maintenanceRequestId}`,
-                            );
-                          }}
+                            )
+                          }
                           className="text-sm text-[#FF5000] hover:underline text-left"
                         >
                           {payment.maintenanceRequestTitle}
@@ -1228,10 +1224,6 @@ export function LandlordFacility({
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Requested By:</span>
                         <span className="text-sm text-gray-900">{payment.requestedByName}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Artisan / Vendor:</span>
-                        <span className="text-sm text-gray-900">{payment.artisanName}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Request Date:</span>
@@ -1263,23 +1255,26 @@ export function LandlordFacility({
 
                     {/* Footer */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500 pt-2 border-t border-gray-100">
-                      {payment.attachments && payment.attachments > 0 && (
-                        <div className="flex items-center gap-1.5">
-                          <Paperclip className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-xs text-gray-500">
-                            {payment.attachments} attachment{payment.attachments !== 1 ? "s" : ""}
+                      {payment.attachments && payment.attachments.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLightbox({ items: payment.attachments!, index: 0 })
+                          }
+                          className="flex items-center gap-1.5 text-[#FF5000] hover:underline"
+                        >
+                          <Paperclip className="w-3.5 h-3.5" />
+                          <span className="text-xs font-medium">
+                            {payment.attachments.length} Attachment{payment.attachments.length !== 1 ? "s" : ""}
                           </span>
-                        </div>
+                        </button>
                       )}
                       <div className="text-xs">Last Updated: {getRelativeTime(payment.updatedAt)}</div>
                     </div>
 
                     {/* Primary actions */}
                     {payment.status === "pending_approval" && (
-                      <div
-                        className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
                         <Button
                           size="sm"
                           className="bg-[#FF5000] hover:bg-[#E64600] text-white flex-1 sm:flex-none sm:px-8"
@@ -1799,7 +1794,7 @@ export function LandlordFacility({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmPaymentAction?.action === "approve"
-                ? `This will approve ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""} for disbursement to ${confirmPaymentAction?.payment.artisanName} via Monnify.`
+                ? `This will approve ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""} for disbursement via Monnify.`
                 : `This will decline the payment request from ${confirmPaymentAction?.payment.requestedByName} for ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""}. This cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
