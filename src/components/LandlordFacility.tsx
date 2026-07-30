@@ -134,6 +134,7 @@ type PaymentRequestStatus = "pending_approval" | "approved" | "declined" | "paid
 interface PaymentRequest {
   id: string;
   propertyName: string;
+  maintenanceRequestId: string;
   maintenanceRequestTitle: string;
   requestedByName: string; // Facility Manager
   artisanName: string;
@@ -168,6 +169,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-001",
     propertyName: "Lekki Phase 1 Duplex",
+    maintenanceRequestId: "sr-001",
     maintenanceRequestTitle: "AC unit not cooling in master bedroom",
     requestedByName: "Chukwuemeka Obi",
     artisanName: "CoolTech Refrigeration Services",
@@ -181,6 +183,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-002",
     propertyName: "Ikoyi 2-Bed Apartment",
+    maintenanceRequestId: "sr-002",
     maintenanceRequestTitle: "Kitchen sink pipe leaking",
     requestedByName: "Amaka Nwosu",
     artisanName: "Femi Plumbing Works",
@@ -194,6 +197,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-003",
     propertyName: "Victoria Island Studio",
+    maintenanceRequestId: "sr-003",
     maintenanceRequestTitle: "Generator not starting",
     requestedByName: "Tunde Adeyemi",
     artisanName: "PowerFix Generators Ltd",
@@ -206,6 +210,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-004",
     propertyName: "Parkview Terrace – Block A",
+    maintenanceRequestId: "sr-004",
     maintenanceRequestTitle: "Bathroom tiles cracked and lifting",
     requestedByName: "Ngozi Eze",
     artisanName: "Solid Ground Tiling Co.",
@@ -221,6 +226,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-005",
     propertyName: "Lekki Phase 1 Duplex",
+    maintenanceRequestId: "sr-005",
     maintenanceRequestTitle: "Gate motor malfunctioning",
     requestedByName: "Chukwuemeka Obi",
     artisanName: "SecureGate Automation",
@@ -235,6 +241,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-006",
     propertyName: "Ikoyi 2-Bed Apartment",
+    maintenanceRequestId: "sr-006",
     maintenanceRequestTitle: "Water heater not working",
     requestedByName: "Amaka Nwosu",
     artisanName: "HeatWave Electricals",
@@ -252,6 +259,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-007",
     propertyName: "Victoria Island Studio",
+    maintenanceRequestId: "sr-007",
     maintenanceRequestTitle: "Broken window latch",
     requestedByName: "Tunde Adeyemi",
     artisanName: "SecureFit Windows & Doors",
@@ -268,6 +276,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-008",
     propertyName: "Parkview Terrace – Block A",
+    maintenanceRequestId: "sr-008",
     maintenanceRequestTitle: "Common area lighting repair",
     requestedByName: "Ngozi Eze",
     artisanName: "BrightSpark Electricals",
@@ -281,6 +290,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-009",
     propertyName: "Lekki Phase 1 Duplex",
+    maintenanceRequestId: "sr-009",
     maintenanceRequestTitle: "Fumigation request",
     requestedByName: "Chukwuemeka Obi",
     artisanName: "CleanPest Fumigation Services",
@@ -295,6 +305,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
   {
     id: "pay-010",
     propertyName: "Ikoyi 2-Bed Apartment",
+    maintenanceRequestId: "sr-010",
     maintenanceRequestTitle: "Painting of exterior wall",
     requestedByName: "Amaka Nwosu",
     artisanName: "ColorCraft Painters",
@@ -1201,7 +1212,18 @@ export function LandlordFacility({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Maintenance Request:</span>
-                        <span className="text-sm text-gray-900">{payment.maintenanceRequestTitle}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(
+                              `/${userRole}/maintenance-request-detail?id=${payment.maintenanceRequestId}`,
+                            );
+                          }}
+                          className="text-sm text-[#FF5000] hover:underline text-left"
+                        >
+                          {payment.maintenanceRequestTitle}
+                        </button>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Requested By:</span>
