@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, ChevronLeft, Paperclip, AlertCircle, Check, CheckCircle2, Pencil } from "lucide-react";
+import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, ChevronLeft, Paperclip, AlertCircle, Check, CheckCircle2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import AddManagerModal from "./AddManagerModal";
-import { NIGERIAN_BANKS, mockResolveBankAccount, maskAccountNumber } from "@/lib/bankAccount";
+import { NIGERIAN_BANKS, mockResolveBankAccount } from "@/lib/bankAccount";
 import { LandlordReportMaintenanceModal, LandlordMaintenancePayload } from "./LandlordReportMaintenanceModal";
 import { toast } from "sonner";
 import {
@@ -1611,21 +1611,9 @@ export function LandlordFacility({
 
               {/* Bank Account Details */}
               <div className="border-t border-gray-100 pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Bank Account Details
-                  </p>
-                  {!isEditingManager && (
-                    <button
-                      type="button"
-                      onClick={startEdit}
-                      className="flex items-center gap-1 text-xs font-medium text-[#FF5000] hover:underline"
-                    >
-                      <Pencil className="w-3 h-3" />
-                      Edit
-                    </button>
-                  )}
-                </div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+                  Bank Account Details
+                </p>
 
                 {isEditingManager ? (
                   <div className="space-y-3">
@@ -1690,7 +1678,7 @@ export function LandlordFacility({
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Account Number</span>
                       <span className="text-sm text-gray-900 font-mono">
-                        {detailManager.accountNumber ? maskAccountNumber(detailManager.accountNumber) : "—"}
+                        {detailManager.accountNumber || "—"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
