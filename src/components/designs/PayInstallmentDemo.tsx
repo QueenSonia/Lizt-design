@@ -230,7 +230,7 @@ export default function PayInstallmentDemo() {
               </div>
               <div>
                 <p className="text-[11px] leading-[15px] text-gray-500 mb-1">
-                  Payment Plan
+                  Due Date
                 </p>
                 <p className="text-[11px] leading-[15px] text-[#1a1b23] font-bold">
                   {formatDate(installment.dueDate)}
@@ -272,9 +272,12 @@ export default function PayInstallmentDemo() {
               Invoice Details
             </h2>
             <div className="space-y-3">
-              <div className="flex items-center py-2 border-b border-gray-200">
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-[11px] text-[#1a1b23]">
                   Installment {installment.sequence} of {plan.totalInstallments}
+                </span>
+                <span className="text-[18px] leading-[24px] text-[#1a1b23] font-bold">
+                  {formatCurrency(isPaid ? installment.amount : remainingDue)}
                 </span>
               </div>
               {isPaid && (
@@ -311,14 +314,6 @@ export default function PayInstallmentDemo() {
                   </div>
                 </>
               )}
-              <div className="flex justify-between items-center pt-4 mt-2 border-t-2 border-gray-900">
-                <span className="text-[14px] leading-[18px] text-[#1a1b23] font-bold uppercase">
-                  Amount Due
-                </span>
-                <span className="text-[18px] leading-[24px] text-[#1a1b23] font-bold">
-                  {formatCurrency(isPaid ? installment.amount : remainingDue)}
-                </span>
-              </div>
             </div>
           </div>
 
