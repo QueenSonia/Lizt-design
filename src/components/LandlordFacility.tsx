@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { LandlordTopNav } from "./LandlordTopNav";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
 import {
   Select,
   SelectContent,
@@ -169,6 +170,8 @@ interface PaymentRequest {
   updatedAt: string;
   approvedAt?: string;
   approvedBy?: string;
+  approvedAmount?: number;
+  approvalNote?: string;
   declinedAt?: string;
   paidAt?: string;
   disbursedAmount?: number;
@@ -250,6 +253,8 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     updatedAt: "2026-07-19T08:00:00Z",
     approvedAt: "2026-07-19T08:00:00Z",
     approvedBy: "Michael Adeyemi",
+    approvedAmount: 185000,
+    approvalNote: "Reduced to match the tiler's revised quote after re-inspection.",
   },
   {
     id: "pay-005",
@@ -264,6 +269,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     updatedAt: "2026-07-16T09:12:00Z",
     approvedAt: "2026-07-16T09:12:00Z",
     approvedBy: "Michael Adeyemi",
+    approvedAmount: 65000,
   },
   {
     id: "pay-006",
@@ -281,6 +287,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     updatedAt: "2026-07-10T16:45:00Z",
     approvedAt: "2026-07-09T10:00:00Z",
     approvedBy: "Michael Adeyemi",
+    approvedAmount: 54000,
     paidAt: "2026-07-10T16:45:00Z",
     disbursedAmount: 54000,
   },
@@ -297,6 +304,7 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     updatedAt: "2026-07-06T12:00:00Z",
     approvedAt: "2026-07-05T15:00:00Z",
     approvedBy: "Michael Adeyemi",
+    approvedAmount: 22500,
     paidAt: "2026-07-06T12:00:00Z",
     disbursedAmount: 22500,
   },
@@ -787,8 +795,11 @@ export function LandlordFacility({
   const [payments, setPayments] = useState<PaymentRequest[]>(MOCK_PAYMENT_REQUESTS);
   const [confirmPaymentAction, setConfirmPaymentAction] = useState<{
     payment: PaymentRequest;
-    action: "approve" | "decline";
+    action: "decline";
   } | null>(null);
+  const [approveTarget, setApproveTarget] = useState<PaymentRequest | null>(null);
+  const [approvedAmountInput, setApprovedAmountInput] = useState("");
+  const [approvalNoteInput, setApprovalNoteInput] = useState("");
 
   const filteredPayments = useMemo(() => {
     const q = paymentSearchQuery.toLowerCase().trim();
@@ -803,17 +814,42 @@ export function LandlordFacility({
     });
   }, [payments, paymentSearchQuery, paymentStatusFilter]);
 
-  const handleApprovePayment = (payment: PaymentRequest) => {
+  const openApproveModal = (payment: PaymentRequest) => {
+    setApproveTarget(payment);
+    setApprovedAmountInput(String(payment.requestedAmount));
+    setApprovalNoteInput("");
+  };
+
+  const closeApproveModal = () => {
+    setApproveTarget(null);
+    setApprovedAmountInput("");
+    setApprovalNoteInput("");
+  };
+
+  const parsedApprovedAmount = Number(approvedAmountInput.replace(/,/g, ""));
+  const isApprovedAmountValid =
+    approvedAmountInput.trim() !== "" && Number.isFinite(parsedApprovedAmount) && parsedApprovedAmount > 0;
+
+  const handleApprovePayment = () => {
+    if (!approveTarget || !isApprovedAmountValid) return;
     const now = new Date().toISOString();
     setPayments((prev) =>
       prev.map((p) =>
-        p.id === payment.id
-          ? { ...p, status: "approved", approvedAt: now, approvedBy: "Michael Adeyemi", updatedAt: now }
+        p.id === approveTarget.id
+          ? {
+              ...p,
+              status: "approved",
+              approvedAt: now,
+              approvedBy: "Michael Adeyemi",
+              approvedAmount: parsedApprovedAmount,
+              approvalNote: approvalNoteInput.trim() || undefined,
+              updatedAt: now,
+            }
           : p,
       ),
     );
     toast.success("Payment request approved");
-    setConfirmPaymentAction(null);
+    closeApproveModal();
   };
 
   const handleDeclinePayment = (payment: PaymentRequest) => {
@@ -1267,9 +1303,17 @@ export function LandlordFacility({
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3 mb-4">
-                      <span className="text-xl font-semibold text-gray-900">
-                        {formatCurrency(payment.requestedAmount)}
-                      </span>
+                      <div>
+                        <span className="text-xl font-semibold text-gray-900">
+                          {formatCurrency(payment.requestedAmount)}
+                        </span>
+                        {typeof payment.approvedAmount === "number" &&
+                          payment.approvedAmount !== payment.requestedAmount && (
+                            <p className="text-sm text-gray-600 mt-0.5">
+                              Approved Amount: {formatCurrency(payment.approvedAmount)}
+                            </p>
+                          )}
+                      </div>
                       <span
                         className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${PAYMENT_STATUS_BADGE_CLASS[payment.status]}`}
                       >
@@ -1314,8 +1358,13 @@ export function LandlordFacility({
                     {/* Status-specific info */}
                     {payment.status === "approved" && (
                       <div className="mb-4 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">
-                        Approved on {formatDateTime(payment.approvedAt!)}
-                        {payment.approvedBy ? ` by ${payment.approvedBy}` : ""}
+                        <p>
+                          Approved on {formatDateTime(payment.approvedAt!)}
+                          {payment.approvedBy ? ` by ${payment.approvedBy}` : ""}
+                        </p>
+                        {payment.approvalNote && (
+                          <p className="mt-1 text-blue-700">{payment.approvalNote}</p>
+                        )}
                       </div>
                     )}
                     {payment.status === "paid" && (
@@ -1354,7 +1403,7 @@ export function LandlordFacility({
                         <Button
                           size="sm"
                           className="bg-[#FF5000] hover:bg-[#E64600] text-white flex-1 sm:flex-none sm:px-8"
-                          onClick={() => setConfirmPaymentAction({ payment, action: "approve" })}
+                          onClick={() => openApproveModal(payment)}
                         >
                           <Check className="w-4 h-4 mr-1.5" />
                           Approve
@@ -1943,15 +1992,9 @@ export function LandlordFacility({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmPaymentAction?.action === "approve"
-                ? "Approve this payment request?"
-                : "Decline this payment request?"}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Decline this payment request?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmPaymentAction?.action === "approve"
-                ? `This will approve ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""} for disbursement via Monnify.`
-                : `This will decline the payment request from ${confirmPaymentAction?.payment.requestedByName} for ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""}. This cannot be undone.`}
+              {`This will decline the payment request from ${confirmPaymentAction?.payment.requestedByName} for ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""}. This cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1959,18 +2002,97 @@ export function LandlordFacility({
             <AlertDialogAction
               onClick={() => {
                 if (!confirmPaymentAction) return;
-                if (confirmPaymentAction.action === "approve") {
-                  handleApprovePayment(confirmPaymentAction.payment);
-                } else {
-                  handleDeclinePayment(confirmPaymentAction.payment);
-                }
+                handleDeclinePayment(confirmPaymentAction.payment);
               }}
             >
-              {confirmPaymentAction?.action === "approve" ? "Approve" : "Decline"}
+              Decline
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Approve Payment Request modal */}
+      <Dialog open={approveTarget !== null} onOpenChange={(open) => !open && closeApproveModal()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approve Payment Request</DialogTitle>
+          </DialogHeader>
+
+          {approveTarget && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Property:</span>
+                  <span className="text-sm text-gray-900">{approveTarget.propertyName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Maintenance Request:</span>
+                  <span className="text-sm text-gray-900">{approveTarget.maintenanceRequestTitle}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Requested By:</span>
+                  <span className="text-sm text-gray-900">{approveTarget.requestedByName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Request Date:</span>
+                  <span className="text-sm text-gray-900">{formatDateTime(approveTarget.requestDate)}</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 space-y-1.5">
+                <Label className="text-xs text-gray-500">Requested Amount</Label>
+                <div className="h-9 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                  {formatCurrency(approveTarget.requestedAmount)}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="approved-amount">
+                  Approved Amount <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">₦</span>
+                  <Input
+                    id="approved-amount"
+                    value={approvedAmountInput}
+                    onChange={(e) => setApprovedAmountInput(e.target.value.replace(/[^\d.]/g, ""))}
+                    inputMode="decimal"
+                    className="pl-7"
+                    placeholder="0.00"
+                  />
+                </div>
+                {!isApprovedAmountValid && (
+                  <p className="text-sm text-red-500">Enter a valid approved amount.</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="approval-note">Approval Note</Label>
+                <Textarea
+                  id="approval-note"
+                  value={approvalNoteInput}
+                  onChange={(e) => setApprovalNoteInput(e.target.value)}
+                  placeholder="Add a note explaining any changes to the approved amount (optional)."
+                  className="text-sm min-h-[72px]"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={closeApproveModal}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleApprovePayment}
+              disabled={!isApprovedAmountValid}
+              className="bg-[#FF5000] hover:bg-[#E64600] text-white"
+            >
+              Approve Payment
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
