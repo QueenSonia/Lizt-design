@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { LandlordTopNav } from "./LandlordTopNav";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Textarea } from "./ui/textarea";
 import {
   Select,
   SelectContent,
@@ -171,7 +170,6 @@ interface PaymentRequest {
   approvedAt?: string;
   approvedBy?: string;
   approvedAmount?: number;
-  approvalNote?: string;
   declinedAt?: string;
   paidAt?: string;
   disbursedAmount?: number;
@@ -254,7 +252,6 @@ const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
     approvedAt: "2026-07-19T08:00:00Z",
     approvedBy: "Michael Adeyemi",
     approvedAmount: 185000,
-    approvalNote: "Reduced to match the tiler's revised quote after re-inspection.",
   },
   {
     id: "pay-005",
@@ -799,7 +796,6 @@ export function LandlordFacility({
   } | null>(null);
   const [approveTarget, setApproveTarget] = useState<PaymentRequest | null>(null);
   const [approvedAmountInput, setApprovedAmountInput] = useState("");
-  const [approvalNoteInput, setApprovalNoteInput] = useState("");
 
   const filteredPayments = useMemo(() => {
     const q = paymentSearchQuery.toLowerCase().trim();
@@ -817,13 +813,11 @@ export function LandlordFacility({
   const openApproveModal = (payment: PaymentRequest) => {
     setApproveTarget(payment);
     setApprovedAmountInput(String(payment.requestedAmount));
-    setApprovalNoteInput("");
   };
 
   const closeApproveModal = () => {
     setApproveTarget(null);
     setApprovedAmountInput("");
-    setApprovalNoteInput("");
   };
 
   const parsedApprovedAmount = Number(approvedAmountInput.replace(/,/g, ""));
@@ -842,7 +836,6 @@ export function LandlordFacility({
               approvedAt: now,
               approvedBy: "Michael Adeyemi",
               approvedAmount: parsedApprovedAmount,
-              approvalNote: approvalNoteInput.trim() || undefined,
               updatedAt: now,
             }
           : p,
@@ -1358,13 +1351,8 @@ export function LandlordFacility({
                     {/* Status-specific info */}
                     {payment.status === "approved" && (
                       <div className="mb-4 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">
-                        <p>
-                          Approved on {formatDateTime(payment.approvedAt!)}
-                          {payment.approvedBy ? ` by ${payment.approvedBy}` : ""}
-                        </p>
-                        {payment.approvalNote && (
-                          <p className="mt-1 text-blue-700">{payment.approvalNote}</p>
-                        )}
+                        Approved on {formatDateTime(payment.approvedAt!)}
+                        {payment.approvedBy ? ` by ${payment.approvedBy}` : ""}
                       </div>
                     )}
                     {payment.status === "paid" && (
@@ -2064,17 +2052,6 @@ export function LandlordFacility({
                 {!isApprovedAmountValid && (
                   <p className="text-sm text-red-500">Enter a valid approved amount.</p>
                 )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="approval-note">Approval Note</Label>
-                <Textarea
-                  id="approval-note"
-                  value={approvalNoteInput}
-                  onChange={(e) => setApprovalNoteInput(e.target.value)}
-                  placeholder="Add a note explaining any changes to the approved amount (optional)."
-                  className="text-sm min-h-[72px]"
-                />
               </div>
             </div>
           )}
