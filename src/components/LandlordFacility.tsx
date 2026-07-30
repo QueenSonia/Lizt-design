@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { LandlordTopNav } from "./LandlordTopNav";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import {
   Select,
   SelectContent,
@@ -9,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, ChevronLeft, Paperclip, AlertCircle, Check } from "lucide-react";
+import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, ChevronLeft, Paperclip, AlertCircle, Check, CheckCircle2, Pencil } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
@@ -24,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import AddManagerModal from "./AddManagerModal";
+import { NIGERIAN_BANKS, mockResolveBankAccount, maskAccountNumber } from "@/lib/bankAccount";
 import { LandlordReportMaintenanceModal, LandlordMaintenancePayload } from "./LandlordReportMaintenanceModal";
 import { toast } from "sonner";
 import {
@@ -63,7 +65,11 @@ interface FacilityManager {
   email: string;
   role: string;
   date: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
 }
+
 
 type FacilityManagerColumnId = "name" | "phone" | "activeTasks";
 
@@ -84,6 +90,9 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "c.obi@facilitypro.ng",
     role: "facility_manager",
     date: "2025-09-10T00:00:00Z",
+    bankName: "Guaranty Trust Bank",
+    accountNumber: "0123456789",
+    accountName: "Chukwuemeka Obi",
   },
   {
     id: "fm-002",
@@ -92,6 +101,9 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "a.nwosu@facilitypro.ng",
     role: "facility_manager",
     date: "2025-10-03T00:00:00Z",
+    bankName: "Access Bank",
+    accountNumber: "0234567891",
+    accountName: "Amaka Nwosu",
   },
   {
     id: "fm-003",
@@ -100,6 +112,9 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "t.adeyemi@facilitypro.ng",
     role: "facility_manager",
     date: "2025-11-18T00:00:00Z",
+    bankName: "Zenith Bank",
+    accountNumber: "0345678912",
+    accountName: "Tunde Adeyemi",
   },
   {
     id: "fm-004",
@@ -108,6 +123,9 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "n.eze@facilitypro.ng",
     role: "facility_manager",
     date: "2026-01-07T00:00:00Z",
+    bankName: "United Bank for Africa",
+    accountNumber: "0456789123",
+    accountName: "Ngozi Eze",
   },
   {
     id: "fm-005",
@@ -116,6 +134,9 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "f.olawale@facilitypro.ng",
     role: "facility_manager",
     date: "2026-02-14T00:00:00Z",
+    bankName: "First Bank of Nigeria",
+    accountNumber: "0567891234",
+    accountName: "Femi Olawale",
   },
   {
     id: "fm-006",
@@ -124,6 +145,9 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "b.okafor@facilitypro.ng",
     role: "facility_manager",
     date: "2026-03-22T00:00:00Z",
+    bankName: "Kuda Bank",
+    accountNumber: "0678912345",
+    accountName: "Blessing Okafor",
   },
 ];
 
@@ -661,6 +685,12 @@ export function LandlordFacility({
   const fmPagination = useTablePagination(managers, managers.length);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editBankName, setEditBankName] = useState("");
+  const [editAccountNumber, setEditAccountNumber] = useState("");
+  const [editAccountName, setEditAccountName] = useState("");
+  const [editAccountStatus, setEditAccountStatus] = useState<
+    "idle" | "resolving" | "resolved" | "failed"
+  >("idle");
   const [confirmDeleteManager, setConfirmDeleteManager] = useState(false);
 
   const deleteManager = () => {
@@ -681,15 +711,52 @@ export function LandlordFacility({
     if (!detailManager) return;
     setEditName(detailManager.name);
     setEditPhone(detailManager.phone_number);
+    setEditBankName(detailManager.bankName);
+    setEditAccountNumber(detailManager.accountNumber);
+    setEditAccountName(detailManager.accountName);
+    setEditAccountStatus(detailManager.accountName ? "resolved" : "idle");
     setIsEditingManager(true);
   };
 
+  const resolveEditAccount = useCallback((accountNumber: string, bankName: string) => {
+    if (!/^\d{10}$/.test(accountNumber) || !bankName) {
+      setEditAccountStatus("idle");
+      setEditAccountName("");
+      return;
+    }
+    setEditAccountStatus("resolving");
+    mockResolveBankAccount(accountNumber, bankName).then((result) => {
+      if (result.success) {
+        setEditAccountName(result.accountName);
+        setEditAccountStatus("resolved");
+      } else {
+        setEditAccountName("");
+        setEditAccountStatus("failed");
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isEditingManager) return;
+    resolveEditAccount(editAccountNumber, editBankName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editAccountNumber, editBankName, isEditingManager]);
+
   const saveEdit = () => {
     if (!detailManager || !editName.trim()) return;
-    const updated = { ...detailManager, name: editName.trim(), phone_number: editPhone.trim() };
+    if (editAccountStatus !== "resolved" || !editAccountName) return;
+    const updated = {
+      ...detailManager,
+      name: editName.trim(),
+      phone_number: editPhone.trim(),
+      bankName: editBankName,
+      accountNumber: editAccountNumber,
+      accountName: editAccountName,
+    };
     setManagers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
     setDetailManager(updated);
     setIsEditingManager(false);
+    toast.success("Facility Manager updated successfully");
   };
 
   // ── Maintenance Requests ───────────────────────────────────────────────────────
@@ -852,7 +919,13 @@ export function LandlordFacility({
 
   useEffect(() => { fetchManagers(); }, []);
 
-  const handleAddManager = async (name: string, phone: string) => {
+  const handleAddManager = async (
+    name: string,
+    phone: string,
+    bankName: string,
+    accountNumber: string,
+    accountName: string,
+  ) => {
     const newManager: FacilityManager = {
       id: `fm-${Date.now()}`,
       name,
@@ -860,6 +933,9 @@ export function LandlordFacility({
       email: `${name.toLowerCase().replace(/\s+/g, ".")}@facilitypro.ng`,
       role: "facility_manager",
       date: new Date().toISOString(),
+      bankName,
+      accountNumber,
+      accountName,
     };
     setManagers((prev) => [newManager, ...prev]);
     toast.success("Facility manager added successfully");
@@ -1533,6 +1609,98 @@ export function LandlordFacility({
                 <span className="text-sm text-gray-900">{formatDate(detailManager.date)}</span>
               </div>
 
+              {/* Bank Account Details */}
+              <div className="border-t border-gray-100 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Bank Account Details
+                  </p>
+                  {!isEditingManager && (
+                    <button
+                      type="button"
+                      onClick={startEdit}
+                      className="flex items-center gap-1 text-xs font-medium text-[#FF5000] hover:underline"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Edit
+                    </button>
+                  )}
+                </div>
+
+                {isEditingManager ? (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-gray-500">Bank Name</Label>
+                      <Select value={editBankName} onValueChange={setEditBankName}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Select bank" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {NIGERIAN_BANKS.map((bank) => (
+                            <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-gray-500">Account Number</Label>
+                      <Input
+                        value={editAccountNumber}
+                        onChange={(e) =>
+                          setEditAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))
+                        }
+                        placeholder="Enter 10-digit account number"
+                        inputMode="numeric"
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-gray-500">Account Name</Label>
+                      <div className="h-9 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-sm">
+                        {editAccountStatus === "resolving" && (
+                          <span className="flex items-center gap-2 text-gray-500">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Verifying account...
+                          </span>
+                        )}
+                        {editAccountStatus === "resolved" && (
+                          <span className="flex items-center gap-2 text-emerald-700 font-medium">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {editAccountName}
+                          </span>
+                        )}
+                        {editAccountStatus === "idle" && (
+                          <span className="text-gray-400">Enter account number to verify</span>
+                        )}
+                        {editAccountStatus === "failed" && <span className="text-gray-400">—</span>}
+                      </div>
+                      {editAccountStatus === "failed" && (
+                        <p className="text-sm text-red-500">
+                          Could not verify this account. Check the account number and bank, then try again.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Bank Name</span>
+                      <span className="text-sm text-gray-900">{detailManager.bankName || "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Account Number</span>
+                      <span className="text-sm text-gray-900 font-mono">
+                        {detailManager.accountNumber ? maskAccountNumber(detailManager.accountNumber) : "—"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Account Name</span>
+                      <span className="text-sm text-gray-900">{detailManager.accountName || "—"}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Active maintenance requests */}
               <div className="border-t border-gray-100 pt-4">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
@@ -1595,7 +1763,7 @@ export function LandlordFacility({
                   <Button
                     className="flex-1 bg-[#FF5000] hover:bg-[#E64800] text-white"
                     onClick={saveEdit}
-                    disabled={!editName.trim()}
+                    disabled={!editName.trim() || editAccountStatus !== "resolved" || !editAccountName}
                   >
                     Save
                   </Button>
