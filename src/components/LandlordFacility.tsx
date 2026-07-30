@@ -13,6 +13,16 @@ import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, Ch
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import AddManagerModal from "./AddManagerModal";
 import { LandlordReportMaintenanceModal, LandlordMaintenancePayload } from "./LandlordReportMaintenanceModal";
 import { toast } from "sonner";
@@ -114,6 +124,186 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "b.okafor@facilitypro.ng",
     role: "facility_manager",
     date: "2026-03-22T00:00:00Z",
+  },
+];
+
+// ── Payments (Monnify Disbursements) ─────────────────────────────────────────
+
+type PaymentRequestStatus = "pending_approval" | "approved" | "declined" | "paid";
+
+interface PaymentRequest {
+  id: string;
+  propertyName: string;
+  maintenanceRequestTitle: string;
+  requestedByName: string; // Facility Manager
+  artisanName: string;
+  requestedAmount: number;
+  requestDate: string;
+  reason: string;
+  status: PaymentRequestStatus;
+  attachments?: number;
+  updatedAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  declinedAt?: string;
+  paidAt?: string;
+  disbursedAmount?: number;
+}
+
+const PAYMENT_STATUS_LABEL: Record<PaymentRequestStatus, string> = {
+  pending_approval: "Pending Approval",
+  approved: "Approved",
+  declined: "Declined",
+  paid: "Paid",
+};
+
+const PAYMENT_STATUS_BADGE_CLASS: Record<PaymentRequestStatus, string> = {
+  pending_approval: "bg-amber-50 text-amber-700 border-amber-200",
+  approved: "bg-blue-50 text-blue-700 border-blue-200",
+  declined: "bg-red-50 text-red-700 border-red-200",
+  paid: "bg-green-50 text-green-700 border-green-200",
+};
+
+const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
+  {
+    id: "pay-001",
+    propertyName: "Lekki Phase 1 Duplex",
+    maintenanceRequestTitle: "AC unit not cooling in master bedroom",
+    requestedByName: "Chukwuemeka Obi",
+    artisanName: "CoolTech Refrigeration Services",
+    requestedAmount: 145000,
+    requestDate: "2026-07-24T09:15:00Z",
+    reason: "Replacement of compressor and refrigerant for tenant's air conditioner.",
+    status: "pending_approval",
+    attachments: 2,
+    updatedAt: "2026-07-24T09:15:00Z",
+  },
+  {
+    id: "pay-002",
+    propertyName: "Ikoyi 2-Bed Apartment",
+    maintenanceRequestTitle: "Kitchen sink pipe leaking",
+    requestedByName: "Amaka Nwosu",
+    artisanName: "Femi Plumbing Works",
+    requestedAmount: 38000,
+    requestDate: "2026-07-25T11:40:00Z",
+    reason: "Replacement of corroded under-sink pipework and sealant to stop the leak.",
+    status: "pending_approval",
+    attachments: 1,
+    updatedAt: "2026-07-25T11:40:00Z",
+  },
+  {
+    id: "pay-003",
+    propertyName: "Victoria Island Studio",
+    maintenanceRequestTitle: "Generator not starting",
+    requestedByName: "Tunde Adeyemi",
+    artisanName: "PowerFix Generators Ltd",
+    requestedAmount: 92000,
+    requestDate: "2026-07-22T14:05:00Z",
+    reason: "Diagnosis and replacement of starter motor on the common-area generator.",
+    status: "pending_approval",
+    updatedAt: "2026-07-22T14:05:00Z",
+  },
+  {
+    id: "pay-004",
+    propertyName: "Parkview Terrace – Block A",
+    maintenanceRequestTitle: "Bathroom tiles cracked and lifting",
+    requestedByName: "Ngozi Eze",
+    artisanName: "Solid Ground Tiling Co.",
+    requestedAmount: 210000,
+    requestDate: "2026-07-18T10:20:00Z",
+    reason: "Removal and re-laying of damaged bathroom floor tiles, including new grout.",
+    status: "approved",
+    attachments: 3,
+    updatedAt: "2026-07-19T08:00:00Z",
+    approvedAt: "2026-07-19T08:00:00Z",
+    approvedBy: "Michael Adeyemi",
+  },
+  {
+    id: "pay-005",
+    propertyName: "Lekki Phase 1 Duplex",
+    maintenanceRequestTitle: "Gate motor malfunctioning",
+    requestedByName: "Chukwuemeka Obi",
+    artisanName: "SecureGate Automation",
+    requestedAmount: 65000,
+    requestDate: "2026-07-15T13:30:00Z",
+    reason: "Replacement of gate motor control board after repeated tripping.",
+    status: "approved",
+    updatedAt: "2026-07-16T09:12:00Z",
+    approvedAt: "2026-07-16T09:12:00Z",
+    approvedBy: "Michael Adeyemi",
+  },
+  {
+    id: "pay-006",
+    propertyName: "Ikoyi 2-Bed Apartment",
+    maintenanceRequestTitle: "Water heater not working",
+    requestedByName: "Amaka Nwosu",
+    artisanName: "HeatWave Electricals",
+    requestedAmount: 54000,
+    requestDate: "2026-07-08T09:00:00Z",
+    reason: "Replacement of faulty heating element in the tenant's water heater unit.",
+    status: "paid",
+    attachments: 1,
+    updatedAt: "2026-07-10T16:45:00Z",
+    approvedAt: "2026-07-09T10:00:00Z",
+    approvedBy: "Michael Adeyemi",
+    paidAt: "2026-07-10T16:45:00Z",
+    disbursedAmount: 54000,
+  },
+  {
+    id: "pay-007",
+    propertyName: "Victoria Island Studio",
+    maintenanceRequestTitle: "Broken window latch",
+    requestedByName: "Tunde Adeyemi",
+    artisanName: "SecureFit Windows & Doors",
+    requestedAmount: 22500,
+    requestDate: "2026-07-05T08:30:00Z",
+    reason: "Supply and installation of a replacement window latch and frame repair.",
+    status: "paid",
+    updatedAt: "2026-07-06T12:00:00Z",
+    approvedAt: "2026-07-05T15:00:00Z",
+    approvedBy: "Michael Adeyemi",
+    paidAt: "2026-07-06T12:00:00Z",
+    disbursedAmount: 22500,
+  },
+  {
+    id: "pay-008",
+    propertyName: "Parkview Terrace – Block A",
+    maintenanceRequestTitle: "Common area lighting repair",
+    requestedByName: "Ngozi Eze",
+    artisanName: "BrightSpark Electricals",
+    requestedAmount: 31000,
+    requestDate: "2026-07-02T10:10:00Z",
+    reason: "Replacement of faulty wiring and fittings for the common-area corridor lights.",
+    status: "declined",
+    updatedAt: "2026-07-03T09:20:00Z",
+    declinedAt: "2026-07-03T09:20:00Z",
+  },
+  {
+    id: "pay-009",
+    propertyName: "Lekki Phase 1 Duplex",
+    maintenanceRequestTitle: "Fumigation request",
+    requestedByName: "Chukwuemeka Obi",
+    artisanName: "CleanPest Fumigation Services",
+    requestedAmount: 40000,
+    requestDate: "2026-06-28T11:00:00Z",
+    reason: "Quarterly fumigation service requested outside the standard maintenance budget.",
+    status: "declined",
+    attachments: 1,
+    updatedAt: "2026-06-29T08:30:00Z",
+    declinedAt: "2026-06-29T08:30:00Z",
+  },
+  {
+    id: "pay-010",
+    propertyName: "Ikoyi 2-Bed Apartment",
+    maintenanceRequestTitle: "Painting of exterior wall",
+    requestedByName: "Amaka Nwosu",
+    artisanName: "ColorCraft Painters",
+    requestedAmount: 180000,
+    requestDate: "2026-07-27T09:45:00Z",
+    reason: "Repainting of exterior wall following weather damage and peeling paint.",
+    status: "pending_approval",
+    attachments: 4,
+    updatedAt: "2026-07-27T09:45:00Z",
   },
 ];
 
@@ -422,7 +612,7 @@ export function LandlordFacility({
   const { user } = useAuth();
   const userRole = user?.role || pathname.split("/")[1] || "landlord";
 
-  const [activeTab, setActiveTab] = useState<"service_requests" | "common_areas" | "facility_managers">("service_requests");
+  const [activeTab, setActiveTab] = useState<"service_requests" | "payments" | "common_areas" | "facility_managers">("service_requests");
   const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [, fmStoreTick] = useState(0);
 
@@ -506,6 +696,53 @@ export function LandlordFacility({
 
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
+  // ── Payments ───────────────────────────────────────────────────────────────
+  const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<"all" | PaymentRequestStatus>("all");
+  const [payments, setPayments] = useState<PaymentRequest[]>(MOCK_PAYMENT_REQUESTS);
+  const [confirmPaymentAction, setConfirmPaymentAction] = useState<{
+    payment: PaymentRequest;
+    action: "approve" | "decline";
+  } | null>(null);
+
+  const filteredPayments = useMemo(() => {
+    const q = paymentSearchQuery.toLowerCase().trim();
+    return payments.filter((p) => {
+      const matchesStatus = paymentStatusFilter === "all" || p.status === paymentStatusFilter;
+      const matchesSearch =
+        q === "" ||
+        p.propertyName.toLowerCase().includes(q) ||
+        p.requestedByName.toLowerCase().includes(q) ||
+        p.artisanName.toLowerCase().includes(q) ||
+        p.maintenanceRequestTitle.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [payments, paymentSearchQuery, paymentStatusFilter]);
+
+  const handleApprovePayment = (payment: PaymentRequest) => {
+    const now = new Date().toISOString();
+    setPayments((prev) =>
+      prev.map((p) =>
+        p.id === payment.id
+          ? { ...p, status: "approved", approvedAt: now, approvedBy: "Michael Adeyemi", updatedAt: now }
+          : p,
+      ),
+    );
+    toast.success("Payment request approved");
+    setConfirmPaymentAction(null);
+  };
+
+  const handleDeclinePayment = (payment: PaymentRequest) => {
+    const now = new Date().toISOString();
+    setPayments((prev) =>
+      prev.map((p) =>
+        p.id === payment.id ? { ...p, status: "declined", declinedAt: now, updatedAt: now } : p,
+      ),
+    );
+    toast.success("Payment request declined");
+    setConfirmPaymentAction(null);
+  };
+
   // ── Common Areas ───────────────────────────────────────────────────────────
   const [caSearchQuery, setCaSearchQuery] = useState("");
   const [commonAreas, setCommonAreas] = useState<CommonArea[]>(MOCK_COMMON_AREAS);
@@ -568,6 +805,9 @@ export function LandlordFacility({
       date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
     );
   };
+
+  const formatCurrency = (amount: number) =>
+    `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const getRelativeTime = (dateString: string | null | undefined) => {
     if (!dateString) return "N/A";
@@ -644,7 +884,13 @@ export function LandlordFacility({
       <LandlordTopNav
         title="Facility"
         onBack={onBack}
-        onAddNew={activeTab === "common_areas" ? () => setShowAddAreaModal(true) : () => setShowAddModal(true)}
+        onAddNew={
+          activeTab === "common_areas"
+            ? () => setShowAddAreaModal(true)
+            : activeTab === "facility_managers"
+              ? () => setShowAddModal(true)
+              : undefined
+        }
         buttonText={activeTab === "common_areas" ? "Add Common Area" : "Add Facility Manager"}
         onMenuClick={onMenuClick}
         isMobile={isMobile}
@@ -655,7 +901,7 @@ export function LandlordFacility({
       {/* Tab bar */}
       <div className="fixed top-[73px] lg:top-[81px] right-0 left-0 lg:left-72 z-10 bg-white border-b border-gray-200">
         <div className="px-6 flex gap-6">
-          {(["service_requests", "common_areas", "facility_managers"] as const).map((tab) => (
+          {(["service_requests", "payments", "common_areas", "facility_managers"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -665,7 +911,13 @@ export function LandlordFacility({
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {tab === "service_requests" ? "Maintenance Requests" : tab === "common_areas" ? "Common Areas" : "Facility Managers"}
+              {tab === "service_requests"
+                ? "Maintenance Requests"
+                : tab === "payments"
+                  ? "Payments"
+                  : tab === "common_areas"
+                    ? "Common Areas"
+                    : "Facility Managers"}
             </button>
           ))}
         </div>
@@ -859,6 +1111,177 @@ export function LandlordFacility({
               })()}
             </div>
           </>
+        )}
+
+        {/* ── Payments tab ── */}
+        {activeTab === "payments" && (
+          <div>
+            <div className="bg-white rounded-xl p-4 shadow-sm mb-6 max-w-xl">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  value={paymentSearchQuery}
+                  onChange={(e) => setPaymentSearchQuery(e.target.value)}
+                  placeholder="Search by property, facility manager, artisan..."
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Status filter */}
+            <div className="mb-5 flex items-center gap-1.5 flex-wrap">
+              {([
+                { value: "all", label: "All" },
+                { value: "pending_approval", label: "Pending Approval" },
+                { value: "approved", label: "Approved" },
+                { value: "paid", label: "Paid" },
+                { value: "declined", label: "Declined" },
+              ] as const).map((opt) => {
+                const active = paymentStatusFilter === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setPaymentStatusFilter(opt.value)}
+                    className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                      active
+                        ? "bg-gray-900 text-white border-gray-900"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {filteredPayments.length === 0 && (
+              <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                  <Wrench className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg text-gray-900 mb-2">No payment requests found.</h3>
+                <p className="text-gray-500">Payment requests submitted by Facility Managers will appear here.</p>
+              </div>
+            )}
+
+            {filteredPayments.length > 0 && (
+              <div className="space-y-4">
+                {filteredPayments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(`/${userRole}/payment-request-detail?id=${payment.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/${userRole}/payment-request-detail?id=${payment.id}`);
+                      }
+                    }}
+                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <span className="text-xl font-semibold text-gray-900">
+                        {formatCurrency(payment.requestedAmount)}
+                      </span>
+                      <span
+                        className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${PAYMENT_STATUS_BADGE_CLASS[payment.status]}`}
+                      >
+                        {PAYMENT_STATUS_LABEL[payment.status]}
+                      </span>
+                    </div>
+
+                    {/* Request information */}
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Property:</span>
+                        <span className="text-sm text-gray-900">{payment.propertyName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Maintenance Request:</span>
+                        <span className="text-sm text-gray-900">{payment.maintenanceRequestTitle}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Requested By:</span>
+                        <span className="text-sm text-gray-900">{payment.requestedByName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Artisan / Vendor:</span>
+                        <span className="text-sm text-gray-900">{payment.artisanName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Request Date:</span>
+                        <span className="text-sm text-gray-900">{formatDateTime(payment.requestDate)}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600 block mb-1">Reason:</span>
+                        <p className="text-sm text-gray-900 leading-snug line-clamp-3">{payment.reason}</p>
+                      </div>
+                    </div>
+
+                    {/* Status-specific info */}
+                    {payment.status === "approved" && (
+                      <div className="mb-4 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">
+                        Approved on {formatDateTime(payment.approvedAt!)}
+                        {payment.approvedBy ? ` by ${payment.approvedBy}` : ""}
+                      </div>
+                    )}
+                    {payment.status === "paid" && (
+                      <div className="mb-4 px-3 py-2 rounded-lg bg-green-50 border border-green-100 text-xs text-green-800">
+                        Paid on {formatDateTime(payment.paidAt!)} · Disbursed {formatCurrency(payment.disbursedAmount ?? payment.requestedAmount)}
+                      </div>
+                    )}
+                    {payment.status === "declined" && (
+                      <div className="mb-4 px-3 py-2 rounded-lg bg-red-50 border border-red-100 text-xs text-red-800">
+                        Declined on {formatDateTime(payment.declinedAt!)}
+                      </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500 pt-2 border-t border-gray-100">
+                      {payment.attachments && payment.attachments > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <Paperclip className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-xs text-gray-500">
+                            {payment.attachments} attachment{payment.attachments !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      )}
+                      <div className="text-xs">Last Updated: {getRelativeTime(payment.updatedAt)}</div>
+                    </div>
+
+                    {/* Primary actions */}
+                    {payment.status === "pending_approval" && (
+                      <div
+                        className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          size="sm"
+                          className="bg-[#FF5000] hover:bg-[#E64600] text-white flex-1 sm:flex-none sm:px-8"
+                          onClick={() => setConfirmPaymentAction({ payment, action: "approve" })}
+                        >
+                          <Check className="w-4 h-4 mr-1.5" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 flex-1 sm:flex-none sm:px-8"
+                          onClick={() => setConfirmPaymentAction({ payment, action: "decline" })}
+                        >
+                          <X className="w-4 h-4 mr-1.5" />
+                          Decline
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ── Common Areas tab ── */}
@@ -1340,6 +1763,41 @@ export function LandlordFacility({
           setReportModalOpen(false);
         }}
       />
+
+      <AlertDialog
+        open={confirmPaymentAction !== null}
+        onOpenChange={(open) => !open && setConfirmPaymentAction(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmPaymentAction?.action === "approve"
+                ? "Approve this payment request?"
+                : "Decline this payment request?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmPaymentAction?.action === "approve"
+                ? `This will approve ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""} for disbursement to ${confirmPaymentAction?.payment.artisanName} via Monnify.`
+                : `This will decline the payment request from ${confirmPaymentAction?.payment.requestedByName} for ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""}. This cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!confirmPaymentAction) return;
+                if (confirmPaymentAction.action === "approve") {
+                  handleApprovePayment(confirmPaymentAction.payment);
+                } else {
+                  handleDeclinePayment(confirmPaymentAction.payment);
+                }
+              }}
+            >
+              {confirmPaymentAction?.action === "approve" ? "Approve" : "Decline"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
