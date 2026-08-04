@@ -25,12 +25,14 @@ import {
 } from "@/lib/facilityManagerStore";
 import {
   ThreadEntry,
+  ThreadPaymentRequest,
   appendThreadEntry,
   updatePaymentRequest,
   getThread,
   makeMsgId,
   fmtThreadTime,
   fmtThreadDate,
+  fmtNaira,
   subscribeToThreadStore,
   isTaskPriority,
   setTaskPriority,
@@ -43,6 +45,8 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -53,6 +57,7 @@ import {
   Play,
   X,
   ChevronRight,
+  Paperclip,
 } from "lucide-react";
 
 export default function LandlordMaintenanceRequestDetail() {
@@ -70,9 +75,10 @@ export default function LandlordMaintenanceRequestDetail() {
   const [resolutionSummary, setResolutionSummary] = useState("");
   const [showResolutionError, setShowResolutionError] = useState(false);
   const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
-  const [declineModal, setDeclineModal] = useState<{ taskId: string; entryId: string; amount: string; requestedBy: string; reason: string } | null>(null);
+  const [declineModal, setDeclineModal] = useState<{ taskId: string; entry: ThreadPaymentRequest } | null>(null);
   const [declineReason, setDeclineReason] = useState("");
-  const [approveModal, setApproveModal] = useState<{ taskId: string; entryId: string; amount: string; requestedBy: string; reason: string } | null>(null);
+  const [approveModal, setApproveModal] = useState<{ taskId: string; entry: ThreadPaymentRequest } | null>(null);
+  const [approvedAmountInput, setApprovedAmountInput] = useState("");
   const [managers, setManagers] = useState<FacilityManager[]>(MOCK_FACILITY_MANAGERS);
   const [, fmStoreTick] = useState(0);
   const [, threadTick] = useState(0);
@@ -132,7 +138,9 @@ export default function LandlordMaintenanceRequestDetail() {
   };
 
   // Thread
-  const thread = getThread(req.id);
+  const thread = [...getThread(req.id)].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
   const groups: { label: string; entries: ThreadEntry[] }[] = [];
   for (const entry of thread) {
     const label = fmtThreadDate(entry.timestamp);
@@ -157,7 +165,11 @@ export default function LandlordMaintenanceRequestDetail() {
   const reopenedItems = allAttachments.filter((a) => a.group === "reopened");
   const showGroupLabels = origItems.length > 0 && reopenedItems.length > 0;
 
-  const renderAttachmentGroup = (items: typeof allAttachments, label: string) => {
+  const renderAttachmentGroup = (
+    items: Array<{ url: string; type: "image" | "video" }>,
+    label: string,
+    showLabel: boolean = showGroupLabels,
+  ) => {
     if (items.length === 0) return null;
     const lightboxItems = items.map((a) => ({ url: a.url, type: a.type }));
     const MAX_VISIBLE = 4;
@@ -167,7 +179,7 @@ export default function LandlordMaintenanceRequestDetail() {
     const displayItems = showExtra ? visible : items.slice(0, MAX_VISIBLE);
     return (
       <div key={label}>
-        {showGroupLabels && <p className="text-[11px] text-gray-400 font-medium mb-1.5">{label}</p>}
+        {showLabel && <p className="text-[11px] text-gray-400 font-medium mb-1.5">{label}</p>}
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
           {displayItems.map((item, i) => (
             <button
@@ -354,10 +366,10 @@ export default function LandlordMaintenanceRequestDetail() {
               </div>
             )}
 
-            {/* Attachments */}
+            {/* Maintenance Attachments */}
             {allAttachments.length > 0 && (
               <div className="p-6 sm:p-8">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Attachments</h3>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Maintenance Attachments</h3>
                 <div className="space-y-4">
                   {renderAttachmentGroup(origItems, "Original Request")}
                   {renderAttachmentGroup(reopenedItems, "Reopened Request")}
@@ -610,10 +622,11 @@ export default function LandlordMaintenanceRequestDetail() {
                 )}
               </div>
 
-              {/* Payment Requests */}
+              {/* Payment Request */}
               {(() => {
-                const paymentEntries = thread.filter(e => e.type === "payment_request") as import("@/lib/taskThreadStore").ThreadPaymentRequest[];
+                const paymentEntries = thread.filter(e => e.type === "payment_request") as ThreadPaymentRequest[];
                 if (paymentEntries.length === 0) return null;
+                const taskId = req.id;
                 return (
                   <>
                     <div className="h-px bg-gray-100" />
@@ -623,22 +636,58 @@ export default function LandlordMaintenanceRequestDetail() {
                         const pyIsPending = entry.status === "pending";
                         const pyIsApproved = entry.status === "approved";
                         const pyIsDeclined = entry.status === "declined";
-                        const taskId = req.id;
+                        const pyIsPaid = entry.status === "paid";
+                        const statusLabel = pyIsPaid ? "Paid" : pyIsApproved ? "Approved" : pyIsDeclined ? "Declined" : "Pending Approval";
+                        const statusColor = pyIsPaid ? "text-emerald-700" : pyIsApproved ? "text-blue-700" : pyIsDeclined ? "text-red-600" : "text-slate-700";
                         return (
                           <div key={entry.id} className="border border-gray-200 rounded-lg bg-white divide-y divide-gray-100 overflow-hidden">
                             {/* Card header */}
                             <div className="px-3 py-2.5 bg-gray-50">
                               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Payment Request</p>
                             </div>
-                            {/* Amount */}
+                            {/* Requested Amount */}
                             <div className="px-3 py-3">
-                              <p className="text-xs font-medium text-slate-500 mb-0.5">Amount</p>
-                              <p className="text-sm font-semibold text-slate-900 tabular-nums">{entry.amount}</p>
+                              <p className="text-xs font-medium text-slate-500 mb-0.5">Requested Amount</p>
+                              <p className="text-sm font-semibold text-slate-900 tabular-nums">{fmtNaira(entry.requestedAmount)}</p>
                             </div>
-                            {/* Requested by */}
+                            {/* Approved Amount */}
+                            {typeof entry.approvedAmount === "number" && (
+                              <div className="px-3 py-3">
+                                <p className="text-xs font-medium text-slate-500 mb-0.5">Approved Amount</p>
+                                <p className="text-sm font-semibold text-slate-900 tabular-nums">{fmtNaira(entry.approvedAmount)}</p>
+                              </div>
+                            )}
+                            {/* Payment Status */}
                             <div className="px-3 py-3">
-                              <p className="text-xs font-medium text-slate-500 mb-0.5">Requested by</p>
-                              <p className="text-sm text-slate-900">{assigneeName}</p>
+                              <p className="text-xs font-medium text-slate-500 mb-0.5">Payment Status</p>
+                              <p className={`text-sm ${statusColor}`}>{statusLabel}</p>
+                              {pyIsApproved && entry.approvedBy && (
+                                <p className="text-xs text-slate-400 mt-1">
+                                  Approved by {entry.approvedBy}
+                                  {entry.approvedAt && <> · {fmtThreadTime(entry.approvedAt)}</>}
+                                </p>
+                              )}
+                              {pyIsPaid && (
+                                <p className="text-xs text-slate-400 mt-1">
+                                  Disbursed {fmtNaira(entry.disbursedAmount ?? entry.approvedAmount ?? entry.requestedAmount)}
+                                  {entry.paidAt && <> · {fmtThreadTime(entry.paidAt)}</>}
+                                </p>
+                              )}
+                              {pyIsDeclined && (
+                                <div className="mt-1">
+                                  {entry.declinedReason && <p className="text-xs text-slate-400 mb-0.5">Reason: {entry.declinedReason}</p>}
+                                </div>
+                              )}
+                            </div>
+                            {/* Request Date */}
+                            <div className="px-3 py-3">
+                              <p className="text-xs font-medium text-slate-500 mb-0.5">Request Date</p>
+                              <p className="text-sm text-slate-900">{formatDateTime(entry.timestamp)}</p>
+                            </div>
+                            {/* Requested By */}
+                            <div className="px-3 py-3">
+                              <p className="text-xs font-medium text-slate-500 mb-0.5">Requested By (Facility Manager)</p>
+                              <p className="text-sm text-slate-900">{entry.requestedBy}</p>
                             </div>
                             {/* Category */}
                             {entry.category && (
@@ -652,35 +701,16 @@ export default function LandlordMaintenanceRequestDetail() {
                               <p className="text-xs font-medium text-slate-500 mb-0.5">Reason</p>
                               <p className="text-sm text-slate-700 leading-snug">{entry.reason}</p>
                             </div>
-                            {/* Attachment */}
+                            {/* Legacy filename attachment (mock) */}
                             {entry.attachmentName && (
                               <div className="px-3 py-3">
                                 <p className="text-xs font-medium text-slate-500 mb-0.5">Attachment</p>
-                                <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer transition-colors">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                <span className="inline-flex items-center gap-1.5 text-xs text-slate-600">
+                                  <Paperclip className="w-3 h-3" />
                                   {entry.attachmentName}
                                 </span>
                               </div>
                             )}
-                            {/* Status */}
-                            <div className="px-3 py-3">
-                              <p className="text-xs font-medium text-slate-500 mb-0.5">Status</p>
-                              <p className={`text-sm ${pyIsApproved ? "text-emerald-700" : pyIsDeclined ? "text-red-600" : "text-slate-700"}`}>
-                                {pyIsApproved ? "Approved" : pyIsDeclined ? "Declined" : "Pending Approval"}
-                              </p>
-                              {pyIsApproved && entry.approvedBy && (
-                                <p className="text-xs text-slate-400 mt-1">
-                                  Approved by {entry.approvedBy}
-                                  {entry.approvedAt && <> · {fmtThreadTime(entry.approvedAt)}</>}
-                                </p>
-                              )}
-                              {pyIsDeclined && (
-                                <div className="mt-1">
-                                  {entry.declinedReason && <p className="text-xs text-slate-400 mb-0.5">Reason: {entry.declinedReason}</p>}
-                                  <p className="text-xs text-slate-400">Declined by Tunji Oginni</p>
-                                </div>
-                              )}
-                            </div>
                             {/* Actions */}
                             {pyIsPending && (
                               <div className="flex gap-2 p-3">
@@ -688,22 +718,34 @@ export default function LandlordMaintenanceRequestDetail() {
                                   size="sm"
                                   variant="outline"
                                   className="flex-1 border-gray-200 text-slate-700 hover:bg-gray-50 text-xs"
-                                  onClick={() => { setDeclineModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason }); setDeclineReason(""); }}
+                                  onClick={() => { setDeclineModal({ taskId, entry }); setDeclineReason(""); }}
                                 >
-                                  Decline
+                                  Decline Payment
                                 </Button>
                                 <Button
                                   size="sm"
                                   className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white text-xs"
-                                  onClick={() => setApproveModal({ taskId, entryId: entry.id, amount: entry.amount, requestedBy: assigneeName, reason: entry.reason })}
+                                  onClick={() => { setApproveModal({ taskId, entry }); setApprovedAmountInput(String(entry.requestedAmount)); }}
                                 >
-                                  Approve
+                                  Approve Payment
                                 </Button>
                               </div>
                             )}
                           </div>
                         );
                       })}
+
+                      {/* Payment Attachments */}
+                      {(() => {
+                        const paymentAttachments = paymentEntries.flatMap((e) => e.attachments ?? []);
+                        if (paymentAttachments.length === 0) return null;
+                        return (
+                          <div>
+                            <p className="text-xs font-medium text-slate-500 mb-2">Payment Attachments</p>
+                            {renderAttachmentGroup(paymentAttachments, "Payment Attachments", false)}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </>
                 );
@@ -771,7 +813,11 @@ export default function LandlordMaintenanceRequestDetail() {
       )}
 
       {/* Approve Payment Request Modal */}
-      {approveModal && (
+      {approveModal && (() => {
+        const parsedApprovedAmount = Number(approvedAmountInput.replace(/,/g, ""));
+        const isValid = approvedAmountInput.trim() !== "" && Number.isFinite(parsedApprovedAmount) && parsedApprovedAmount > 0;
+        const amountChanged = parsedApprovedAmount !== approveModal.entry.requestedAmount;
+        return (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setApproveModal(null); }}
           className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
@@ -789,20 +835,46 @@ export default function LandlordMaintenanceRequestDetail() {
               </button>
             </div>
             <div className="px-5 py-4 space-y-3">
-              <p className="text-sm text-gray-600">Are you sure you want to approve this payment request?</p>
               <div className="bg-gray-50 rounded-xl p-3.5 space-y-2.5 border border-gray-100">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">Amount</span>
-                  <span className="text-base font-bold text-gray-900 tabular-nums">{approveModal.amount}</span>
+                  <span className="text-xs text-gray-400">Property</span>
+                  <span className="text-sm font-medium text-gray-800">{req.property_name}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-400">Requested by</span>
-                  <span className="text-sm font-medium text-gray-800">{approveModal.requestedBy}</span>
+                  <span className="text-sm font-medium text-gray-800">{approveModal.entry.requestedBy}</span>
                 </div>
-                <div>
-                  <span className="text-xs text-gray-400 block mb-1">Reason</span>
-                  <p className="text-sm text-gray-700 leading-snug">{approveModal.reason}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-400">Request Date</span>
+                  <span className="text-sm font-medium text-gray-800">{formatDateTime(approveModal.entry.timestamp)}</span>
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Requested Amount</Label>
+                <div className="h-9 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                  {fmtNaira(approveModal.entry.requestedAmount)}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="approved-amount-detail">
+                  Approved Amount <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">₦</span>
+                  <Input
+                    id="approved-amount-detail"
+                    value={approvedAmountInput}
+                    onChange={(e) => setApprovedAmountInput(e.target.value.replace(/[^\d.]/g, ""))}
+                    inputMode="decimal"
+                    className="pl-7"
+                    placeholder="0.00"
+                  />
+                </div>
+                {!isValid && (
+                  <p className="text-sm text-red-500">Enter a valid approved amount.</p>
+                )}
               </div>
             </div>
             <div className="flex gap-3 px-5 pb-5 justify-end">
@@ -810,19 +882,32 @@ export default function LandlordMaintenanceRequestDetail() {
                 Cancel
               </button>
               <button
+                disabled={!isValid}
                 onClick={() => {
-                  if (!approveModal) return;
-                  updatePaymentRequest(approveModal.taskId, approveModal.entryId, { status: "approved", approvedBy: "Tunji Oginni", approvedAt: new Date().toISOString() });
+                  if (!approveModal || !isValid) return;
+                  const now = new Date().toISOString();
+                  updatePaymentRequest(approveModal.taskId, approveModal.entry.id, {
+                    status: "approved",
+                    approvedAmount: parsedApprovedAmount,
+                    approvedBy: "Michael Adeyemi",
+                    approvedAt: now,
+                  });
+                  if (amountChanged) {
+                    appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: `Approved Amount Changed to ${fmtNaira(parsedApprovedAmount)}`, timestamp: now });
+                  }
+                  appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: "Payment Approved", timestamp: now });
+                  toast.success("Payment request approved");
                   setApproveModal(null);
                 }}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold text-white"
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-sm font-semibold text-white"
               >
                 Approve Payment
               </button>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Decline Payment Request Modal */}
       {declineModal && (
@@ -839,8 +924,8 @@ export default function LandlordMaintenanceRequestDetail() {
             </div>
             <div className="px-5 py-4 space-y-3">
               <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 flex justify-between items-center">
-                <span className="text-xs text-gray-400">Amount</span>
-                <span className="text-sm font-bold text-gray-900 tabular-nums">{declineModal.amount}</span>
+                <span className="text-xs text-gray-400">Requested Amount</span>
+                <span className="text-sm font-bold text-gray-900 tabular-nums">{fmtNaira(declineModal.entry.requestedAmount)}</span>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-2">
@@ -862,7 +947,14 @@ export default function LandlordMaintenanceRequestDetail() {
               <button
                 onClick={() => {
                   if (!declineModal) return;
-                  updatePaymentRequest(declineModal.taskId, declineModal.entryId, { status: "declined", declinedReason: declineReason.trim() || undefined });
+                  const now = new Date().toISOString();
+                  updatePaymentRequest(declineModal.taskId, declineModal.entry.id, {
+                    status: "declined",
+                    declinedReason: declineReason.trim() || undefined,
+                    declinedAt: now,
+                  });
+                  appendThreadEntry(declineModal.taskId, { id: makeMsgId(), type: "event", body: "Payment Declined", timestamp: now });
+                  toast.success("Payment request declined");
                   setDeclineModal(null);
                   setDeclineReason("");
                 }}

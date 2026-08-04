@@ -22,21 +22,28 @@ export interface ThreadEvent {
   timestamp: string;
 }
 
-export type PaymentRequestStatus = "pending" | "approved" | "declined";
+export type PaymentRequestStatus = "pending" | "approved" | "declined" | "paid";
 export type PaymentRequestCategory = "Materials" | "Labour" | "Transport" | "Equipment" | "Miscellaneous";
 
 export interface ThreadPaymentRequest {
   id: string;
   type: "payment_request";
-  amount: string;          // formatted, e.g. "₦85,000"
+  requestedAmount: number;       // raw amount, e.g. 85000
+  amount: string;                // formatted, e.g. "₦85,000" — kept for display convenience
+  requestedBy: string;           // Facility Manager name
   reason: string;
   category?: PaymentRequestCategory;
-  attachmentName?: string; // filename of uploaded doc (mock)
+  attachments?: Array<{ url: string; type: "image" | "video" }>;
+  attachmentName?: string;       // legacy filename display (mock), kept for backward compat
   status: PaymentRequestStatus;
+  approvedAmount?: number;
   approvedBy?: string;
-  approvedAt?: string;     // ISO
+  approvedAt?: string;           // ISO
   declinedReason?: string;
-  timestamp: string;       // ISO — when request was submitted
+  declinedAt?: string;           // ISO
+  paidAt?: string;                // ISO
+  disbursedAmount?: number;
+  timestamp: string;             // ISO — when request was submitted
 }
 
 export interface ThreadResolution {
@@ -69,11 +76,35 @@ export function fmtThreadDate(iso: string) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+export function fmtNaira(amount: number): string {
+  return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 // ── Seed data ─────────────────────────────────────────────────────────────────
 // Landlord-side requests use IDs like "sr-002". FM-side issues use "is01" etc.
 // Both share this single store.
 
 const _threads = new Map<string, ThreadEntry[]>([
+  [
+    "sr-001",
+    [
+      { id: "s1-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-07-24T09:00:00.000Z" },
+      { id: "s1-e002", type: "event", body: "Assigned to Chukwuemeka Obi", timestamp: "2026-07-24T09:05:00.000Z" },
+      { id: "s1-e003", type: "event", body: "Request approved", timestamp: "2026-07-24T09:10:00.000Z" },
+      { id: "s1-m001", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "I've received a quotation of ₦145,000 for replacing the compressor.", timestamp: "2026-07-24T09:12:00.000Z" },
+      { id: "s1-m002", type: "message", author: "landlord", authorName: "You", body: "Can we get another quotation? That seems high.", timestamp: "2026-07-24T09:14:00.000Z" },
+      {
+        id: "s1-p001", type: "payment_request", requestedAmount: 145000, amount: "₦145,000",
+        requestedBy: "Chukwuemeka Obi", reason: "Replacement of compressor and refrigerant for tenant's air conditioner.",
+        category: "Materials",
+        attachments: [
+          { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800", type: "image" },
+          { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800", type: "image" },
+        ],
+        status: "pending", timestamp: "2026-07-24T09:15:00.000Z",
+      } as ThreadPaymentRequest,
+    ],
+  ],
   [
     "sr-002",
     [
@@ -83,7 +114,27 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "m-002", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "Understood. I'll visit the property by 2 PM today to assess the sockets.", timestamp: "2026-04-23T09:12:00.000Z" },
       { id: "e-003", type: "event", body: "Request approved", timestamp: "2026-04-23T09:30:00.000Z" },
       { id: "m-003", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "Visited the property. The issue is a tripped breaker and one damaged socket. Parts ordered — will complete by tomorrow.", timestamp: "2026-04-23T15:45:00.000Z" },
-      { id: "p-001", type: "payment_request", amount: "₦85,000", reason: "Replacement of damaged fire exit lock and labour charges.", category: "Labour", attachmentName: "Quote_April2026.pdf", status: "pending", timestamp: "2026-04-24T10:30:00.000Z" } as ThreadPaymentRequest,
+      {
+        id: "p-001", type: "payment_request", requestedAmount: 85000, amount: "₦85,000",
+        requestedBy: "Chukwuemeka Obi", reason: "Replacement of damaged fire exit lock and labour charges.",
+        category: "Labour", attachmentName: "Quote_April2026.pdf",
+        status: "pending", timestamp: "2026-04-24T10:30:00.000Z",
+      } as ThreadPaymentRequest,
+    ],
+  ],
+  [
+    "sr-003",
+    [
+      { id: "s3-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-07-22T14:00:00.000Z" },
+      { id: "s3-e002", type: "event", body: "Assigned to Tunde Adeyemi", timestamp: "2026-07-22T14:02:00.000Z" },
+      { id: "s3-e003", type: "event", body: "Request approved", timestamp: "2026-07-22T14:05:00.000Z" },
+      { id: "s3-m001", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "Diagnosed the fault — starter motor needs replacing on the common-area generator.", timestamp: "2026-07-22T15:00:00.000Z" },
+      {
+        id: "s3-p001", type: "payment_request", requestedAmount: 92000, amount: "₦92,000",
+        requestedBy: "Tunde Adeyemi", reason: "Diagnosis and replacement of starter motor on the common-area generator.",
+        category: "Equipment",
+        status: "pending", timestamp: "2026-07-22T15:05:00.000Z",
+      } as ThreadPaymentRequest,
     ],
   ],
   [
@@ -94,8 +145,71 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "m-101", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "I'll carry out the inspection this week. Will report back by Friday.", timestamp: "2026-04-19T08:20:00.000Z" },
       { id: "m-102", type: "message", author: "landlord", authorName: "Landlord", body: "Thanks. Let me know if you need anything from me.", timestamp: "2026-04-19T09:05:00.000Z" },
       { id: "m-103", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "Inspection done. Found a cracked tile near the shower drain — sourcing a replacement now.", timestamp: "2026-04-21T14:10:00.000Z" },
+      {
+        id: "s4-p001", type: "payment_request", requestedAmount: 210000, amount: "₦210,000",
+        requestedBy: "Ngozi Eze", reason: "Removal and re-laying of damaged bathroom floor tiles, including new grout.",
+        category: "Materials",
+        attachments: [
+          { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800", type: "image" },
+          { url: "https://images.unsplash.com/photo-1585128792020-803d29415281?w=800", type: "image" },
+          { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" },
+        ],
+        status: "approved", approvedAmount: 185000, approvedBy: "Michael Adeyemi", approvedAt: "2026-07-19T08:00:00.000Z",
+        timestamp: "2026-07-18T10:20:00.000Z",
+      } as ThreadPaymentRequest,
       { id: "e-103", type: "event", body: "Marked as resolved", timestamp: "2026-04-24T16:30:00.000Z" },
       { id: "m-104", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "Tile replaced and re-grouted. No further damage observed. Resolution form submitted.", timestamp: "2026-04-24T16:35:00.000Z" },
+    ],
+  ],
+  [
+    "sr-005",
+    [
+      { id: "s5-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-07-15T13:00:00.000Z" },
+      { id: "s5-e002", type: "event", body: "Assigned to Chukwuemeka Obi", timestamp: "2026-07-15T13:05:00.000Z" },
+      { id: "s5-e003", type: "event", body: "Request approved", timestamp: "2026-07-15T13:10:00.000Z" },
+      {
+        id: "s5-p001", type: "payment_request", requestedAmount: 65000, amount: "₦65,000",
+        requestedBy: "Chukwuemeka Obi", reason: "Replacement of gate motor control board after repeated tripping.",
+        category: "Equipment",
+        status: "approved", approvedAmount: 65000, approvedBy: "Michael Adeyemi", approvedAt: "2026-07-16T09:12:00.000Z",
+        timestamp: "2026-07-15T13:30:00.000Z",
+      } as ThreadPaymentRequest,
+    ],
+  ],
+  [
+    "sr-006",
+    [
+      { id: "s6-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-07-08T08:30:00.000Z" },
+      { id: "s6-e002", type: "event", body: "Assigned to Amaka Nwosu", timestamp: "2026-07-08T08:45:00.000Z" },
+      { id: "s6-e003", type: "event", body: "Request approved", timestamp: "2026-07-08T09:00:00.000Z" },
+      {
+        id: "s6-p001", type: "payment_request", requestedAmount: 54000, amount: "₦54,000",
+        requestedBy: "Amaka Nwosu", reason: "Replacement of faulty heating element in the tenant's water heater unit.",
+        category: "Materials",
+        attachments: [
+          { url: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800", type: "image" },
+        ],
+        status: "paid", approvedAmount: 54000, approvedBy: "Michael Adeyemi", approvedAt: "2026-07-09T10:00:00.000Z",
+        paidAt: "2026-07-10T16:45:00.000Z", disbursedAmount: 54000,
+        timestamp: "2026-07-08T09:00:00.000Z",
+      } as ThreadPaymentRequest,
+      { id: "s6-m001", type: "message", author: "facility_manager", authorName: "Amaka Nwosu", body: "Water heater repaired and tested. Tenant confirmed hot water is back.", timestamp: "2026-07-10T17:00:00.000Z" },
+    ],
+  ],
+  [
+    "sr-007",
+    [
+      { id: "s7-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-07-05T08:00:00.000Z" },
+      { id: "s7-e002", type: "event", body: "Assigned to Tunde Adeyemi", timestamp: "2026-07-05T08:15:00.000Z" },
+      { id: "s7-e003", type: "event", body: "Request approved", timestamp: "2026-07-05T08:30:00.000Z" },
+      {
+        id: "s7-p001", type: "payment_request", requestedAmount: 22500, amount: "₦22,500",
+        requestedBy: "Tunde Adeyemi", reason: "Supply and installation of a replacement window latch and frame repair.",
+        category: "Materials",
+        status: "paid", approvedAmount: 22500, approvedBy: "Michael Adeyemi", approvedAt: "2026-07-05T15:00:00.000Z",
+        paidAt: "2026-07-06T12:00:00.000Z", disbursedAmount: 22500,
+        timestamp: "2026-07-05T08:30:00.000Z",
+      } as ThreadPaymentRequest,
     ],
   ],
   // Reopened requests — landlord side
@@ -106,6 +220,13 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "r8-e002", type: "event", body: "Assigned to Chukwuemeka Obi", timestamp: "2026-05-10T09:30:00.000Z" },
       { id: "r8-e003", type: "event", body: "Request approved", timestamp: "2026-05-10T10:00:00.000Z" },
       { id: "r8-m001", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "Plumber attended site. Pipe under sink replaced and joints re-sealed. Tested — no drips observed.", timestamp: "2026-05-24T14:30:00.000Z" },
+      {
+        id: "r8-p001", type: "payment_request", requestedAmount: 31000, amount: "₦31,000",
+        requestedBy: "Ngozi Eze", reason: "Replacement of faulty wiring and fittings for the common-area corridor lights.",
+        category: "Labour",
+        status: "declined", declinedAt: "2026-07-03T09:20:00.000Z",
+        timestamp: "2026-07-02T10:10:00.000Z",
+      } as ThreadPaymentRequest,
       { id: "r8-e004", type: "event", body: "Marked as resolved", timestamp: "2026-05-24T15:00:00.000Z" },
       { id: "r8-e005", type: "event", body: "Tenant marked as not resolved — Status changed: Resolved → Reopened", timestamp: "2026-05-27T10:15:00.000Z" },
       { id: "r8-m002", type: "message", author: "landlord", authorName: "You", body: "James, can you send a photo of where it's still leaking so we can assess further?", timestamp: "2026-05-27T11:00:00.000Z" },
@@ -119,6 +240,16 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "r9-e002", type: "event", body: "Assigned to Chukwuemeka Obi", timestamp: "2026-05-08T12:00:00.000Z" },
       { id: "r9-e003", type: "event", body: "Request approved", timestamp: "2026-05-09T09:00:00.000Z" },
       { id: "r9-m001", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "Transfer switch replaced. Generator ran for 4 hours with no issues. Monitoring overnight.", timestamp: "2026-05-23T17:00:00.000Z" },
+      {
+        id: "r9-p001", type: "payment_request", requestedAmount: 40000, amount: "₦40,000",
+        requestedBy: "Chukwuemeka Obi", reason: "Quarterly fumigation service requested outside the standard maintenance budget.",
+        category: "Miscellaneous",
+        attachments: [
+          { url: "https://images.unsplash.com/photo-1587582423116-ec07293f0395?w=800", type: "image" },
+        ],
+        status: "declined", declinedAt: "2026-06-29T08:30:00.000Z",
+        timestamp: "2026-06-28T11:00:00.000Z",
+      } as ThreadPaymentRequest,
       { id: "r9-e004", type: "event", body: "Marked as resolved", timestamp: "2026-05-23T17:30:00.000Z" },
       { id: "r9-e005", type: "event", body: "Tenant marked as not resolved — Status changed: Resolved → Reopened", timestamp: "2026-05-26T16:32:00.000Z" },
       { id: "r9-m002", type: "message", author: "landlord", authorName: "You", body: "Chukwuemeka, please follow up urgently. The generator issue is affecting all tenants in common areas.", timestamp: "2026-05-26T17:00:00.000Z" },
@@ -131,6 +262,18 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "r10-e002", type: "event", body: "Assigned to Tunde Adeyemi", timestamp: "2026-05-05T09:00:00.000Z" },
       { id: "r10-e003", type: "event", body: "Request approved", timestamp: "2026-05-05T10:00:00.000Z" },
       { id: "r10-m001", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "Tiles re-grouted and sealant applied. Work complete.", timestamp: "2026-05-22T12:00:00.000Z" },
+      {
+        id: "r10-p001", type: "payment_request", requestedAmount: 180000, amount: "₦180,000",
+        requestedBy: "Amaka Nwosu", reason: "Repainting of exterior wall following weather damage and peeling paint.",
+        category: "Materials",
+        attachments: [
+          { url: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800", type: "image" },
+          { url: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800", type: "image" },
+          { url: "https://images.unsplash.com/photo-1523419409543-a5e549c1faa8?w=800", type: "image" },
+          { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" },
+        ],
+        status: "pending", timestamp: "2026-07-27T09:45:00.000Z",
+      } as ThreadPaymentRequest,
       { id: "r10-e004", type: "event", body: "Marked as resolved", timestamp: "2026-05-22T12:30:00.000Z" },
       { id: "r10-e005", type: "event", body: "Tenant marked as not resolved — Status changed: Resolved → Reopened", timestamp: "2026-05-25T09:20:00.000Z" },
       { id: "r10-m002", type: "message", author: "landlord", authorName: "You", body: "Tunde, please reassess. It seems the sealant wasn't sufficient. May need to check the wall cavity.", timestamp: "2026-05-25T10:00:00.000Z" },
@@ -172,6 +315,10 @@ export function getThread(taskId: string): ThreadEntry[] {
   return _threads.get(taskId) ?? [];
 }
 
+export function getAllThreads(): Map<string, ThreadEntry[]> {
+  return _threads;
+}
+
 export function appendThreadEntry(taskId: string, entry: ThreadEntry) {
   const existing = _threads.get(taskId) ?? [];
   _threads.set(taskId, [...existing, entry]);
@@ -181,13 +328,20 @@ export function appendThreadEntry(taskId: string, entry: ThreadEntry) {
 export function updatePaymentRequest(
   taskId: string,
   entryId: string,
-  update: { status: PaymentRequestStatus; approvedBy?: string; approvedAt?: string; declinedReason?: string }
+  update: {
+    status: PaymentRequestStatus;
+    approvedAmount?: number;
+    approvedBy?: string;
+    approvedAt?: string;
+    declinedReason?: string;
+    declinedAt?: string;
+    paidAt?: string;
+    disbursedAmount?: number;
+  }
 ) {
   const entries = _threads.get(taskId) ?? [];
   _threads.set(taskId, entries.map(e =>
-    e.id === entryId && e.type === "payment_request"
-      ? { ...e, ...update }
-      : e
+    e.id === entryId && e.type === "payment_request" ? { ...e, ...update } : e
   ));
   _notify();
 }

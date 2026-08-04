@@ -46,6 +46,12 @@ import {
   makeMsgId,
   isTaskPriority,
   setTaskPriority,
+  getThread,
+  fmtNaira,
+  fmtThreadTime,
+  subscribeToThreadStore,
+  ThreadPaymentRequest,
+  PaymentRequestStatus,
 } from "@/lib/taskThreadStore";
 import { ColumnsButton, TablePagination, stickyHeadClass } from "./TableControls";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
@@ -152,207 +158,46 @@ const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
 ];
 
 // ── Payments (Monnify Disbursements) ─────────────────────────────────────────
-
-type PaymentRequestStatus = "pending_approval" | "approved" | "declined" | "paid";
-
-interface PaymentRequest {
-  id: string;
-  propertyName: string;
-  maintenanceRequestId: string;
-  maintenanceRequestTitle: string;
-  requestedByName: string; // Facility Manager
-  requestedAmount: number;
-  requestDate: string;
-  reason: string;
-  status: PaymentRequestStatus;
-  attachments?: Array<{ url: string; type: "image" | "video" }>;
-  updatedAt: string;
-  approvedAt?: string;
-  approvedBy?: string;
-  approvedAmount?: number;
-  declinedAt?: string;
-  paidAt?: string;
-  disbursedAmount?: number;
-}
+// Payment requests are not a standalone record — every one originates from a
+// Maintenance Request's Updates & Activity thread (see taskThreadStore.ts).
+// This tab is a derived, filterable view over that same source of truth.
 
 const PAYMENT_STATUS_LABEL: Record<PaymentRequestStatus, string> = {
-  pending_approval: "Pending Approval",
+  pending: "Pending Approval",
   approved: "Approved",
   declined: "Declined",
   paid: "Paid",
 };
 
 const PAYMENT_STATUS_BADGE_CLASS: Record<PaymentRequestStatus, string> = {
-  pending_approval: "bg-amber-50 text-amber-700 border-amber-200",
+  pending: "bg-amber-50 text-amber-700 border-amber-200",
   approved: "bg-blue-50 text-blue-700 border-blue-200",
   declined: "bg-red-50 text-red-700 border-red-200",
   paid: "bg-green-50 text-green-700 border-green-200",
 };
 
-const MOCK_PAYMENT_REQUESTS: PaymentRequest[] = [
-  {
-    id: "pay-001",
-    propertyName: "Lekki Phase 1 Duplex",
-    maintenanceRequestId: "sr-001",
-    maintenanceRequestTitle: "AC unit not cooling in master bedroom",
-    requestedByName: "Chukwuemeka Obi",
-    requestedAmount: 145000,
-    requestDate: "2026-07-24T09:15:00Z",
-    reason: "Replacement of compressor and refrigerant for tenant's air conditioner.",
-    status: "pending_approval",
-    attachments: [
-      { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800", type: "image" },
-      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800", type: "image" },
-    ],
-    updatedAt: "2026-07-24T09:15:00Z",
-  },
-  {
-    id: "pay-002",
-    propertyName: "Ikoyi 2-Bed Apartment",
-    maintenanceRequestId: "sr-002",
-    maintenanceRequestTitle: "Kitchen sink pipe leaking",
-    requestedByName: "Amaka Nwosu",
-    requestedAmount: 38000,
-    requestDate: "2026-07-25T11:40:00Z",
-    reason: "Replacement of corroded under-sink pipework and sealant to stop the leak.",
-    status: "pending_approval",
-    attachments: [
-      { url: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=800", type: "image" },
-    ],
-    updatedAt: "2026-07-25T11:40:00Z",
-  },
-  {
-    id: "pay-003",
-    propertyName: "Victoria Island Studio",
-    maintenanceRequestId: "sr-003",
-    maintenanceRequestTitle: "Generator not starting",
-    requestedByName: "Tunde Adeyemi",
-    requestedAmount: 92000,
-    requestDate: "2026-07-22T14:05:00Z",
-    reason: "Diagnosis and replacement of starter motor on the common-area generator.",
-    status: "pending_approval",
-    updatedAt: "2026-07-22T14:05:00Z",
-  },
-  {
-    id: "pay-004",
-    propertyName: "Parkview Terrace – Block A",
-    maintenanceRequestId: "sr-004",
-    maintenanceRequestTitle: "Bathroom tiles cracked and lifting",
-    requestedByName: "Ngozi Eze",
-    requestedAmount: 210000,
-    requestDate: "2026-07-18T10:20:00Z",
-    reason: "Removal and re-laying of damaged bathroom floor tiles, including new grout.",
-    status: "approved",
-    attachments: [
-      { url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800", type: "image" },
-      { url: "https://images.unsplash.com/photo-1585128792020-803d29415281?w=800", type: "image" },
-      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" },
-    ],
-    updatedAt: "2026-07-19T08:00:00Z",
-    approvedAt: "2026-07-19T08:00:00Z",
-    approvedBy: "Michael Adeyemi",
-    approvedAmount: 185000,
-  },
-  {
-    id: "pay-005",
-    propertyName: "Lekki Phase 1 Duplex",
-    maintenanceRequestId: "sr-005",
-    maintenanceRequestTitle: "Gate motor malfunctioning",
-    requestedByName: "Chukwuemeka Obi",
-    requestedAmount: 65000,
-    requestDate: "2026-07-15T13:30:00Z",
-    reason: "Replacement of gate motor control board after repeated tripping.",
-    status: "approved",
-    updatedAt: "2026-07-16T09:12:00Z",
-    approvedAt: "2026-07-16T09:12:00Z",
-    approvedBy: "Michael Adeyemi",
-    approvedAmount: 65000,
-  },
-  {
-    id: "pay-006",
-    propertyName: "Ikoyi 2-Bed Apartment",
-    maintenanceRequestId: "sr-006",
-    maintenanceRequestTitle: "Water heater not working",
-    requestedByName: "Amaka Nwosu",
-    requestedAmount: 54000,
-    requestDate: "2026-07-08T09:00:00Z",
-    reason: "Replacement of faulty heating element in the tenant's water heater unit.",
-    status: "paid",
-    attachments: [
-      { url: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800", type: "image" },
-    ],
-    updatedAt: "2026-07-10T16:45:00Z",
-    approvedAt: "2026-07-09T10:00:00Z",
-    approvedBy: "Michael Adeyemi",
-    approvedAmount: 54000,
-    paidAt: "2026-07-10T16:45:00Z",
-    disbursedAmount: 54000,
-  },
-  {
-    id: "pay-007",
-    propertyName: "Victoria Island Studio",
-    maintenanceRequestId: "sr-007",
-    maintenanceRequestTitle: "Broken window latch",
-    requestedByName: "Tunde Adeyemi",
-    requestedAmount: 22500,
-    requestDate: "2026-07-05T08:30:00Z",
-    reason: "Supply and installation of a replacement window latch and frame repair.",
-    status: "paid",
-    updatedAt: "2026-07-06T12:00:00Z",
-    approvedAt: "2026-07-05T15:00:00Z",
-    approvedBy: "Michael Adeyemi",
-    approvedAmount: 22500,
-    paidAt: "2026-07-06T12:00:00Z",
-    disbursedAmount: 22500,
-  },
-  {
-    id: "pay-008",
-    propertyName: "Parkview Terrace – Block A",
-    maintenanceRequestId: "sr-008",
-    maintenanceRequestTitle: "Common area lighting repair",
-    requestedByName: "Ngozi Eze",
-    requestedAmount: 31000,
-    requestDate: "2026-07-02T10:10:00Z",
-    reason: "Replacement of faulty wiring and fittings for the common-area corridor lights.",
-    status: "declined",
-    updatedAt: "2026-07-03T09:20:00Z",
-    declinedAt: "2026-07-03T09:20:00Z",
-  },
-  {
-    id: "pay-009",
-    propertyName: "Lekki Phase 1 Duplex",
-    maintenanceRequestId: "sr-009",
-    maintenanceRequestTitle: "Fumigation request",
-    requestedByName: "Chukwuemeka Obi",
-    requestedAmount: 40000,
-    requestDate: "2026-06-28T11:00:00Z",
-    reason: "Quarterly fumigation service requested outside the standard maintenance budget.",
-    status: "declined",
-    attachments: [
-      { url: "https://images.unsplash.com/photo-1587582423116-ec07293f0395?w=800", type: "image" },
-    ],
-    updatedAt: "2026-06-29T08:30:00Z",
-    declinedAt: "2026-06-29T08:30:00Z",
-  },
-  {
-    id: "pay-010",
-    propertyName: "Ikoyi 2-Bed Apartment",
-    maintenanceRequestId: "sr-010",
-    maintenanceRequestTitle: "Painting of exterior wall",
-    requestedByName: "Amaka Nwosu",
-    requestedAmount: 180000,
-    requestDate: "2026-07-27T09:45:00Z",
-    reason: "Repainting of exterior wall following weather damage and peeling paint.",
-    status: "pending_approval",
-    attachments: [
-      { url: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800", type: "image" },
-      { url: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800", type: "image" },
-      { url: "https://images.unsplash.com/photo-1523419409543-a5e549c1faa8?w=800", type: "image" },
-      { url: "https://www.w3schools.com/html/mov_bbb.mp4", type: "video" },
-    ],
-    updatedAt: "2026-07-27T09:45:00Z",
-  },
-];
+interface PaymentListItem extends ThreadPaymentRequest {
+  maintenanceRequestId: string;
+  maintenanceRequestTitle: string;
+  propertyName: string;
+}
+
+function collectPaymentRequests(requests: ServiceRequest[]): PaymentListItem[] {
+  const items: PaymentListItem[] = [];
+  for (const req of requests) {
+    const thread = getThread(req.id);
+    for (const entry of thread) {
+      if (entry.type !== "payment_request") continue;
+      items.push({
+        ...entry,
+        maintenanceRequestId: req.id,
+        maintenanceRequestTitle: req.description,
+        propertyName: req.property_name,
+      });
+    }
+  }
+  return items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
 
 interface ResolutionDetails {
   summary: string;
@@ -662,10 +507,12 @@ export function LandlordFacility({
   const [activeTab, setActiveTab] = useState<"service_requests" | "payments" | "common_areas" | "facility_managers">("service_requests");
   const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [, fmStoreTick] = useState(0);
+  const [threadStoreVersion, setThreadStoreVersion] = useState(0);
 
   useEffect(() => {
     const unsubFM = subscribeToFMStore(() => fmStoreTick((n) => n + 1));
-    return () => { unsubFM(); };
+    const unsubThread = subscribeToThreadStore(() => setThreadStoreVersion((n) => n + 1));
+    return () => { unsubFM(); unsubThread(); };
   }, []);
 
   // ── Facility Managers ──────────────────────────────────────────────────────
@@ -787,74 +634,25 @@ export function LandlordFacility({
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // ── Payments ───────────────────────────────────────────────────────────────
+  // Read-only view derived from each maintenance request's Updates & Activity
+  // thread — approving/declining happens on the Maintenance Request Detail page.
   const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<"all" | PaymentRequestStatus>("all");
-  const [payments, setPayments] = useState<PaymentRequest[]>(MOCK_PAYMENT_REQUESTS);
-  const [confirmPaymentAction, setConfirmPaymentAction] = useState<{
-    payment: PaymentRequest;
-    action: "decline";
-  } | null>(null);
-  const [approveTarget, setApproveTarget] = useState<PaymentRequest | null>(null);
-  const [approvedAmountInput, setApprovedAmountInput] = useState("");
+
+  const allPayments = useMemo(() => collectPaymentRequests(requests), [requests, threadStoreVersion]);
 
   const filteredPayments = useMemo(() => {
     const q = paymentSearchQuery.toLowerCase().trim();
-    return payments.filter((p) => {
+    return allPayments.filter((p) => {
       const matchesStatus = paymentStatusFilter === "all" || p.status === paymentStatusFilter;
       const matchesSearch =
         q === "" ||
         p.propertyName.toLowerCase().includes(q) ||
-        p.requestedByName.toLowerCase().includes(q) ||
+        p.requestedBy.toLowerCase().includes(q) ||
         p.maintenanceRequestTitle.toLowerCase().includes(q);
       return matchesStatus && matchesSearch;
     });
-  }, [payments, paymentSearchQuery, paymentStatusFilter]);
-
-  const openApproveModal = (payment: PaymentRequest) => {
-    setApproveTarget(payment);
-    setApprovedAmountInput(String(payment.requestedAmount));
-  };
-
-  const closeApproveModal = () => {
-    setApproveTarget(null);
-    setApprovedAmountInput("");
-  };
-
-  const parsedApprovedAmount = Number(approvedAmountInput.replace(/,/g, ""));
-  const isApprovedAmountValid =
-    approvedAmountInput.trim() !== "" && Number.isFinite(parsedApprovedAmount) && parsedApprovedAmount > 0;
-
-  const handleApprovePayment = () => {
-    if (!approveTarget || !isApprovedAmountValid) return;
-    const now = new Date().toISOString();
-    setPayments((prev) =>
-      prev.map((p) =>
-        p.id === approveTarget.id
-          ? {
-              ...p,
-              status: "approved",
-              approvedAt: now,
-              approvedBy: "Michael Adeyemi",
-              approvedAmount: parsedApprovedAmount,
-              updatedAt: now,
-            }
-          : p,
-      ),
-    );
-    toast.success("Payment request approved");
-    closeApproveModal();
-  };
-
-  const handleDeclinePayment = (payment: PaymentRequest) => {
-    const now = new Date().toISOString();
-    setPayments((prev) =>
-      prev.map((p) =>
-        p.id === payment.id ? { ...p, status: "declined", declinedAt: now, updatedAt: now } : p,
-      ),
-    );
-    toast.success("Payment request declined");
-    setConfirmPaymentAction(null);
-  };
+  }, [allPayments, paymentSearchQuery, paymentStatusFilter]);
 
   // ── Common Areas ───────────────────────────────────────────────────────────
   const [caSearchQuery, setCaSearchQuery] = useState("");
@@ -918,9 +716,6 @@ export function LandlordFacility({
       date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
     );
   };
-
-  const formatCurrency = (amount: number) =>
-    `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const getRelativeTime = (dateString: string | null | undefined) => {
     if (!dateString) return "N/A";
@@ -1254,7 +1049,7 @@ export function LandlordFacility({
             <div className="mb-5 flex items-center gap-1.5 flex-wrap">
               {([
                 { value: "all", label: "All" },
-                { value: "pending_approval", label: "Pending Approval" },
+                { value: "pending", label: "Pending Approval" },
                 { value: "approved", label: "Approved" },
                 { value: "paid", label: "Paid" },
                 { value: "declined", label: "Declined" },
@@ -1292,18 +1087,29 @@ export function LandlordFacility({
                 {filteredPayments.map((payment) => (
                   <div
                     key={payment.id}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() =>
+                      router.push(`/${userRole}/maintenance-request-detail?id=${payment.maintenanceRequestId}`)
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/${userRole}/maintenance-request-detail?id=${payment.maintenanceRequestId}`);
+                      }
+                    }}
+                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div>
                         <span className="text-xl font-semibold text-gray-900">
-                          {formatCurrency(payment.requestedAmount)}
+                          {fmtNaira(payment.requestedAmount)}
                         </span>
                         {typeof payment.approvedAmount === "number" &&
                           payment.approvedAmount !== payment.requestedAmount && (
                             <p className="text-sm text-gray-600 mt-0.5">
-                              Approved Amount: {formatCurrency(payment.approvedAmount)}
+                              Approved Amount: {fmtNaira(payment.approvedAmount)}
                             </p>
                           )}
                       </div>
@@ -1322,25 +1128,15 @@ export function LandlordFacility({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Maintenance Request:</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            router.push(
-                              `/${userRole}/maintenance-request-detail?id=${payment.maintenanceRequestId}`,
-                            )
-                          }
-                          className="text-sm text-[#FF5000] hover:underline text-left"
-                        >
-                          {payment.maintenanceRequestTitle}
-                        </button>
+                        <span className="text-sm text-[#FF5000]">{payment.maintenanceRequestTitle}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Requested By:</span>
-                        <span className="text-sm text-gray-900">{payment.requestedByName}</span>
+                        <span className="text-sm text-gray-900">{payment.requestedBy}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Request Date:</span>
-                        <span className="text-sm text-gray-900">{formatDateTime(payment.requestDate)}</span>
+                        <span className="text-sm text-gray-900">{formatDateTime(payment.timestamp)}</span>
                       </div>
                       <div>
                         <span className="text-sm text-gray-600 block mb-1">Reason:</span>
@@ -1357,12 +1153,12 @@ export function LandlordFacility({
                     )}
                     {payment.status === "paid" && (
                       <div className="mb-4 px-3 py-2 rounded-lg bg-green-50 border border-green-100 text-xs text-green-800">
-                        Paid on {formatDateTime(payment.paidAt!)} · Disbursed {formatCurrency(payment.disbursedAmount ?? payment.requestedAmount)}
+                        Paid on {formatDateTime(payment.paidAt!)} · Disbursed {fmtNaira(payment.disbursedAmount ?? payment.approvedAmount ?? payment.requestedAmount)}
                       </div>
                     )}
                     {payment.status === "declined" && (
                       <div className="mb-4 px-3 py-2 rounded-lg bg-red-50 border border-red-100 text-xs text-red-800">
-                        Declined on {formatDateTime(payment.declinedAt!)}
+                        Declined{payment.declinedAt ? ` on ${formatDateTime(payment.declinedAt)}` : ""}
                       </div>
                     )}
 
@@ -1371,9 +1167,10 @@ export function LandlordFacility({
                       {payment.attachments && payment.attachments.length > 0 && (
                         <button
                           type="button"
-                          onClick={() =>
-                            setLightbox({ items: payment.attachments!, index: 0 })
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightbox({ items: payment.attachments!, index: 0 });
+                          }}
                           className="flex items-center gap-1.5 text-[#FF5000] hover:underline"
                         >
                           <Paperclip className="w-3.5 h-3.5" />
@@ -1382,31 +1179,7 @@ export function LandlordFacility({
                           </span>
                         </button>
                       )}
-                      <div className="text-xs">Last Updated: {getRelativeTime(payment.updatedAt)}</div>
                     </div>
-
-                    {/* Primary actions */}
-                    {payment.status === "pending_approval" && (
-                      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
-                        <Button
-                          size="sm"
-                          className="bg-[#FF5000] hover:bg-[#E64600] text-white flex-1 sm:flex-none sm:px-8"
-                          onClick={() => openApproveModal(payment)}
-                        >
-                          <Check className="w-4 h-4 mr-1.5" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 flex-1 sm:flex-none sm:px-8"
-                          onClick={() => setConfirmPaymentAction({ payment, action: "decline" })}
-                        >
-                          <X className="w-4 h-4 mr-1.5" />
-                          Decline
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -1974,102 +1747,6 @@ export function LandlordFacility({
         }}
       />
 
-      <AlertDialog
-        open={confirmPaymentAction !== null}
-        onOpenChange={(open) => !open && setConfirmPaymentAction(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Decline this payment request?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {`This will decline the payment request from ${confirmPaymentAction?.payment.requestedByName} for ${confirmPaymentAction ? formatCurrency(confirmPaymentAction.payment.requestedAmount) : ""}. This cannot be undone.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (!confirmPaymentAction) return;
-                handleDeclinePayment(confirmPaymentAction.payment);
-              }}
-            >
-              Decline
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Approve Payment Request modal */}
-      <Dialog open={approveTarget !== null} onOpenChange={(open) => !open && closeApproveModal()}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Approve Payment Request</DialogTitle>
-          </DialogHeader>
-
-          {approveTarget && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Property:</span>
-                  <span className="text-sm text-gray-900">{approveTarget.propertyName}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Maintenance Request:</span>
-                  <span className="text-sm text-gray-900">{approveTarget.maintenanceRequestTitle}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Requested By:</span>
-                  <span className="text-sm text-gray-900">{approveTarget.requestedByName}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Request Date:</span>
-                  <span className="text-sm text-gray-900">{formatDateTime(approveTarget.requestDate)}</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-gray-100 space-y-1.5">
-                <Label className="text-xs text-gray-500">Requested Amount</Label>
-                <div className="h-9 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700">
-                  {formatCurrency(approveTarget.requestedAmount)}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="approved-amount">
-                  Approved Amount <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">₦</span>
-                  <Input
-                    id="approved-amount"
-                    value={approvedAmountInput}
-                    onChange={(e) => setApprovedAmountInput(e.target.value.replace(/[^\d.]/g, ""))}
-                    inputMode="decimal"
-                    className="pl-7"
-                    placeholder="0.00"
-                  />
-                </div>
-                {!isApprovedAmountValid && (
-                  <p className="text-sm text-red-500">Enter a valid approved amount.</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={closeApproveModal}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleApprovePayment}
-              disabled={!isApprovedAmountValid}
-              className="bg-[#FF5000] hover:bg-[#E64600] text-white"
-            >
-              Approve Payment
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
