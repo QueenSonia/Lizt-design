@@ -6,12 +6,19 @@
 
 export type ThreadAuthor = "landlord" | "facility_manager";
 
+export interface ThreadMessageAttachment {
+  url: string;
+  type: "image" | "video" | "document";
+  name: string;
+}
+
 export interface ThreadMessage {
   id: string;
   type: "message";
   author: ThreadAuthor;
   authorName: string;
   body: string;
+  attachments?: ThreadMessageAttachment[];
   timestamp: string; // ISO
 }
 

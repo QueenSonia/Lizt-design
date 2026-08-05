@@ -26,6 +26,7 @@ import {
 import {
   ThreadEntry,
   ThreadPaymentRequest,
+  ThreadMessageAttachment,
   appendThreadEntry,
   updatePaymentRequest,
   getThread,
@@ -56,6 +57,7 @@ import {
   ChevronDown,
   Paperclip,
   RotateCcw,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export default function LandlordMaintenanceRequestDetail() {
@@ -80,7 +82,9 @@ export default function LandlordMaintenanceRequestDetail() {
   const [, fmStoreTick] = useState(0);
   const [, threadTick] = useState(0);
   const [threadInput, setThreadInput] = useState("");
+  const [pendingThreadAttachments, setPendingThreadAttachments] = useState<ThreadMessageAttachment[]>([]);
   const threadTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const threadFileInputRef = useRef<HTMLInputElement>(null);
 
   const autoResizeThread = useCallback(() => {
     const el = threadTextareaRef.current;
@@ -150,10 +154,32 @@ export default function LandlordMaintenanceRequestDetail() {
 
   const sendMessage = () => {
     const body = threadInput.trim();
-    if (!body) return;
-    appendThreadEntry(req.id, { id: makeMsgId(), type: "message", author: "landlord", authorName: "You", body, timestamp: new Date().toISOString() });
+    if (!body && pendingThreadAttachments.length === 0) return;
+    appendThreadEntry(req.id, {
+      id: makeMsgId(),
+      type: "message",
+      author: "landlord",
+      authorName: "You",
+      body,
+      attachments: pendingThreadAttachments.length > 0 ? pendingThreadAttachments : undefined,
+      timestamp: new Date().toISOString(),
+    });
     setThreadInput("");
+    setPendingThreadAttachments([]);
     if (threadTextareaRef.current) threadTextareaRef.current.style.height = "auto";
+  };
+
+  const handleThreadFilesSelected = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const newAttachments: ThreadMessageAttachment[] = Array.from(files).map((file) => {
+      const type: ThreadMessageAttachment["type"] = file.type.startsWith("image/")
+        ? "image"
+        : file.type.startsWith("video/")
+          ? "video"
+          : "document";
+      return { url: URL.createObjectURL(file), type, name: file.name };
+    });
+    setPendingThreadAttachments((prev) => [...prev, ...newAttachments]);
   };
 
   // Attachments
@@ -415,13 +441,57 @@ export default function LandlordMaintenanceRequestDetail() {
                                 {isLandlord ? "You" : entry.authorName}
                               </span>
                               {/* Bubble */}
-                              <div className={`max-w-[78%] px-3.5 py-2.5 text-sm leading-relaxed shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
-                                isLandlord
-                                  ? "bg-[#FF5000] text-white rounded-2xl rounded-br-sm"
-                                  : "bg-white text-gray-900 rounded-2xl rounded-bl-sm border border-gray-100"
-                              }`}>
-                                {entry.body}
-                              </div>
+                              {entry.body && (
+                                <div className={`max-w-[78%] px-3.5 py-2.5 text-sm leading-relaxed shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
+                                  isLandlord
+                                    ? "bg-[#FF5000] text-white rounded-2xl rounded-br-sm"
+                                    : "bg-white text-gray-900 rounded-2xl rounded-bl-sm border border-gray-100"
+                                }`}>
+                                  {entry.body}
+                                </div>
+                              )}
+                              {/* Attachments */}
+                              {entry.attachments && entry.attachments.length > 0 && (
+                                <div className={`flex flex-wrap gap-1.5 max-w-[78%] ${isLandlord ? "justify-end" : "justify-start"}`}>
+                                  {entry.attachments.map((att, i) =>
+                                    att.type === "document" ? (
+                                      <a
+                                        key={i}
+                                        href={att.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+                                      >
+                                        <Paperclip className="w-3 h-3 shrink-0" />
+                                        <span className="truncate max-w-[140px]">{att.name}</span>
+                                      </a>
+                                    ) : (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() =>
+                                          setLightbox({
+                                            items: entry.attachments!.filter((a) => a.type !== "document").map((a) => ({ url: a.url, type: a.type as "image" | "video" })),
+                                            index: entry.attachments!.filter((a) => a.type !== "document").findIndex((a) => a.url === att.url),
+                                          })
+                                        }
+                                        className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#FF5000]"
+                                      >
+                                        {att.type === "video" ? (
+                                          <>
+                                            <video src={att.url} className="w-full h-full object-cover" muted preload="metadata" />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                              <Play className="w-4 h-4 text-white" />
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                                        )}
+                                      </button>
+                                    ),
+                                  )}
+                                </div>
+                              )}
                               {/* Timestamp */}
                               <span className="text-[10px] text-gray-400 px-1">{fmtThreadTime(entry.timestamp)}</span>
                             </div>
@@ -433,8 +503,53 @@ export default function LandlordMaintenanceRequestDetail() {
                 </div>
 
                 {/* Composer — docked inside the canvas */}
-                {isApproved && (
-                  <div className="border-t border-gray-200 bg-white px-3 py-2.5 flex items-end gap-2">
+                <div className="border-t border-gray-200 bg-white">
+                  {pendingThreadAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
+                      {pendingThreadAttachments.map((att, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-md border border-gray-200 bg-gray-50 text-xs text-gray-600"
+                        >
+                          {att.type === "document" ? (
+                            <Paperclip className="w-3 h-3 shrink-0" />
+                          ) : att.type === "video" ? (
+                            <Play className="w-3 h-3 shrink-0" />
+                          ) : (
+                            <ImageIcon className="w-3 h-3 shrink-0" />
+                          )}
+                          <span className="truncate max-w-[100px]">{att.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setPendingThreadAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="px-3 py-2.5 flex items-end gap-2">
+                    <input
+                      ref={threadFileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
+                      className="hidden"
+                      onChange={(e) => {
+                        handleThreadFilesSelected(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => threadFileInputRef.current?.click()}
+                      className="shrink-0 w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 flex items-center justify-center transition-colors"
+                      aria-label="Attach a file"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </button>
                     <textarea
                       ref={threadTextareaRef}
                       rows={1}
@@ -448,13 +563,13 @@ export default function LandlordMaintenanceRequestDetail() {
                     <button
                       type="button"
                       onClick={sendMessage}
-                      disabled={!threadInput.trim()}
+                      disabled={!threadInput.trim() && pendingThreadAttachments.length === 0}
                       className="shrink-0 w-8 h-8 rounded-lg bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors"
                     >
                       <Send className="w-3.5 h-3.5 text-white" />
                     </button>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
