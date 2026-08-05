@@ -47,6 +47,7 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -58,6 +59,7 @@ import {
   X,
   ChevronRight,
   Paperclip,
+  RotateCcw,
 } from "lucide-react";
 
 export default function LandlordMaintenanceRequestDetail() {
@@ -240,7 +242,26 @@ export default function LandlordMaintenanceRequestDetail() {
         <div className="px-6 sm:px-8 py-5 flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold text-slate-900 leading-snug">{req.description}</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Reported by {SOURCE_LABEL[source]} – {reporterName(req)}</p>
+            <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span>Reported by {SOURCE_LABEL[source]} – {reporterName(req)}</span>
+              {req.reopened_at && (
+                <>
+                  <span className="text-slate-300">•</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 cursor-default">
+                        <RotateCcw className="w-3 h-3" />
+                        Reopened
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Last reopened on {formatDateTime(req.reopened_at)}
+                      {req.notes ? ` because ${req.notes.replace(/^["“]|["”]$/g, "")}` : ""}
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+            </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Button
@@ -298,19 +319,6 @@ export default function LandlordMaintenanceRequestDetail() {
               </div>
             </div>
 
-            {/* Reopened notice */}
-            {req.reopened_at && (
-              <div className="p-6 sm:p-8">
-                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                  <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-0.5">Reopened</p>
-                    <p className="text-xs text-red-600">Last reopened: {formatDateTime(req.reopened_at)}</p>
-                    {req.notes && <p className="text-xs text-red-500 italic mt-1">"{req.notes}"</p>}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Maintenance Attachments */}
             {allAttachments.length > 0 && (
