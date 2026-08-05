@@ -70,10 +70,7 @@ export default function LandlordMaintenanceRequestDetail() {
 
   // State
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
-  const [resolutionOverrides, setResolutionOverrides] = useState<Record<string, ResolutionDetails[]>>({});
-  const [resolveModalOpen, setResolveModalOpen] = useState(false);
-  const [resolutionSummary, setResolutionSummary] = useState("");
-  const [showResolutionError, setShowResolutionError] = useState(false);
+  const [resolutionOverrides] = useState<Record<string, ResolutionDetails[]>>({});
   const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [declineModal, setDeclineModal] = useState<{ taskId: string; entry: ThreadPaymentRequest } | null>(null);
   const [declineReason, setDeclineReason] = useState("");
@@ -217,42 +214,6 @@ export default function LandlordMaintenanceRequestDetail() {
   const baseResArr = req.resolutions ?? (req.resolution ? [req.resolution] : []);
   const resArr = [...baseResArr, ...(resolutionOverrides[req.id] ?? [])];
   const isResolved = ["resolved", "closed"].includes(currentStatus.toLowerCase());
-  const canResolve = isApproved && !isResolved;
-
-  const openResolveModal = () => {
-    setResolutionSummary("");
-    setShowResolutionError(false);
-    setResolveModalOpen(true);
-  };
-
-  const confirmResolution = () => {
-    if (!resolutionSummary.trim()) {
-      setShowResolutionError(true);
-      return;
-    }
-    const resolvedByName = assignee?.name ?? "Facility Manager";
-    const resolvedAt = new Date().toISOString();
-    const resolution: ResolutionDetails = {
-      summary: resolutionSummary.trim(),
-      category: req.issue_category,
-      hadCost: false,
-      resolvedAt,
-      resolvedBy: resolvedByName,
-    };
-    setResolutionOverrides((prev) => ({
-      ...prev,
-      [req.id]: [...(prev[req.id] ?? []), resolution],
-    }));
-    setStatus("resolved", "Request marked as resolved.");
-    appendThreadEntry(req.id, {
-      id: makeMsgId(),
-      type: "resolution",
-      resolvedBy: resolvedByName,
-      summary: resolution.summary,
-      timestamp: resolvedAt,
-    });
-    setResolveModalOpen(false);
-  };
 
   return (
     <div className="page-container">
@@ -302,21 +263,6 @@ export default function LandlordMaintenanceRequestDetail() {
             >
               {isApproved ? "Approved" : "Approve Request"}
             </Button>
-            {isResolved ? (
-              <Button size="sm" disabled className="bg-emerald-600 text-white disabled:opacity-100">
-                <Check className="w-3.5 h-3.5 mr-1.5" />
-                Resolved
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                disabled={!canResolve}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
-                onClick={openResolveModal}
-              >
-                Mark as Resolved
-              </Button>
-            )}
           </div>
         </div>
 
@@ -967,61 +913,6 @@ export default function LandlordMaintenanceRequestDetail() {
         </div>
       )}
 
-      {/* Mark as Resolved Modal */}
-      {resolveModalOpen && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setResolveModalOpen(false); }}
-          className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
-        >
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-700" />
-                <span className="text-sm font-bold text-gray-900">Mark as Resolved</span>
-              </div>
-              <button onClick={() => setResolveModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-5 py-4 space-y-2 overflow-y-auto">
-              <label className="text-sm font-medium text-gray-700 block">
-                How was this request resolved? <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={resolutionSummary}
-                onChange={(e) => {
-                  setResolutionSummary(e.target.value);
-                  if (e.target.value.trim()) setShowResolutionError(false);
-                }}
-                rows={7}
-                placeholder="Describe how the issue was diagnosed, what work was carried out, and how the issue was resolved…"
-                className={`w-full px-3 py-2.5 border rounded-lg text-sm text-gray-900 resize-y outline-none bg-gray-50 leading-relaxed ${
-                  showResolutionError && !resolutionSummary.trim()
-                    ? "border-red-400 focus:border-red-400"
-                    : "border-gray-200 focus:border-gray-400"
-                }`}
-              />
-              {showResolutionError && !resolutionSummary.trim() && (
-                <p className="text-xs text-red-600">
-                  A resolution summary is required before closing this request.
-                </p>
-              )}
-            </div>
-            <div className="flex gap-3 px-5 pb-5 pt-2 justify-end shrink-0">
-              <button onClick={() => setResolveModalOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Cancel
-              </button>
-              <button
-                onClick={confirmResolution}
-                disabled={!resolutionSummary.trim()}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm font-semibold text-white"
-              >
-                Confirm Resolution
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
