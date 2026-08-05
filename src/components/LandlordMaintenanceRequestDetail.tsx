@@ -192,6 +192,7 @@ export default function LandlordMaintenanceRequestDetail() {
     items: Array<{ url: string; type: "image" | "video" }>,
     label: string,
     showLabel: boolean = showGroupLabels,
+    gridClassName: string = "grid-cols-4 gap-2 sm:grid-cols-6",
   ) => {
     if (items.length === 0) return null;
     const lightboxItems = items.map((a) => ({ url: a.url, type: a.type }));
@@ -203,7 +204,7 @@ export default function LandlordMaintenanceRequestDetail() {
     return (
       <div key={label}>
         {showLabel && <p className="text-[11px] text-gray-400 font-medium mb-1.5">{label}</p>}
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+        <div className={`grid ${gridClassName}`}>
           {displayItems.map((item, i) => (
             <button
               key={i}
@@ -242,10 +243,10 @@ export default function LandlordMaintenanceRequestDetail() {
   const isResolved = ["resolved", "closed"].includes(currentStatus.toLowerCase());
 
   return (
-    <div className="page-container xl:h-[calc(100vh-2rem)] xl:flex xl:flex-col xl:overflow-hidden">
+    <div className="page-container min-[1440px]:h-[calc(100vh-2rem)] min-[1440px]:flex min-[1440px]:flex-col min-[1440px]:overflow-hidden">
 
       {/* ── Header card — flush to top and left edge of content area ── */}
-      <div className="bg-white shadow-sm mb-4 overflow-hidden -mt-4 -mx-4 sm:-mt-6 sm:-mx-6 lg:-mt-8 lg:-mx-8 xl:shrink-0">
+      <div className="bg-white shadow-sm mb-4 overflow-hidden -mt-4 -mx-4 sm:-mt-6 sm:-mx-6 lg:-mt-8 lg:-mx-8 min-[1440px]:shrink-0">
 
         {/* Row 1 — back nav only */}
         <div className="px-6 sm:px-8 py-4">
@@ -263,7 +264,7 @@ export default function LandlordMaintenanceRequestDetail() {
         <div className="border-t border-gray-100" />
 
         {/* Row 2 — request title + actions */}
-        <div className="px-6 sm:px-8 py-5 flex items-start justify-between gap-4 flex-wrap">
+        <div className="px-6 sm:px-8 py-5 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold text-slate-900 leading-snug">{req.description}</h1>
             <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -287,7 +288,7 @@ export default function LandlordMaintenanceRequestDetail() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -323,17 +324,17 @@ export default function LandlordMaintenanceRequestDetail() {
       </div>
 
       {/* ── Page content — main frame + optional Previous Resolution sidebar ── */}
-      <div className={`flex flex-col xl:flex-row xl:items-stretch gap-6 xl:flex-1 xl:min-h-0 ${resArr.length > 0 && req.reopened_at ? "max-w-[1680px]" : "max-w-5xl"}`}>
+      <div className={`flex flex-col lg:flex-row lg:items-stretch gap-4 lg:gap-6 min-[1440px]:flex-1 min-[1440px]:min-h-0 ${resArr.length > 0 && req.reopened_at ? "max-w-[1680px]" : "max-w-5xl"}`}>
 
       {/* ── Two-column content frame ─────────────────────────────────── */}
-      <div className="flex-1 min-w-0 bg-white rounded-lg shadow-sm xl:h-full xl:overflow-hidden xl:flex xl:flex-col">
-        <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100 xl:flex-1 xl:min-h-0">
+      <div className="flex-1 min-w-0 bg-white rounded-lg shadow-sm min-[1440px]:h-full min-[1440px]:overflow-hidden min-[1440px]:flex min-[1440px]:flex-col">
+        <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100 min-[1440px]:flex-1 min-[1440px]:min-h-0">
 
           {/* ── Left column (primary) — 70% ────────────────────────────── */}
-          <div className="flex-1 min-w-0 divide-y divide-gray-100 xl:flex xl:flex-col xl:min-h-0">
+          <div className="flex-1 min-w-0 divide-y divide-gray-100 min-[1440px]:flex min-[1440px]:flex-col min-[1440px]:min-h-0">
 
             {/* Date metadata row */}
-            <div className="p-6 sm:p-8 xl:shrink-0">
+            <div className="p-4 sm:p-6 lg:p-6 min-[1440px]:p-8 min-[1440px]:shrink-0">
               <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                 <div>
                   <p className="text-xs font-medium text-slate-500 mb-1">Date Reported</p>
@@ -349,9 +350,9 @@ export default function LandlordMaintenanceRequestDetail() {
 
             {/* Maintenance Attachments */}
             {allAttachments.length > 0 && (
-              <div className="p-6 sm:p-8 xl:shrink-0">
+              <div className="p-4 sm:p-6 lg:p-6 min-[1440px]:p-8 min-[1440px]:shrink-0">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Maintenance Attachments</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
                     <p className="text-[11px] text-gray-400 font-medium mb-1.5">Original Request Media</p>
                     {origItems.length > 0 ? (
@@ -373,14 +374,14 @@ export default function LandlordMaintenanceRequestDetail() {
             )}
 
             {/* Updates & Activity */}
-            <div className="p-6 sm:p-8 xl:flex-1 xl:min-h-0 xl:flex xl:flex-col">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 xl:shrink-0">Updates & Activity</h3>
+            <div className="p-4 sm:p-6 lg:p-6 min-[1440px]:p-8 min-[1440px]:flex-1 min-[1440px]:min-h-0 min-[1440px]:flex min-[1440px]:flex-col">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 min-[1440px]:shrink-0">Updates & Activity</h3>
 
               {/* Chat canvas */}
-              <div className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden xl:flex-1 xl:min-h-0 xl:flex xl:flex-col">
+              <div className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden min-[1440px]:flex-1 min-[1440px]:min-h-0 min-[1440px]:flex min-[1440px]:flex-col">
 
                 {/* Message area */}
-                <div className="px-4 py-5 space-y-1 min-h-[120px] xl:flex-1 xl:min-h-0 xl:overflow-y-auto">
+                <div className="px-4 py-5 space-y-1 min-h-[120px] min-[1440px]:flex-1 min-[1440px]:min-h-0 min-[1440px]:overflow-y-auto">
                   {groups.length === 0 && (
                     <p className="text-xs text-gray-400 italic text-center pt-4">No updates yet.</p>
                   )}
@@ -517,7 +518,7 @@ export default function LandlordMaintenanceRequestDetail() {
                 </div>
 
                 {/* Composer — docked inside the canvas */}
-                <div className="border-t border-gray-200 bg-white xl:shrink-0">
+                <div className="border-t border-gray-200 bg-white min-[1440px]:shrink-0">
                   {pendingThreadAttachments.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
                       {pendingThreadAttachments.map((att, i) => (
@@ -591,8 +592,8 @@ export default function LandlordMaintenanceRequestDetail() {
           </div>{/* end left column */}
 
           {/* ── Right column (sticky details panel) — 30% ───────────────── */}
-          <div className="w-full lg:w-72 xl:w-80 shrink-0 xl:h-full xl:overflow-y-auto">
-            <div className="lg:sticky lg:top-8 xl:!static p-6 space-y-6">
+          <div className="w-full lg:w-72 min-[1440px]:w-80 shrink-0 min-[1440px]:h-full min-[1440px]:overflow-y-auto">
+            <div className="lg:sticky lg:top-8 min-[1440px]:!static p-4 sm:p-6 space-y-6">
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Request Details</h3>
 
               {/* Assigned Facility Manager */}
@@ -812,7 +813,7 @@ export default function LandlordMaintenanceRequestDetail() {
                         return (
                           <div>
                             <p className="text-xs font-medium text-slate-500 mb-2">Payment Attachments</p>
-                            {renderAttachmentGroup(paymentAttachments, "Payment Attachments", false)}
+                            {renderAttachmentGroup(paymentAttachments, "Payment Attachments", false, "grid-cols-2 gap-2 min-[1440px]:grid-cols-4")}
                           </div>
                         );
                       })()}
@@ -829,8 +830,8 @@ export default function LandlordMaintenanceRequestDetail() {
 
       {/* ── Previous Resolution sidebar — only for reopened requests ── */}
       {req.reopened_at && resArr.length > 0 && (
-        <div className="w-full xl:w-[340px] shrink-0 xl:h-full xl:overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-sm p-6 space-y-5">
+        <div className="w-full lg:w-[35%] min-[1440px]:w-[340px] shrink-0 min-[1440px]:h-full min-[1440px]:overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-5">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               {resArr.length > 1 ? "Previous Resolution" : "Resolution Attempt 1"}
             </h3>
