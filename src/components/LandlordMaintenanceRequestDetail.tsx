@@ -297,7 +297,7 @@ export default function LandlordMaintenanceRequestDetail() {
       </div>
 
       {/* ── Page content — main frame + optional Previous Resolution sidebar ── */}
-      <div className={`flex flex-col xl:flex-row xl:items-start gap-6 ${resArr.length > 0 && req.reopened_at ? "max-w-6xl" : "max-w-5xl"}`}>
+      <div className={`flex flex-col xl:flex-row xl:items-start gap-6 ${resArr.length > 0 && req.reopened_at ? "max-w-[1680px]" : "max-w-5xl"}`}>
 
       {/* ── Two-column content frame ─────────────────────────────────── */}
       <div className="flex-1 min-w-0 bg-white rounded-lg shadow-sm">
