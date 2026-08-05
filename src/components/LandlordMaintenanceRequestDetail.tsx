@@ -242,10 +242,10 @@ export default function LandlordMaintenanceRequestDetail() {
   const isResolved = ["resolved", "closed"].includes(currentStatus.toLowerCase());
 
   return (
-    <div className="page-container">
+    <div className="page-container xl:h-[calc(100vh-2rem)] xl:flex xl:flex-col xl:overflow-hidden">
 
       {/* ── Header card — flush to top and left edge of content area ── */}
-      <div className="bg-white shadow-sm mb-4 overflow-hidden -mt-4 -mx-4 sm:-mt-6 sm:-mx-6 lg:-mt-8 lg:-mx-8">
+      <div className="bg-white shadow-sm mb-4 overflow-hidden -mt-4 -mx-4 sm:-mt-6 sm:-mx-6 lg:-mt-8 lg:-mx-8 xl:shrink-0">
 
         {/* Row 1 — back nav only */}
         <div className="px-6 sm:px-8 py-4">
@@ -323,17 +323,17 @@ export default function LandlordMaintenanceRequestDetail() {
       </div>
 
       {/* ── Page content — main frame + optional Previous Resolution sidebar ── */}
-      <div className={`flex flex-col xl:flex-row xl:items-start gap-6 ${resArr.length > 0 && req.reopened_at ? "max-w-[1680px]" : "max-w-5xl"}`}>
+      <div className={`flex flex-col xl:flex-row xl:items-stretch gap-6 xl:flex-1 xl:min-h-0 ${resArr.length > 0 && req.reopened_at ? "max-w-[1680px]" : "max-w-5xl"}`}>
 
       {/* ── Two-column content frame ─────────────────────────────────── */}
-      <div className="flex-1 min-w-0 bg-white rounded-lg shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100">
+      <div className="flex-1 min-w-0 bg-white rounded-lg shadow-sm xl:h-full xl:overflow-hidden xl:flex xl:flex-col">
+        <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100 xl:flex-1 xl:min-h-0">
 
           {/* ── Left column (primary) — 70% ────────────────────────────── */}
-          <div className="flex-1 min-w-0 divide-y divide-gray-100">
+          <div className="flex-1 min-w-0 divide-y divide-gray-100 xl:flex xl:flex-col xl:min-h-0">
 
             {/* Date metadata row */}
-            <div className="p-6 sm:p-8">
+            <div className="p-6 sm:p-8 xl:shrink-0">
               <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                 <div>
                   <p className="text-xs font-medium text-slate-500 mb-1">Date Reported</p>
@@ -349,7 +349,7 @@ export default function LandlordMaintenanceRequestDetail() {
 
             {/* Maintenance Attachments */}
             {allAttachments.length > 0 && (
-              <div className="p-6 sm:p-8">
+              <div className="p-6 sm:p-8 xl:shrink-0">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Maintenance Attachments</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -373,14 +373,14 @@ export default function LandlordMaintenanceRequestDetail() {
             )}
 
             {/* Updates & Activity */}
-            <div className="p-6 sm:p-8">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Updates & Activity</h3>
+            <div className="p-6 sm:p-8 xl:flex-1 xl:min-h-0 xl:flex xl:flex-col">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 xl:shrink-0">Updates & Activity</h3>
 
               {/* Chat canvas */}
-              <div className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden">
+              <div className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden xl:flex-1 xl:min-h-0 xl:flex xl:flex-col">
 
                 {/* Message area */}
-                <div className="px-4 py-5 space-y-1 min-h-[120px]">
+                <div className="px-4 py-5 space-y-1 min-h-[120px] xl:flex-1 xl:min-h-0 xl:overflow-y-auto">
                   {groups.length === 0 && (
                     <p className="text-xs text-gray-400 italic text-center pt-4">No updates yet.</p>
                   )}
@@ -517,7 +517,7 @@ export default function LandlordMaintenanceRequestDetail() {
                 </div>
 
                 {/* Composer — docked inside the canvas */}
-                <div className="border-t border-gray-200 bg-white">
+                <div className="border-t border-gray-200 bg-white xl:shrink-0">
                   {pendingThreadAttachments.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
                       {pendingThreadAttachments.map((att, i) => (
@@ -591,8 +591,8 @@ export default function LandlordMaintenanceRequestDetail() {
           </div>{/* end left column */}
 
           {/* ── Right column (sticky details panel) — 30% ───────────────── */}
-          <div className="w-full lg:w-72 xl:w-80 shrink-0">
-            <div className="lg:sticky lg:top-8 p-6 space-y-6">
+          <div className="w-full lg:w-72 xl:w-80 shrink-0 xl:h-full xl:overflow-y-auto">
+            <div className="lg:sticky lg:top-8 xl:!static p-6 space-y-6">
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Request Details</h3>
 
               {/* Assigned Facility Manager */}
@@ -829,8 +829,8 @@ export default function LandlordMaintenanceRequestDetail() {
 
       {/* ── Previous Resolution sidebar — only for reopened requests ── */}
       {req.reopened_at && resArr.length > 0 && (
-        <div className="w-full xl:w-[340px] shrink-0">
-          <div className="xl:sticky xl:top-8 bg-white rounded-lg shadow-sm p-6 space-y-5">
+        <div className="w-full xl:w-[340px] shrink-0 xl:h-full xl:overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-sm p-6 space-y-5">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               {resArr.length > 1 ? "Previous Resolution" : "Resolution Attempt 1"}
             </h3>
