@@ -351,9 +351,23 @@ export default function LandlordMaintenanceRequestDetail() {
             {allAttachments.length > 0 && (
               <div className="p-6 sm:p-8">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Maintenance Attachments</h3>
-                <div className="space-y-4">
-                  {renderAttachmentGroup(origItems, "Original Request")}
-                  {renderAttachmentGroup(reopenedItems, "Reopened Request")}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-[11px] text-gray-400 font-medium mb-1.5">Original Request Media</p>
+                    {origItems.length > 0 ? (
+                      renderAttachmentGroup(origItems, "Original Request Media", false)
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">No original media uploaded.</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-400 font-medium mb-1.5">Reopened Request Media</p>
+                    {reopenedItems.length > 0 ? (
+                      renderAttachmentGroup(reopenedItems, "Reopened Request Media", false)
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">No reopened media uploaded.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
