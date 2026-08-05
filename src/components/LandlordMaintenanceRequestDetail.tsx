@@ -853,8 +853,8 @@ export default function LandlordMaintenanceRequestDetail() {
                       </div>
                       <div className="px-4 py-3.5 divide-y divide-emerald-100/70 text-sm">
                         <div className="pb-2.5">
-                          <p className="text-xs text-gray-500 mb-0.5">Resolution Summary</p>
-                          <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.summary}</p>
+                          <p className="text-xs text-gray-500 mb-0.5">Tenant Feedback</p>
+                          <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.tenantFeedback || "—"}</p>
                         </div>
                         <div className="py-2.5">
                           <p className="text-xs text-gray-500 mb-0.5">Resolved by (Facility Manager)</p>
@@ -886,12 +886,6 @@ export default function LandlordMaintenanceRequestDetail() {
                         )}
                       </div>
                     </div>
-                    {attempt.rejectedByTenant && attempt.tenantFeedback && (
-                      <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                        <p className="text-xs text-gray-500 mb-0.5">Tenant Feedback</p>
-                        <p className="text-xs text-amber-800 italic">"{attempt.tenantFeedback}"</p>
-                      </div>
-                    )}
                     {isLatest && !attempt.rejectedByTenant && (
                       <div className="mt-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
                         <p className="text-[11px] text-gray-500 italic">Awaiting tenant confirmation</p>
