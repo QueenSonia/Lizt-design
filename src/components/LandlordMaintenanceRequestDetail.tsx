@@ -37,13 +37,8 @@ import {
   isTaskPriority,
   setTaskPriority,
 } from "@/lib/taskThreadStore";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -58,6 +53,7 @@ import {
   Play,
   X,
   ChevronRight,
+  ChevronDown,
   Paperclip,
   RotateCcw,
 } from "lucide-react";
@@ -79,6 +75,8 @@ export default function LandlordMaintenanceRequestDetail() {
   const [approveModal, setApproveModal] = useState<{ taskId: string; entry: ThreadPaymentRequest } | null>(null);
   const [approvedAmountInput, setApprovedAmountInput] = useState("");
   const [managers, setManagers] = useState<FacilityManager[]>(MOCK_FACILITY_MANAGERS);
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
+  const [pendingAssigneeId, setPendingAssigneeId] = useState<string>("unassigned");
   const [, fmStoreTick] = useState(0);
   const [, threadTick] = useState(0);
   const [threadInput, setThreadInput] = useState("");
@@ -542,38 +540,98 @@ export default function LandlordMaintenanceRequestDetail() {
               {/* Assigned Facility Manager */}
               <div>
                 <p className="text-xs font-medium text-slate-500 mb-2">Assigned Facility Manager</p>
-                {isApproved && assignee ? (
-                  <p className="text-sm font-medium text-slate-900">{assignee.name}</p>
-                ) : (
-                  <>
-                    <Select
-                      value={assignee?.id ?? "unassigned"}
-                      onValueChange={(value) => {
-                        const nextId = value === "unassigned" ? null : value;
-                        assignRequestToManager(req.id, nextId);
-                        fmStoreTick((n) => n + 1);
-                        if (nextId) {
-                          const fm = managers.find((m) => m.id === nextId);
-                          toast.success(`Assigned to ${fm?.name ?? "facility manager"}. WhatsApp notification sent.`);
-                          appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${fm?.name ?? "facility manager"}`, timestamp: new Date().toISOString() });
-                        } else {
-                          toast.success("Request unassigned");
-                          appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() });
-                        }
-                      }}
+                <Popover
+                  open={assigneePickerOpen}
+                  onOpenChange={(open) => {
+                    setAssigneePickerOpen(open);
+                    if (open) setPendingAssigneeId(assignee?.id ?? "unassigned");
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm text-left hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1 transition-colors"
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choose a facility manager" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {managers.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </>
-                )}
+                      <span className={assignee ? "text-slate-900 font-medium" : "text-slate-400"}>
+                        {assignee?.name ?? "Unassigned"}
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-72 p-0">
+                    <RadioGroup
+                      value={pendingAssigneeId}
+                      onValueChange={setPendingAssigneeId}
+                      className="py-2"
+                    >
+                      <label
+                        htmlFor="fm-radio-unassigned"
+                        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors"
+                      >
+                        <RadioGroupItem value="unassigned" id="fm-radio-unassigned" />
+                        <span className="text-sm text-slate-700">Unassigned</span>
+                      </label>
+                      {managers.map((m) => (
+                        <label
+                          key={m.id}
+                          htmlFor={`fm-radio-${m.id}`}
+                          className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors"
+                        >
+                          <RadioGroupItem value={m.id} id={`fm-radio-${m.id}`} />
+                          <span className="text-sm text-slate-700">{m.name}</span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                    <div className="flex gap-2 px-4 py-3 border-t border-gray-100">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setAssigneePickerOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white"
+                        onClick={() => {
+                          const previousAssignee = assignee;
+                          const nextId = pendingAssigneeId === "unassigned" ? null : pendingAssigneeId;
+                          const nextAssignee = nextId ? managers.find((m) => m.id === nextId) ?? null : null;
+
+                          if ((previousAssignee?.id ?? null) === nextId) {
+                            setAssigneePickerOpen(false);
+                            return;
+                          }
+
+                          assignRequestToManager(req.id, nextId);
+                          fmStoreTick((n) => n + 1);
+
+                          const now = new Date().toISOString();
+                          if (previousAssignee && nextAssignee) {
+                            toast.success(`Reassigned to ${nextAssignee.name}. WhatsApp notification sent.`);
+                            appendThreadEntry(req.id, {
+                              id: makeMsgId(),
+                              type: "event",
+                              body: `Facility Manager Reassigned — Maintenance request reassigned from ${previousAssignee.name} to ${nextAssignee.name}`,
+                              timestamp: now,
+                            });
+                          } else if (nextAssignee) {
+                            toast.success(`Assigned to ${nextAssignee.name}. WhatsApp notification sent.`);
+                            appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${nextAssignee.name}`, timestamp: now });
+                          } else {
+                            toast.success("Request unassigned");
+                            appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: now });
+                          }
+
+                          setAssigneePickerOpen(false);
+                        }}
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Payment Request */}
