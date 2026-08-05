@@ -296,8 +296,11 @@ export default function LandlordMaintenanceRequestDetail() {
         )}
       </div>
 
+      {/* ── Page content — main frame + optional Previous Resolution sidebar ── */}
+      <div className={`flex flex-col xl:flex-row xl:items-start gap-6 ${resArr.length > 0 && req.reopened_at ? "max-w-6xl" : "max-w-5xl"}`}>
+
       {/* ── Two-column content frame ─────────────────────────────────── */}
-      <div className="max-w-5xl bg-white rounded-lg shadow-sm">
+      <div className="flex-1 min-w-0 bg-white rounded-lg shadow-sm">
         <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100">
 
           {/* ── Left column (primary) — 70% ────────────────────────────── */}
@@ -455,80 +458,6 @@ export default function LandlordMaintenanceRequestDetail() {
               </div>
             </div>
 
-            {/* Resolution Summary */}
-            {resArr.length > 0 && (
-              <div className="p-6 sm:p-8">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Resolution Summary</h3>
-                <div className="flex flex-col gap-3">
-                  {[...resArr].reverse().map((attempt, revIdx) => {
-                    const origIdx = resArr.length - 1 - revIdx;
-                    const attemptNum = origIdx + 1;
-                    const isLatest = revIdx === 0;
-                    return (
-                      <div key={origIdx}>
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
-                          <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
-                            <div className="flex items-center gap-2">
-                              <Check className="w-3.5 h-3.5 text-emerald-700" />
-                              <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolution Attempt {attemptNum}</p>
-                            </div>
-                            {attempt.rejectedByTenant && (
-                              <span className="text-[10px] font-semibold text-red-800 bg-red-100 border border-red-200 rounded-full px-2 py-0.5">Rejected by tenant</span>
-                            )}
-                          </div>
-                          <div className="px-4 py-3.5 space-y-2.5 text-sm">
-                            <div>
-                              <p className="text-xs text-gray-500 mb-0.5">Resolution Summary</p>
-                              <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.summary}</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                              <div>
-                                <p className="text-xs text-gray-500 mb-0.5">Resolved by (Facility Manager)</p>
-                                <p className="text-gray-900">{attempt.resolvedBy}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 mb-0.5">Resolution Date & Time</p>
-                                <p className="text-gray-900">{formatDateTime(attempt.resolvedAt)}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 mb-0.5">Job category</p>
-                                <p className="text-gray-900">{attempt.category}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 mb-0.5">Cost</p>
-                                <p className="text-gray-900 tabular-nums">{attempt.hadCost ? attempt.costAmount || "—" : "No cost"}</p>
-                              </div>
-                              {attempt.artisanName && (
-                                <div>
-                                  <p className="text-xs text-gray-500 mb-0.5">Artisan name</p>
-                                  <p className="text-gray-900">{attempt.artisanName}</p>
-                                </div>
-                              )}
-                              {attempt.artisanPhone && (
-                                <div>
-                                  <p className="text-xs text-gray-500 mb-0.5">Phone number</p>
-                                  <p className="text-gray-900">{attempt.artisanPhone}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        {attempt.rejectedByTenant && attempt.tenantFeedback && (
-                          <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                            <p className="text-xs text-amber-800 italic">"{attempt.tenantFeedback}"</p>
-                          </div>
-                        )}
-                        {isLatest && !attempt.rejectedByTenant && (
-                          <div className="mt-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
-                            <p className="text-[11px] text-gray-500 italic">Awaiting tenant confirmation</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
           </div>{/* end left column */}
 
@@ -768,6 +697,86 @@ export default function LandlordMaintenanceRequestDetail() {
 
         </div>
       </div>{/* end white frame */}
+
+      {/* ── Previous Resolution sidebar — only for reopened requests ── */}
+      {req.reopened_at && resArr.length > 0 && (
+        <div className="w-full xl:w-[340px] shrink-0">
+          <div className="xl:sticky xl:top-8 bg-white rounded-lg shadow-sm p-6 space-y-5">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              {resArr.length > 1 ? "Previous Resolution" : "Resolution Attempt 1"}
+            </h3>
+            <div className="flex flex-col gap-3">
+              {[...resArr].reverse().map((attempt, revIdx) => {
+                const origIdx = resArr.length - 1 - revIdx;
+                const attemptNum = origIdx + 1;
+                const isLatest = revIdx === 0;
+                return (
+                  <div key={origIdx}>
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+                      <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
+                        <div className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-700" />
+                          <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolution Attempt {attemptNum}</p>
+                        </div>
+                        {attempt.rejectedByTenant && (
+                          <span className="text-[10px] font-semibold text-red-800 bg-red-100 border border-red-200 rounded-full px-2 py-0.5">Rejected by tenant</span>
+                        )}
+                      </div>
+                      <div className="px-4 py-3.5 divide-y divide-emerald-100/70 text-sm">
+                        <div className="pb-2.5">
+                          <p className="text-xs text-gray-500 mb-0.5">Resolution Summary</p>
+                          <p className="text-gray-900 whitespace-pre-line leading-relaxed">{attempt.summary}</p>
+                        </div>
+                        <div className="py-2.5">
+                          <p className="text-xs text-gray-500 mb-0.5">Resolved by (Facility Manager)</p>
+                          <p className="text-gray-900">{attempt.resolvedBy}</p>
+                        </div>
+                        <div className="py-2.5">
+                          <p className="text-xs text-gray-500 mb-0.5">Resolution Date & Time</p>
+                          <p className="text-gray-900">{formatDateTime(attempt.resolvedAt)}</p>
+                        </div>
+                        <div className="py-2.5">
+                          <p className="text-xs text-gray-500 mb-0.5">Job category</p>
+                          <p className="text-gray-900">{attempt.category}</p>
+                        </div>
+                        <div className="py-2.5">
+                          <p className="text-xs text-gray-500 mb-0.5">Cost</p>
+                          <p className="text-gray-900 tabular-nums">{attempt.hadCost ? attempt.costAmount || "—" : "No cost"}</p>
+                        </div>
+                        {attempt.artisanName && (
+                          <div className="py-2.5">
+                            <p className="text-xs text-gray-500 mb-0.5">Artisan name</p>
+                            <p className="text-gray-900">{attempt.artisanName}</p>
+                          </div>
+                        )}
+                        {attempt.artisanPhone && (
+                          <div className="pt-2.5">
+                            <p className="text-xs text-gray-500 mb-0.5">Phone number</p>
+                            <p className="text-gray-900">{attempt.artisanPhone}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {attempt.rejectedByTenant && attempt.tenantFeedback && (
+                      <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-500 mb-0.5">Tenant Feedback</p>
+                        <p className="text-xs text-amber-800 italic">"{attempt.tenantFeedback}"</p>
+                      </div>
+                    )}
+                    {isLatest && !attempt.rejectedByTenant && (
+                      <div className="mt-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+                        <p className="text-[11px] text-gray-500 italic">Awaiting tenant confirmation</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      </div>{/* end page content wrapper */}
 
       {/* Lightbox */}
       {lightbox && (
