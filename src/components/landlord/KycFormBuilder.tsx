@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, RotateCcw } from "lucide-react";
+import { Plus, RotateCcw, Pencil } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -31,6 +31,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { KycFormSectionEditor } from "@/components/landlord/KycFormSectionEditor";
+import { KycFormSectionSummary } from "@/components/landlord/KycFormSectionSummary";
 import KycFormPreview from "@/components/landlord/KycFormPreview";
 import {
   getKycFormConfig,
@@ -61,7 +62,7 @@ export default function KycFormBuilder({
     cloneDefaultKycFormSchema(),
   );
   const [wasCustomized, setWasCustomized] = useState(false);
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [mode, setMode] = useState<"view" | "edit" | "preview">("view");
 
   useEffect(() => {
     setSchema(getKycFormConfig(landlordId));
@@ -119,6 +120,11 @@ export default function KycFormBuilder({
     router.back();
   };
 
+  const handleCancelEdit = () => {
+    setSchema(getKycFormConfig(landlordId));
+    setMode("view");
+  };
+
   if (mode === "preview") {
     return (
       <KycFormPreview
@@ -130,51 +136,102 @@ export default function KycFormBuilder({
     );
   }
 
+  const resetAction = (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!wasCustomized}
+          className="text-gray-600"
+        >
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+          Reset to Default
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Reset to default form?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will discard all customizations and restore this
+            landlord&apos;s KYC form to match the generic default template.
+            This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleReset}>
+            Reset to Default
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+  // ── View mode — the default: a clean, read-only summary of the form ──
+  if (mode === "view") {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="bg-white border-b border-gray-200 px-6 sm:px-10 lg:px-16 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">
+              KYC Form
+            </h2>
+            <p className="text-sm text-gray-500">
+              {wasCustomized
+                ? "This landlord is using a customized tenant application form."
+                : "This landlord is using the default tenant application form."}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {resetAction}
+            <Button
+              type="button"
+              onClick={() => setMode("edit")}
+              className="bg-[#FF5722] hover:bg-[#E64A19]"
+            >
+              <Pencil className="w-3.5 h-3.5 mr-1.5" />
+              Edit Form
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 sm:px-10 lg:px-16 py-8">
+          <div className="w-full max-w-3xl mx-auto space-y-3">
+            {schema.sections.map((section) => (
+              <KycFormSectionSummary key={section.id} section={section} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Edit mode — full builder controls ──
   return (
     <div className="flex flex-col h-full">
       <div className="bg-white border-b border-gray-200 px-6 sm:px-10 lg:px-16 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-base font-semibold text-gray-900">
-            KYC Form Builder
+            Edit KYC Form
           </h2>
           <p className="text-sm text-gray-500">
-            {wasCustomized
-              ? "This landlord is using a customized tenant application form."
-              : "This landlord is using the default tenant application form."}
+            Add, reorder, or remove sections and fields, then review your
+            changes before saving.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!wasCustomized}
-                className="text-gray-600"
-              >
-                <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-                Reset to Default
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reset to default form?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will discard all customizations and restore this
-                  landlord&apos;s KYC form to match the generic default
-                  template. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleReset}>
-                  Reset to Default
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
+          {resetAction}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCancelEdit}
+            className="text-gray-600"
+          >
+            Cancel
+          </Button>
           <Button
             type="button"
             onClick={() => setMode("preview")}
