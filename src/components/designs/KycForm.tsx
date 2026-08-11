@@ -950,97 +950,6 @@ function PersonalDetailsStep({
                   <FieldError>{errors.has_single_property_management_contact}</FieldError>
                 </div>
 
-                <div>
-                  <Label htmlFor="is_primary_contact" className="mb-2">
-                    Are you the primary contact person for this company?
-                  </Label>
-                  <div className="flex items-center gap-6 mt-1.5">
-                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="is_primary_contact"
-                        value="yes"
-                        checked={formData.is_primary_contact === "yes"}
-                        onChange={() => onChange({ is_primary_contact: "yes" })}
-                        className="accent-orange-600"
-                        style={{ accentColor: BRAND_COLOR }}
-                      />
-                      Yes
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="is_primary_contact"
-                        value="no"
-                        checked={formData.is_primary_contact === "no"}
-                        onChange={() => onChange({ is_primary_contact: "no" })}
-                        className="accent-orange-600"
-                        style={{ accentColor: BRAND_COLOR }}
-                      />
-                      No
-                    </label>
-                  </div>
-                  <FieldError>{errors.is_primary_contact}</FieldError>
-                </div>
-
-                <AnimatePresence initial={false}>
-                  {formData.is_primary_contact === "no" && (
-                    <motion.div
-                      key="company-contact-fields"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                      className="overflow-hidden"
-                    >
-                      <div className="space-y-6 pt-1">
-                        <div>
-                          <Label htmlFor="company_contact_name" className="mb-2">
-                            Primary Contact Person Name
-                          </Label>
-                          <Input
-                            id="company_contact_name"
-                            value={formData.company_contact_name}
-                            onChange={(e) => onChange({ company_contact_name: e.target.value })}
-                            placeholder="Enter contact person's name"
-                            className={inputClass(!!errors.company_contact_name)}
-                          />
-                          <FieldError>{errors.company_contact_name}</FieldError>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="company_contact_job_title" className="mb-2">
-                              Job Title / Role
-                            </Label>
-                            <Input
-                              id="company_contact_job_title"
-                              value={formData.company_contact_job_title}
-                              onChange={(e) => onChange({ company_contact_job_title: e.target.value })}
-                              placeholder="Enter job title or role"
-                              className={inputClass(!!errors.company_contact_job_title)}
-                            />
-                            <FieldError>{errors.company_contact_job_title}</FieldError>
-                          </div>
-                          <div>
-                            <Label htmlFor="company_contact_phone_number" className="mb-2">
-                              Phone Number
-                            </Label>
-                            <Input
-                              id="company_contact_phone_number"
-                              type="tel"
-                              value={formData.company_contact_phone_number}
-                              onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
-                              placeholder="+234 800 000 0000"
-                              className={inputClass(!!errors.company_contact_phone_number)}
-                            />
-                            <FieldError>{errors.company_contact_phone_number}</FieldError>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
                 <AnimatePresence initial={false}>
                   {formData.has_single_property_management_contact === "yes" && (
                     <motion.div
@@ -1102,6 +1011,66 @@ function PersonalDetailsStep({
                           <p className="text-sm text-gray-500 mt-1">
                             Choose who should receive different notifications relating to this tenancy.
                           </p>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h6 className="text-sm font-medium text-gray-700">Primary Contact Person</h6>
+                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <Checkbox
+                              id="is_primary_contact"
+                              checked={formData.is_primary_contact === "yes"}
+                              onCheckedChange={(checked) => {
+                                const isYes = checked === true;
+                                onChange({
+                                  is_primary_contact: isYes ? "yes" : "no",
+                                  ...(isYes
+                                    ? {
+                                        company_contact_name: `${formData.first_name} ${formData.last_name}`.trim(),
+                                        company_contact_phone_number: formData.phone_number,
+                                      }
+                                    : {}),
+                                });
+                              }}
+                            />
+                            I am the primary contact person for this company
+                          </label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="company_contact_name" className="mb-2">
+                                Full Name
+                              </Label>
+                              <Input
+                                id="company_contact_name"
+                                value={formData.company_contact_name}
+                                onChange={(e) => onChange({ company_contact_name: e.target.value })}
+                                readOnly={formData.is_primary_contact === "yes"}
+                                placeholder="Enter contact's full name"
+                                className={cn(
+                                  inputClass(!!errors.company_contact_name),
+                                  formData.is_primary_contact === "yes" && "bg-gray-50 cursor-not-allowed",
+                                )}
+                              />
+                              <FieldError>{errors.company_contact_name}</FieldError>
+                            </div>
+                            <div>
+                              <Label htmlFor="company_contact_phone_number" className="mb-2">
+                                WhatsApp Phone Number
+                              </Label>
+                              <Input
+                                id="company_contact_phone_number"
+                                type="tel"
+                                value={formData.company_contact_phone_number}
+                                onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
+                                readOnly={formData.is_primary_contact === "yes"}
+                                placeholder="+234 800 000 0000"
+                                className={cn(
+                                  inputClass(!!errors.company_contact_phone_number),
+                                  formData.is_primary_contact === "yes" && "bg-gray-50 cursor-not-allowed",
+                                )}
+                              />
+                              <FieldError>{errors.company_contact_phone_number}</FieldError>
+                            </div>
+                          </div>
                         </div>
 
                         {(
