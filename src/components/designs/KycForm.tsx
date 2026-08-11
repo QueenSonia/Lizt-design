@@ -460,6 +460,7 @@ interface KycFormData {
   referral_agent_phone_number: string;
   company_name: string;
   company_industry: string;
+  company_industry_other: string;
   company_nature_of_business: string;
   company_years_in_operation: string;
   is_primary_contact: string;
@@ -527,6 +528,7 @@ const INITIAL_FORM_DATA: KycFormData = {
   referral_agent_phone_number: "",
   company_name: "",
   company_industry: "",
+  company_industry_other: "",
   company_nature_of_business: "",
   company_years_in_operation: "",
   is_primary_contact: "",
@@ -551,6 +553,26 @@ const INITIAL_FORM_DATA: KycFormData = {
   cac_certificate: null,
   declaration_accepted: false,
 };
+
+const INDUSTRY_OPTIONS = [
+  "Agriculture",
+  "Construction",
+  "Consulting",
+  "Education",
+  "Financial Services",
+  "Healthcare",
+  "Hospitality",
+  "Information Technology",
+  "Manufacturing",
+  "Media & Entertainment",
+  "Non-Profit / NGO",
+  "Professional Services",
+  "Real Estate",
+  "Retail",
+  "Telecommunications",
+  "Transportation & Logistics",
+  "Other",
+];
 
 const MOCK_PROPERTIES = [
   {
@@ -684,14 +706,54 @@ function PersonalDetailsStep({
                         <Label htmlFor="company_industry" className="mb-2">
                           Industry / Business Type
                         </Label>
-                        <Input
-                          id="company_industry"
+                        <Select
                           value={formData.company_industry}
-                          onChange={(e) => onChange({ company_industry: e.target.value })}
-                          placeholder="e.g., Retail, Technology"
-                          className={inputClass(!!errors.company_industry)}
-                        />
+                          onValueChange={(v) =>
+                            onChange({
+                              company_industry: v,
+                              ...(v !== "Other" ? { company_industry_other: "" } : {}),
+                            })
+                          }
+                        >
+                          <SelectTrigger id="company_industry" className={inputClass(!!errors.company_industry)}>
+                            <SelectValue placeholder="Select industry / business type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INDUSTRY_OPTIONS.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FieldError>{errors.company_industry}</FieldError>
+
+                        <AnimatePresence initial={false}>
+                          {formData.company_industry === "Other" && (
+                            <motion.div
+                              key="company-industry-other"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <div className="pt-3">
+                                <Label htmlFor="company_industry_other" className="mb-2">
+                                  Please specify your industry/business type
+                                </Label>
+                                <Input
+                                  id="company_industry_other"
+                                  value={formData.company_industry_other}
+                                  onChange={(e) => onChange({ company_industry_other: e.target.value })}
+                                  placeholder="Enter your industry/business type"
+                                  className={inputClass(!!errors.company_industry_other)}
+                                />
+                                <FieldError>{errors.company_industry_other}</FieldError>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
 
