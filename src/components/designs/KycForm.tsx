@@ -871,9 +871,6 @@ function PersonalDetailsStep({
                 </div>
 
                 <div className="pt-2 pb-4">
-                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
-                    Property Management Contact
-                  </h4>
                   <div className="space-y-6">
                     <div>
                       <Label htmlFor="has_single_property_management_contact" className="mb-2">
