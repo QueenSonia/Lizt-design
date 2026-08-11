@@ -951,51 +951,6 @@ function PersonalDetailsStep({
                 </div>
 
                 <AnimatePresence initial={false}>
-                  {formData.has_single_property_management_contact === "yes" && (
-                    <motion.div
-                      key="single-property-management-contact"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                      className="overflow-hidden"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                        <div>
-                          <Label htmlFor="property_management_contact_name" className="mb-2">
-                            Full Name
-                          </Label>
-                          <Input
-                            id="property_management_contact_name"
-                            value={formData.property_management_contact_name}
-                            onChange={(e) => onChange({ property_management_contact_name: e.target.value })}
-                            placeholder="Enter contact's full name"
-                            className={inputClass(!!errors.property_management_contact_name)}
-                          />
-                          <FieldError>{errors.property_management_contact_name}</FieldError>
-                        </div>
-                        <div>
-                          <Label htmlFor="property_management_contact_phone_number" className="mb-2">
-                            WhatsApp Phone Number
-                          </Label>
-                          <Input
-                            id="property_management_contact_phone_number"
-                            type="tel"
-                            value={formData.property_management_contact_phone_number}
-                            onChange={(e) =>
-                              onChange({ property_management_contact_phone_number: e.target.value })
-                            }
-                            placeholder="+234 800 000 0000"
-                            className={inputClass(!!errors.property_management_contact_phone_number)}
-                          />
-                          <FieldError>{errors.property_management_contact_phone_number}</FieldError>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <AnimatePresence initial={false}>
                   {formData.has_single_property_management_contact === "no" && (
                     <motion.div
                       key="notification-contacts"
