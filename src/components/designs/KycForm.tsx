@@ -673,114 +673,6 @@ function PersonalDetailsStep({
             <p className="text-xs text-gray-500 mt-1.5">Verified phone number</p>
           </div>
 
-          <AnimatePresence initial={false}>
-            {formData.tenant_type === "corporate" && (
-              <motion.div
-                key="company-information"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className="overflow-hidden"
-              >
-                <div className="pt-2 pb-4">
-                  <div className="space-y-6">
-                    <div>
-                      <Label htmlFor="is_primary_contact" className="mb-2">
-                        Are you the primary contact person for this company?
-                      </Label>
-                      <div className="flex items-center gap-6 mt-1.5">
-                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="is_primary_contact"
-                            value="yes"
-                            checked={formData.is_primary_contact === "yes"}
-                            onChange={() => onChange({ is_primary_contact: "yes" })}
-                            className="accent-orange-600"
-                            style={{ accentColor: BRAND_COLOR }}
-                          />
-                          Yes
-                        </label>
-                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="is_primary_contact"
-                            value="no"
-                            checked={formData.is_primary_contact === "no"}
-                            onChange={() => onChange({ is_primary_contact: "no" })}
-                            className="accent-orange-600"
-                            style={{ accentColor: BRAND_COLOR }}
-                          />
-                          No
-                        </label>
-                      </div>
-                      <FieldError>{errors.is_primary_contact}</FieldError>
-                    </div>
-
-                    <AnimatePresence initial={false}>
-                      {formData.is_primary_contact === "no" && (
-                        <motion.div
-                          key="company-contact-fields"
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-6 pt-1">
-                            <div>
-                              <Label htmlFor="company_contact_name" className="mb-2">
-                                Primary Contact Person Name
-                              </Label>
-                              <Input
-                                id="company_contact_name"
-                                value={formData.company_contact_name}
-                                onChange={(e) => onChange({ company_contact_name: e.target.value })}
-                                placeholder="Enter contact person's name"
-                                className={inputClass(!!errors.company_contact_name)}
-                              />
-                              <FieldError>{errors.company_contact_name}</FieldError>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <Label htmlFor="company_contact_job_title" className="mb-2">
-                                  Job Title / Role
-                                </Label>
-                                <Input
-                                  id="company_contact_job_title"
-                                  value={formData.company_contact_job_title}
-                                  onChange={(e) => onChange({ company_contact_job_title: e.target.value })}
-                                  placeholder="Enter job title or role"
-                                  className={inputClass(!!errors.company_contact_job_title)}
-                                />
-                                <FieldError>{errors.company_contact_job_title}</FieldError>
-                              </div>
-                              <div>
-                                <Label htmlFor="company_contact_phone_number" className="mb-2">
-                                  Phone Number
-                                </Label>
-                                <Input
-                                  id="company_contact_phone_number"
-                                  type="tel"
-                                  value={formData.company_contact_phone_number}
-                                  onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
-                                  placeholder="+234 800 000 0000"
-                                  className={inputClass(!!errors.company_contact_phone_number)}
-                                />
-                                <FieldError>{errors.company_contact_phone_number}</FieldError>
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name</Label>
@@ -1057,6 +949,97 @@ function PersonalDetailsStep({
                   </div>
                   <FieldError>{errors.has_single_property_management_contact}</FieldError>
                 </div>
+
+                <div>
+                  <Label htmlFor="is_primary_contact" className="mb-2">
+                    Are you the primary contact person for this company?
+                  </Label>
+                  <div className="flex items-center gap-6 mt-1.5">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="is_primary_contact"
+                        value="yes"
+                        checked={formData.is_primary_contact === "yes"}
+                        onChange={() => onChange({ is_primary_contact: "yes" })}
+                        className="accent-orange-600"
+                        style={{ accentColor: BRAND_COLOR }}
+                      />
+                      Yes
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="is_primary_contact"
+                        value="no"
+                        checked={formData.is_primary_contact === "no"}
+                        onChange={() => onChange({ is_primary_contact: "no" })}
+                        className="accent-orange-600"
+                        style={{ accentColor: BRAND_COLOR }}
+                      />
+                      No
+                    </label>
+                  </div>
+                  <FieldError>{errors.is_primary_contact}</FieldError>
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {formData.is_primary_contact === "no" && (
+                    <motion.div
+                      key="company-contact-fields"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-6 pt-1">
+                        <div>
+                          <Label htmlFor="company_contact_name" className="mb-2">
+                            Primary Contact Person Name
+                          </Label>
+                          <Input
+                            id="company_contact_name"
+                            value={formData.company_contact_name}
+                            onChange={(e) => onChange({ company_contact_name: e.target.value })}
+                            placeholder="Enter contact person's name"
+                            className={inputClass(!!errors.company_contact_name)}
+                          />
+                          <FieldError>{errors.company_contact_name}</FieldError>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="company_contact_job_title" className="mb-2">
+                              Job Title / Role
+                            </Label>
+                            <Input
+                              id="company_contact_job_title"
+                              value={formData.company_contact_job_title}
+                              onChange={(e) => onChange({ company_contact_job_title: e.target.value })}
+                              placeholder="Enter job title or role"
+                              className={inputClass(!!errors.company_contact_job_title)}
+                            />
+                            <FieldError>{errors.company_contact_job_title}</FieldError>
+                          </div>
+                          <div>
+                            <Label htmlFor="company_contact_phone_number" className="mb-2">
+                              Phone Number
+                            </Label>
+                            <Input
+                              id="company_contact_phone_number"
+                              type="tel"
+                              value={formData.company_contact_phone_number}
+                              onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
+                              placeholder="+234 800 000 0000"
+                              className={inputClass(!!errors.company_contact_phone_number)}
+                            />
+                            <FieldError>{errors.company_contact_phone_number}</FieldError>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <AnimatePresence initial={false}>
                   {formData.has_single_property_management_contact === "yes" && (
