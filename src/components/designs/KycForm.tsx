@@ -447,8 +447,8 @@ interface KycFormData {
   business_address: string;
   business_duration: string;
   estimated_monthly_income: string;
+  tenant_type: string;
   property_applying_for: string;
-  intended_use_of_property: string;
   number_of_occupants: string;
   is_first_time_tenant: string;
   number_of_previous_residences: string;
@@ -466,6 +466,17 @@ interface KycFormData {
   company_contact_name: string;
   company_contact_job_title: string;
   company_contact_phone_number: string;
+  has_single_property_management_contact: string;
+  property_management_contact_name: string;
+  property_management_contact_phone_number: string;
+  maintenance_requests_contact_name: string;
+  maintenance_requests_contact_phone_number: string;
+  rent_reminders_contact_name: string;
+  rent_reminders_contact_phone_number: string;
+  payment_notifications_contact_name: string;
+  payment_notifications_contact_phone_number: string;
+  general_updates_contact_name: string;
+  general_updates_contact_phone_number: string;
   passport_photo: File | null;
   id_document: File | null;
   employment_proof: File | null;
@@ -503,8 +514,8 @@ const INITIAL_FORM_DATA: KycFormData = {
   business_address: "",
   business_duration: "",
   estimated_monthly_income: "",
+  tenant_type: "",
   property_applying_for: "",
-  intended_use_of_property: "",
   number_of_occupants: "",
   is_first_time_tenant: "",
   number_of_previous_residences: "",
@@ -522,6 +533,17 @@ const INITIAL_FORM_DATA: KycFormData = {
   company_contact_name: "",
   company_contact_job_title: "",
   company_contact_phone_number: "",
+  has_single_property_management_contact: "",
+  property_management_contact_name: "",
+  property_management_contact_phone_number: "",
+  maintenance_requests_contact_name: "",
+  maintenance_requests_contact_phone_number: "",
+  rent_reminders_contact_name: "",
+  rent_reminders_contact_phone_number: "",
+  payment_notifications_contact_name: "",
+  payment_notifications_contact_phone_number: "",
+  general_updates_contact_name: "",
+  general_updates_contact_phone_number: "",
   passport_photo: null,
   id_document: null,
   employment_proof: null,
@@ -733,6 +755,44 @@ function PersonalDetailsStep({
             />
             <FieldError>{errors.email}</FieldError>
           </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
+          Tenant Type
+        </h3>
+        <div className="space-y-2">
+          <Label htmlFor="tenant_type">
+            Are you applying as: <span style={{ color: BRAND_COLOR }}>*</span>
+          </Label>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mt-1.5">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="radio"
+                name="tenant_type"
+                value="individual"
+                checked={formData.tenant_type === "individual"}
+                onChange={() => onChange({ tenant_type: "individual" })}
+                className="accent-orange-600"
+                style={{ accentColor: BRAND_COLOR }}
+              />
+              Individual Tenant (Residential)
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="radio"
+                name="tenant_type"
+                value="corporate"
+                checked={formData.tenant_type === "corporate"}
+                onChange={() => onChange({ tenant_type: "corporate" })}
+                className="accent-orange-600"
+                style={{ accentColor: BRAND_COLOR }}
+              />
+              Corporate Tenant (Commercial)
+            </label>
+          </div>
+          <FieldError>{errors.tenant_type}</FieldError>
         </div>
       </div>
 
@@ -1104,24 +1164,6 @@ function TenancyInformationStep({
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="intended_use_of_property" className="mb-2">
-                Intended Use of Property
-              </Label>
-              <Select
-                value={formData.intended_use_of_property}
-                onValueChange={(v) => onChange({ intended_use_of_property: v })}
-              >
-                <SelectTrigger id="intended_use_of_property" className={inputClass(!!errors.intended_use_of_property)}>
-                  <SelectValue placeholder="Select intended use" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Residential">Residential</SelectItem>
-                  <SelectItem value="Commercial">Commercial</SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError>{errors.intended_use_of_property}</FieldError>
-            </div>
-            <div>
               <Label htmlFor="number_of_occupants" className="mb-2">
                 Number of Occupants
               </Label>
@@ -1139,7 +1181,7 @@ function TenancyInformationStep({
           </div>
 
           <AnimatePresence initial={false}>
-            {formData.intended_use_of_property === "Commercial" && (
+            {formData.tenant_type === "corporate" && (
               <motion.div
                 key="company-information"
                 initial={{ opacity: 0, height: 0 }}
@@ -1150,7 +1192,7 @@ function TenancyInformationStep({
               >
                 <div className="pt-2 pb-4">
                   <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
-                    Company Information
+                    Corporate Information
                   </h4>
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1299,6 +1341,171 @@ function TenancyInformationStep({
                                 <FieldError>{errors.company_contact_phone_number}</FieldError>
                               </div>
                             </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                <div className="pt-2 pb-4">
+                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
+                    Property Management Contact
+                  </h4>
+                  <div className="space-y-6">
+                    <div>
+                      <Label htmlFor="has_single_property_management_contact" className="mb-2">
+                        Will one person be responsible for managing this tenancy?
+                      </Label>
+                      <div className="flex items-center gap-6 mt-1.5">
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="has_single_property_management_contact"
+                            value="yes"
+                            checked={formData.has_single_property_management_contact === "yes"}
+                            onChange={() => onChange({ has_single_property_management_contact: "yes" })}
+                            className="accent-orange-600"
+                            style={{ accentColor: BRAND_COLOR }}
+                          />
+                          Yes
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="has_single_property_management_contact"
+                            value="no"
+                            checked={formData.has_single_property_management_contact === "no"}
+                            onChange={() => onChange({ has_single_property_management_contact: "no" })}
+                            className="accent-orange-600"
+                            style={{ accentColor: BRAND_COLOR }}
+                          />
+                          No
+                        </label>
+                      </div>
+                      <FieldError>{errors.has_single_property_management_contact}</FieldError>
+                    </div>
+
+                    <AnimatePresence initial={false}>
+                      {formData.has_single_property_management_contact === "yes" && (
+                        <motion.div
+                          key="single-property-management-contact"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                            <div>
+                              <Label htmlFor="property_management_contact_name" className="mb-2">
+                                Full Name
+                              </Label>
+                              <Input
+                                id="property_management_contact_name"
+                                value={formData.property_management_contact_name}
+                                onChange={(e) => onChange({ property_management_contact_name: e.target.value })}
+                                placeholder="Enter contact's full name"
+                                className={inputClass(!!errors.property_management_contact_name)}
+                              />
+                              <FieldError>{errors.property_management_contact_name}</FieldError>
+                            </div>
+                            <div>
+                              <Label htmlFor="property_management_contact_phone_number" className="mb-2">
+                                WhatsApp Phone Number
+                              </Label>
+                              <Input
+                                id="property_management_contact_phone_number"
+                                type="tel"
+                                value={formData.property_management_contact_phone_number}
+                                onChange={(e) =>
+                                  onChange({ property_management_contact_phone_number: e.target.value })
+                                }
+                                placeholder="+234 800 000 0000"
+                                className={inputClass(!!errors.property_management_contact_phone_number)}
+                              />
+                              <FieldError>{errors.property_management_contact_phone_number}</FieldError>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <AnimatePresence initial={false}>
+                      {formData.has_single_property_management_contact === "no" && (
+                        <motion.div
+                          key="notification-contacts"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pt-1 space-y-6">
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-900">Notification Contacts</h5>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Choose who should receive different notifications relating to this tenancy.
+                              </p>
+                            </div>
+
+                            {(
+                              [
+                                {
+                                  title: "Maintenance Requests",
+                                  nameField: "maintenance_requests_contact_name",
+                                  phoneField: "maintenance_requests_contact_phone_number",
+                                },
+                                {
+                                  title: "Rent Reminders",
+                                  nameField: "rent_reminders_contact_name",
+                                  phoneField: "rent_reminders_contact_phone_number",
+                                },
+                                {
+                                  title: "Payment Notifications",
+                                  nameField: "payment_notifications_contact_name",
+                                  phoneField: "payment_notifications_contact_phone_number",
+                                },
+                                {
+                                  title: "General Tenancy Updates",
+                                  nameField: "general_updates_contact_name",
+                                  phoneField: "general_updates_contact_phone_number",
+                                },
+                              ] as const
+                            ).map((block) => (
+                              <div key={block.nameField} className="space-y-4">
+                                <h6 className="text-sm font-medium text-gray-700">{block.title}</h6>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor={block.nameField} className="mb-2">
+                                      Full Name
+                                    </Label>
+                                    <Input
+                                      id={block.nameField}
+                                      value={formData[block.nameField]}
+                                      onChange={(e) => onChange({ [block.nameField]: e.target.value })}
+                                      placeholder="Enter contact's full name"
+                                      className={inputClass(!!errors[block.nameField])}
+                                    />
+                                    <FieldError>{errors[block.nameField]}</FieldError>
+                                  </div>
+                                  <div>
+                                    <Label htmlFor={block.phoneField} className="mb-2">
+                                      WhatsApp Phone Number
+                                    </Label>
+                                    <Input
+                                      id={block.phoneField}
+                                      type="tel"
+                                      value={formData[block.phoneField]}
+                                      onChange={(e) => onChange({ [block.phoneField]: e.target.value })}
+                                      placeholder="+234 800 000 0000"
+                                      className={inputClass(!!errors[block.phoneField])}
+                                    />
+                                    <FieldError>{errors[block.phoneField]}</FieldError>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </motion.div>
                       )}
@@ -1552,7 +1759,7 @@ function IdentificationDeclarationStep({
             />
           )}
 
-          {formData.intended_use_of_property === "Commercial" && (
+          {formData.tenant_type === "corporate" && (
             <>
               <MockFileUpload
                 label="CAC Certificate"
