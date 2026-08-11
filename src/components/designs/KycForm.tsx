@@ -625,21 +625,6 @@ function PersonalDetailsStep({
           Personal Information
         </h3>
         <div className="space-y-5">
-          <div>
-            <Label htmlFor="phone_number">
-              WhatsApp Phone Number <span style={{ color: BRAND_COLOR }}>*</span>
-            </Label>
-            <Input
-              id="phone_number"
-              type="tel"
-              value={formData.phone_number}
-              readOnly
-              disabled
-              className="max-w-sm mt-1.5 bg-gray-50 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-500 mt-1.5">Verified phone number</p>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="tenant_type">
               Are you applying as: <span style={{ color: BRAND_COLOR }}>*</span>
@@ -671,6 +656,21 @@ function PersonalDetailsStep({
               </label>
             </div>
             <FieldError>{errors.tenant_type}</FieldError>
+          </div>
+
+          <div>
+            <Label htmlFor="phone_number">
+              WhatsApp Phone Number <span style={{ color: BRAND_COLOR }}>*</span>
+            </Label>
+            <Input
+              id="phone_number"
+              type="tel"
+              value={formData.phone_number}
+              readOnly
+              disabled
+              className="max-w-sm mt-1.5 bg-gray-50 cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-500 mt-1.5">Verified phone number</p>
           </div>
 
           <AnimatePresence initial={false}>
