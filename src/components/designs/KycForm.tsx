@@ -962,8 +962,7 @@ function PersonalDetailsStep({
                     >
                       <div className="pt-1 space-y-6">
                         <div>
-                          <h5 className="text-sm font-medium text-gray-900">Notification Contacts</h5>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <p className="text-sm text-gray-500 font-bold">
                             Choose who should receive different notifications relating to this tenancy.
                           </p>
                         </div>
