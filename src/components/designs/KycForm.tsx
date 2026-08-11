@@ -618,6 +618,39 @@ function PersonalDetailsStep({
             <p className="text-xs text-gray-500 mt-1.5">Verified phone number</p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="tenant_type">
+              Are you applying as: <span style={{ color: BRAND_COLOR }}>*</span>
+            </Label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mt-1.5">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="tenant_type"
+                  value="individual"
+                  checked={formData.tenant_type === "individual"}
+                  onChange={() => onChange({ tenant_type: "individual" })}
+                  className="accent-orange-600"
+                  style={{ accentColor: BRAND_COLOR }}
+                />
+                Individual Tenant (Residential)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="tenant_type"
+                  value="corporate"
+                  checked={formData.tenant_type === "corporate"}
+                  onChange={() => onChange({ tenant_type: "corporate" })}
+                  className="accent-orange-600"
+                  style={{ accentColor: BRAND_COLOR }}
+                />
+                Corporate Tenant (Commercial)
+              </label>
+            </div>
+            <FieldError>{errors.tenant_type}</FieldError>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name</Label>
@@ -755,44 +788,6 @@ function PersonalDetailsStep({
             />
             <FieldError>{errors.email}</FieldError>
           </div>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
-          Tenant Type
-        </h3>
-        <div className="space-y-2">
-          <Label htmlFor="tenant_type">
-            Are you applying as: <span style={{ color: BRAND_COLOR }}>*</span>
-          </Label>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mt-1.5">
-            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-              <input
-                type="radio"
-                name="tenant_type"
-                value="individual"
-                checked={formData.tenant_type === "individual"}
-                onChange={() => onChange({ tenant_type: "individual" })}
-                className="accent-orange-600"
-                style={{ accentColor: BRAND_COLOR }}
-              />
-              Individual Tenant (Residential)
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-              <input
-                type="radio"
-                name="tenant_type"
-                value="corporate"
-                checked={formData.tenant_type === "corporate"}
-                onChange={() => onChange({ tenant_type: "corporate" })}
-                className="accent-orange-600"
-                style={{ accentColor: BRAND_COLOR }}
-              />
-              Corporate Tenant (Commercial)
-            </label>
-          </div>
-          <FieldError>{errors.tenant_type}</FieldError>
         </div>
       </div>
 
