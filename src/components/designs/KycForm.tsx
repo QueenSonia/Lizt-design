@@ -777,264 +777,6 @@ function PersonalDetailsStep({
                     </AnimatePresence>
                   </div>
                 </div>
-
-                <div className="pt-2 pb-4">
-                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
-                    Corporate Information
-                  </h4>
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="company_name" className="mb-2">
-                          Company Name
-                        </Label>
-                        <Input
-                          id="company_name"
-                          value={formData.company_name}
-                          onChange={(e) => onChange({ company_name: e.target.value })}
-                          placeholder="Enter company name"
-                          className={inputClass(!!errors.company_name)}
-                        />
-                        <FieldError>{errors.company_name}</FieldError>
-                      </div>
-                      <div>
-                        <Label htmlFor="company_industry" className="mb-2">
-                          Industry / Business Type
-                        </Label>
-                        {formData.company_industry_is_custom === "__custom__" ? (
-                          <Input
-                            id="company_industry"
-                            value={formData.company_industry}
-                            onChange={(e) => onChange({ company_industry: e.target.value })}
-                            onBlur={() => {
-                              if (!formData.company_industry.trim()) {
-                                onChange({ company_industry: "", company_industry_is_custom: "" });
-                              }
-                            }}
-                            placeholder="Enter your industry/business type"
-                            className={inputClass(!!errors.company_industry)}
-                            autoFocus
-                          />
-                        ) : (
-                          <Select
-                            value={formData.company_industry}
-                            onValueChange={(v) =>
-                              onChange({
-                                company_industry: v === "Other" ? "" : v,
-                                company_industry_is_custom: v === "Other" ? "__custom__" : "",
-                              })
-                            }
-                          >
-                            <SelectTrigger id="company_industry" className={inputClass(!!errors.company_industry)}>
-                              <SelectValue placeholder="Select industry / business type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {INDUSTRY_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                  {option}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                        <FieldError>{errors.company_industry}</FieldError>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="company_nature_of_business" className="mb-2">
-                          Nature of Business
-                        </Label>
-                        <Input
-                          id="company_nature_of_business"
-                          value={formData.company_nature_of_business}
-                          onChange={(e) => onChange({ company_nature_of_business: e.target.value })}
-                          placeholder="Briefly describe the business"
-                          className={inputClass(!!errors.company_nature_of_business)}
-                        />
-                        <FieldError>{errors.company_nature_of_business}</FieldError>
-                      </div>
-                      <div>
-                        <Label htmlFor="company_years_in_operation" className="mb-2">
-                          Years in Operation
-                        </Label>
-                        <Input
-                          id="company_years_in_operation"
-                          type="number"
-                          min="0"
-                          value={formData.company_years_in_operation}
-                          onChange={(e) => onChange({ company_years_in_operation: e.target.value })}
-                          placeholder="e.g., 5"
-                          className={inputClass(!!errors.company_years_in_operation)}
-                        />
-                        <FieldError>{errors.company_years_in_operation}</FieldError>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 pb-4">
-                  <div className="space-y-6">
-                    <div>
-                      <Label htmlFor="has_single_property_management_contact" className="mb-2">
-                        Will one person be responsible for managing this tenancy?
-                      </Label>
-                      <div className="flex items-center gap-6 mt-1.5">
-                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="has_single_property_management_contact"
-                            value="yes"
-                            checked={formData.has_single_property_management_contact === "yes"}
-                            onChange={() => onChange({ has_single_property_management_contact: "yes" })}
-                            className="accent-orange-600"
-                            style={{ accentColor: BRAND_COLOR }}
-                          />
-                          Yes
-                        </label>
-                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="has_single_property_management_contact"
-                            value="no"
-                            checked={formData.has_single_property_management_contact === "no"}
-                            onChange={() => onChange({ has_single_property_management_contact: "no" })}
-                            className="accent-orange-600"
-                            style={{ accentColor: BRAND_COLOR }}
-                          />
-                          No
-                        </label>
-                      </div>
-                      <FieldError>{errors.has_single_property_management_contact}</FieldError>
-                    </div>
-
-                    <AnimatePresence initial={false}>
-                      {formData.has_single_property_management_contact === "yes" && (
-                        <motion.div
-                          key="single-property-management-contact"
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                          className="overflow-hidden"
-                        >
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                            <div>
-                              <Label htmlFor="property_management_contact_name" className="mb-2">
-                                Full Name
-                              </Label>
-                              <Input
-                                id="property_management_contact_name"
-                                value={formData.property_management_contact_name}
-                                onChange={(e) => onChange({ property_management_contact_name: e.target.value })}
-                                placeholder="Enter contact's full name"
-                                className={inputClass(!!errors.property_management_contact_name)}
-                              />
-                              <FieldError>{errors.property_management_contact_name}</FieldError>
-                            </div>
-                            <div>
-                              <Label htmlFor="property_management_contact_phone_number" className="mb-2">
-                                WhatsApp Phone Number
-                              </Label>
-                              <Input
-                                id="property_management_contact_phone_number"
-                                type="tel"
-                                value={formData.property_management_contact_phone_number}
-                                onChange={(e) =>
-                                  onChange({ property_management_contact_phone_number: e.target.value })
-                                }
-                                placeholder="+234 800 000 0000"
-                                className={inputClass(!!errors.property_management_contact_phone_number)}
-                              />
-                              <FieldError>{errors.property_management_contact_phone_number}</FieldError>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <AnimatePresence initial={false}>
-                      {formData.has_single_property_management_contact === "no" && (
-                        <motion.div
-                          key="notification-contacts"
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                          className="overflow-hidden"
-                        >
-                          <div className="pt-1 space-y-6">
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-900">Notification Contacts</h5>
-                              <p className="text-sm text-gray-500 mt-1">
-                                Choose who should receive different notifications relating to this tenancy.
-                              </p>
-                            </div>
-
-                            {(
-                              [
-                                {
-                                  title: "Maintenance Requests",
-                                  nameField: "maintenance_requests_contact_name",
-                                  phoneField: "maintenance_requests_contact_phone_number",
-                                },
-                                {
-                                  title: "Rent Reminders",
-                                  nameField: "rent_reminders_contact_name",
-                                  phoneField: "rent_reminders_contact_phone_number",
-                                },
-                                {
-                                  title: "Payment Notifications",
-                                  nameField: "payment_notifications_contact_name",
-                                  phoneField: "payment_notifications_contact_phone_number",
-                                },
-                                {
-                                  title: "General Tenancy Updates",
-                                  nameField: "general_updates_contact_name",
-                                  phoneField: "general_updates_contact_phone_number",
-                                },
-                              ] as const
-                            ).map((block) => (
-                              <div key={block.nameField} className="space-y-4">
-                                <h6 className="text-sm font-medium text-gray-700">{block.title}</h6>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div>
-                                    <Label htmlFor={block.nameField} className="mb-2">
-                                      Full Name
-                                    </Label>
-                                    <Input
-                                      id={block.nameField}
-                                      value={formData[block.nameField]}
-                                      onChange={(e) => onChange({ [block.nameField]: e.target.value })}
-                                      placeholder="Enter contact's full name"
-                                      className={inputClass(!!errors[block.nameField])}
-                                    />
-                                    <FieldError>{errors[block.nameField]}</FieldError>
-                                  </div>
-                                  <div>
-                                    <Label htmlFor={block.phoneField} className="mb-2">
-                                      WhatsApp Phone Number
-                                    </Label>
-                                    <Input
-                                      id={block.phoneField}
-                                      type="tel"
-                                      value={formData[block.phoneField]}
-                                      onChange={(e) => onChange({ [block.phoneField]: e.target.value })}
-                                      placeholder="+234 800 000 0000"
-                                      className={inputClass(!!errors[block.phoneField])}
-                                    />
-                                    <FieldError>{errors[block.phoneField]}</FieldError>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1178,6 +920,273 @@ function PersonalDetailsStep({
           </div>
         </div>
       </div>
+
+      <AnimatePresence initial={false}>
+        {formData.tenant_type === "corporate" && (
+          <motion.div
+            key="corporate-information-bottom"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
+                Corporate Information
+              </h3>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="company_name" className="mb-2">
+                      Company Name
+                    </Label>
+                    <Input
+                      id="company_name"
+                      value={formData.company_name}
+                      onChange={(e) => onChange({ company_name: e.target.value })}
+                      placeholder="Enter company name"
+                      className={inputClass(!!errors.company_name)}
+                    />
+                    <FieldError>{errors.company_name}</FieldError>
+                  </div>
+                  <div>
+                    <Label htmlFor="company_industry" className="mb-2">
+                      Industry / Business Type
+                    </Label>
+                    {formData.company_industry_is_custom === "__custom__" ? (
+                      <Input
+                        id="company_industry"
+                        value={formData.company_industry}
+                        onChange={(e) => onChange({ company_industry: e.target.value })}
+                        onBlur={() => {
+                          if (!formData.company_industry.trim()) {
+                            onChange({ company_industry: "", company_industry_is_custom: "" });
+                          }
+                        }}
+                        placeholder="Enter your industry/business type"
+                        className={inputClass(!!errors.company_industry)}
+                        autoFocus
+                      />
+                    ) : (
+                      <Select
+                        value={formData.company_industry}
+                        onValueChange={(v) =>
+                          onChange({
+                            company_industry: v === "Other" ? "" : v,
+                            company_industry_is_custom: v === "Other" ? "__custom__" : "",
+                          })
+                        }
+                      >
+                        <SelectTrigger id="company_industry" className={inputClass(!!errors.company_industry)}>
+                          <SelectValue placeholder="Select industry / business type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INDUSTRY_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <FieldError>{errors.company_industry}</FieldError>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="company_nature_of_business" className="mb-2">
+                      Nature of Business
+                    </Label>
+                    <Input
+                      id="company_nature_of_business"
+                      value={formData.company_nature_of_business}
+                      onChange={(e) => onChange({ company_nature_of_business: e.target.value })}
+                      placeholder="Briefly describe the business"
+                      className={inputClass(!!errors.company_nature_of_business)}
+                    />
+                    <FieldError>{errors.company_nature_of_business}</FieldError>
+                  </div>
+                  <div>
+                    <Label htmlFor="company_years_in_operation" className="mb-2">
+                      Years in Operation
+                    </Label>
+                    <Input
+                      id="company_years_in_operation"
+                      type="number"
+                      min="0"
+                      value={formData.company_years_in_operation}
+                      onChange={(e) => onChange({ company_years_in_operation: e.target.value })}
+                      placeholder="e.g., 5"
+                      className={inputClass(!!errors.company_years_in_operation)}
+                    />
+                    <FieldError>{errors.company_years_in_operation}</FieldError>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="has_single_property_management_contact" className="mb-2">
+                    Will one person be responsible for managing this tenancy?
+                  </Label>
+                  <div className="flex items-center gap-6 mt-1.5">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="has_single_property_management_contact"
+                        value="yes"
+                        checked={formData.has_single_property_management_contact === "yes"}
+                        onChange={() => onChange({ has_single_property_management_contact: "yes" })}
+                        className="accent-orange-600"
+                        style={{ accentColor: BRAND_COLOR }}
+                      />
+                      Yes
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="has_single_property_management_contact"
+                        value="no"
+                        checked={formData.has_single_property_management_contact === "no"}
+                        onChange={() => onChange({ has_single_property_management_contact: "no" })}
+                        className="accent-orange-600"
+                        style={{ accentColor: BRAND_COLOR }}
+                      />
+                      No
+                    </label>
+                  </div>
+                  <FieldError>{errors.has_single_property_management_contact}</FieldError>
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {formData.has_single_property_management_contact === "yes" && (
+                    <motion.div
+                      key="single-property-management-contact"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                        <div>
+                          <Label htmlFor="property_management_contact_name" className="mb-2">
+                            Full Name
+                          </Label>
+                          <Input
+                            id="property_management_contact_name"
+                            value={formData.property_management_contact_name}
+                            onChange={(e) => onChange({ property_management_contact_name: e.target.value })}
+                            placeholder="Enter contact's full name"
+                            className={inputClass(!!errors.property_management_contact_name)}
+                          />
+                          <FieldError>{errors.property_management_contact_name}</FieldError>
+                        </div>
+                        <div>
+                          <Label htmlFor="property_management_contact_phone_number" className="mb-2">
+                            WhatsApp Phone Number
+                          </Label>
+                          <Input
+                            id="property_management_contact_phone_number"
+                            type="tel"
+                            value={formData.property_management_contact_phone_number}
+                            onChange={(e) =>
+                              onChange({ property_management_contact_phone_number: e.target.value })
+                            }
+                            placeholder="+234 800 000 0000"
+                            className={inputClass(!!errors.property_management_contact_phone_number)}
+                          />
+                          <FieldError>{errors.property_management_contact_phone_number}</FieldError>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence initial={false}>
+                  {formData.has_single_property_management_contact === "no" && (
+                    <motion.div
+                      key="notification-contacts"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-1 space-y-6">
+                        <div>
+                          <h5 className="text-sm font-medium text-gray-900">Notification Contacts</h5>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Choose who should receive different notifications relating to this tenancy.
+                          </p>
+                        </div>
+
+                        {(
+                          [
+                            {
+                              title: "Maintenance Requests",
+                              nameField: "maintenance_requests_contact_name",
+                              phoneField: "maintenance_requests_contact_phone_number",
+                            },
+                            {
+                              title: "Rent Reminders",
+                              nameField: "rent_reminders_contact_name",
+                              phoneField: "rent_reminders_contact_phone_number",
+                            },
+                            {
+                              title: "Payment Notifications",
+                              nameField: "payment_notifications_contact_name",
+                              phoneField: "payment_notifications_contact_phone_number",
+                            },
+                            {
+                              title: "General Tenancy Updates",
+                              nameField: "general_updates_contact_name",
+                              phoneField: "general_updates_contact_phone_number",
+                            },
+                          ] as const
+                        ).map((block) => (
+                          <div key={block.nameField} className="space-y-4">
+                            <h6 className="text-sm font-medium text-gray-700">{block.title}</h6>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor={block.nameField} className="mb-2">
+                                  Full Name
+                                </Label>
+                                <Input
+                                  id={block.nameField}
+                                  value={formData[block.nameField]}
+                                  onChange={(e) => onChange({ [block.nameField]: e.target.value })}
+                                  placeholder="Enter contact's full name"
+                                  className={inputClass(!!errors[block.nameField])}
+                                />
+                                <FieldError>{errors[block.nameField]}</FieldError>
+                              </div>
+                              <div>
+                                <Label htmlFor={block.phoneField} className="mb-2">
+                                  WhatsApp Phone Number
+                                </Label>
+                                <Input
+                                  id={block.phoneField}
+                                  type="tel"
+                                  value={formData[block.phoneField]}
+                                  onChange={(e) => onChange({ [block.phoneField]: e.target.value })}
+                                  placeholder="+234 800 000 0000"
+                                  className={inputClass(!!errors[block.phoneField])}
+                                />
+                                <FieldError>{errors[block.phoneField]}</FieldError>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {formData.tenant_type !== "corporate" && (
       <div>
