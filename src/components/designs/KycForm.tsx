@@ -352,14 +352,14 @@ function MockFileUpload({
  * ---------------------------------------------------------------------- */
 
 const INDIVIDUAL_FORM_STEPS = [
-  { number: 1, title: "Applicant Type", subtitle: "Let's start by identifying the type of applicant." },
+  { number: 1, title: "Applicant Type", subtitle: "First, tell us who you're applying as." },
   { number: 2, title: "Employment Details", subtitle: "Tell us about your work and income" },
   { number: 3, title: "Tenancy Information", subtitle: "Tell us about your rental requirements" },
   { number: 4, title: "Identification & Declaration", subtitle: "Upload your documents and confirm details" },
 ];
 
 const CORPORATE_FORM_STEPS = [
-  { number: 1, title: "Applicant Type", subtitle: "Let's start by identifying the type of applicant." },
+  { number: 1, title: "Applicant Type", subtitle: "First, tell us who you're applying as." },
   { number: 2, title: "Corporate Information", subtitle: "Tell us about your company and property management contacts" },
   { number: 3, title: "Tenancy Information", subtitle: "Tell us about your rental requirements" },
   { number: 4, title: "Identification & Declaration", subtitle: "Upload your documents and confirm details" },
@@ -2154,7 +2154,12 @@ function MultiStepForm({ verifiedPhone, onSubmitted }: { verifiedPhone: string; 
         <BrandBanner onBack={goToPreviousStep} showBackButton={currentStep > 1} />
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div
+        className={cn(
+          "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12",
+          currentStep === 1 && "min-h-[calc(100vh-4rem)] flex flex-col justify-center",
+        )}
+      >
         <div className="mb-10 sm:mb-12">
           <HorizontalStepTracker currentStep={currentStep} steps={steps} />
         </div>
