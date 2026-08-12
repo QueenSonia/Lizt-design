@@ -983,39 +983,6 @@ function CorporateInformationStep({
           </div>
 
           <div>
-            <Label htmlFor="has_single_property_management_contact" className="mb-2">
-              Will one person be responsible for managing this tenancy?
-            </Label>
-            <div className="flex items-center gap-6 mt-1.5">
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="radio"
-                  name="has_single_property_management_contact"
-                  value="yes"
-                  checked={formData.has_single_property_management_contact === "yes"}
-                  onChange={() => onChange({ has_single_property_management_contact: "yes" })}
-                  className="accent-orange-600"
-                  style={{ accentColor: BRAND_COLOR }}
-                />
-                Yes
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="radio"
-                  name="has_single_property_management_contact"
-                  value="no"
-                  checked={formData.has_single_property_management_contact === "no"}
-                  onChange={() => onChange({ has_single_property_management_contact: "no" })}
-                  className="accent-orange-600"
-                  style={{ accentColor: BRAND_COLOR }}
-                />
-                No
-              </label>
-            </div>
-            <FieldError>{errors.has_single_property_management_contact}</FieldError>
-          </div>
-
-          <div>
             <Label htmlFor="is_primary_contact" className="mb-2">
               Are you the primary contact person?
             </Label>
@@ -1223,6 +1190,39 @@ function CorporateInformationStep({
                 )}
               </AnimatePresence>
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="has_single_property_management_contact" className="mb-2">
+              Will one person be responsible for managing this tenancy?
+            </Label>
+            <div className="flex items-center gap-6 mt-1.5">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="has_single_property_management_contact"
+                  value="yes"
+                  checked={formData.has_single_property_management_contact === "yes"}
+                  onChange={() => onChange({ has_single_property_management_contact: "yes" })}
+                  className="accent-orange-600"
+                  style={{ accentColor: BRAND_COLOR }}
+                />
+                Yes
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="has_single_property_management_contact"
+                  value="no"
+                  checked={formData.has_single_property_management_contact === "no"}
+                  onChange={() => onChange({ has_single_property_management_contact: "no" })}
+                  className="accent-orange-600"
+                  style={{ accentColor: BRAND_COLOR }}
+                />
+                No
+              </label>
+            </div>
+            <FieldError>{errors.has_single_property_management_contact}</FieldError>
           </div>
 
           <AnimatePresence initial={false}>
