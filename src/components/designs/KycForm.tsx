@@ -1124,6 +1124,8 @@ function CorporateInformationStep({
                     </div>
                   </div>
 
+                  <hr className="border-t border-gray-200" />
+
                   {(
                     [
                       {
@@ -1147,8 +1149,9 @@ function CorporateInformationStep({
                         phoneField: "general_updates_contact_phone_number",
                       },
                     ] as const
-                  ).map((block) => (
+                  ).map((block, index) => (
                     <div key={block.nameField} className="space-y-4">
+                      {index > 0 && <hr className="border-t border-gray-200 mb-6" />}
                       <h6 className="text-sm font-medium text-gray-700">{block.title}</h6>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
