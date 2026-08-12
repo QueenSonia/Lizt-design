@@ -1011,21 +1011,7 @@ function CorporateInformationStep({
                   name="has_single_property_management_contact"
                   value="no"
                   checked={formData.has_single_property_management_contact === "no"}
-                  onChange={() =>
-                    onChange({
-                      has_single_property_management_contact: "no",
-                      first_name: "",
-                      last_name: "",
-                      contact_address: "",
-                      nationality: "",
-                      state_of_origin: "",
-                      gender: "",
-                      date_of_birth: "",
-                      marital_status: "",
-                      religion: "",
-                      email: "",
-                    })
-                  }
+                  onChange={() => onChange({ has_single_property_management_contact: "no" })}
                   className="accent-orange-600"
                   style={{ accentColor: BRAND_COLOR }}
                 />
@@ -1038,6 +1024,69 @@ function CorporateInformationStep({
           <AnimatePresence initial={false}>
             {formData.has_single_property_management_contact === "yes" && (
               <motion.div
+                key="responsible-person-primary-contact-question"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="pt-1">
+                  <Label htmlFor="is_primary_contact" className="mb-2">
+                    Are you the primary contact person?
+                  </Label>
+                  <div className="flex items-center gap-6 mt-1.5">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="is_primary_contact"
+                        value="yes"
+                        checked={formData.is_primary_contact === "yes"}
+                        onChange={() =>
+                          onChange({
+                            is_primary_contact: "yes",
+                            first_name: "",
+                            last_name: "",
+                            contact_address: "",
+                            nationality: "",
+                            state_of_origin: "",
+                            gender: "",
+                            date_of_birth: "",
+                            marital_status: "",
+                            religion: "",
+                            email: "",
+                          })
+                        }
+                        className="accent-orange-600"
+                        style={{ accentColor: BRAND_COLOR }}
+                      />
+                      Yes
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="is_primary_contact"
+                        value="no"
+                        checked={formData.is_primary_contact === "no"}
+                        onChange={() => onChange({ is_primary_contact: "no" })}
+                        className="accent-orange-600"
+                        style={{ accentColor: BRAND_COLOR }}
+                      />
+                      No
+                    </label>
+                  </div>
+                  <FieldError>{errors.is_primary_contact}</FieldError>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence initial={false}>
+            {!(
+              formData.has_single_property_management_contact === "yes" &&
+              formData.is_primary_contact === "yes"
+            ) && (
+              <motion.div
                 key="responsible-person-personal-details"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
@@ -1046,9 +1095,12 @@ function CorporateInformationStep({
                 className="overflow-hidden"
               >
                 <div className="pt-1">
-                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
-                    Personal Details
+                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                    Primary Contact Person Details
                   </h4>
+                  <p className="text-sm text-gray-500 mt-1 mb-5">
+                    Enter the details of the person who will be the primary contact for this company.
+                  </p>
                   <div className="space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -1223,21 +1275,7 @@ function CorporateInformationStep({
                             name="is_primary_contact"
                             value="yes"
                             checked={formData.is_primary_contact === "yes"}
-                            onChange={() =>
-                              onChange({
-                                is_primary_contact: "yes",
-                                first_name: "",
-                                last_name: "",
-                                contact_address: "",
-                                nationality: "",
-                                state_of_origin: "",
-                                gender: "",
-                                date_of_birth: "",
-                                marital_status: "",
-                                religion: "",
-                                email: "",
-                              })
-                            }
+                            onChange={() => onChange({ is_primary_contact: "yes" })}
                             className="accent-orange-600"
                             style={{ accentColor: BRAND_COLOR }}
                           />
@@ -1260,7 +1298,7 @@ function CorporateInformationStep({
                     </div>
 
                     <AnimatePresence initial={false}>
-                      {formData.is_primary_contact === "no" && (
+                      {(formData.is_primary_contact === "yes" || formData.is_primary_contact === "no") && (
                         <motion.div
                           key="primary-contact-personal-details"
                           initial={{ opacity: 0, height: 0 }}
