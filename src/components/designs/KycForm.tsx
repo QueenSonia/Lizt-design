@@ -490,12 +490,9 @@ interface KycFormData {
   maintenance_requests_is_primary_contact: string;
   maintenance_requests_contact_name: string;
   maintenance_requests_contact_phone_number: string;
-  rent_reminders_is_primary_contact: string;
-  rent_reminders_contact_name: string;
-  rent_reminders_contact_phone_number: string;
-  payment_notifications_is_primary_contact: string;
-  payment_notifications_contact_name: string;
-  payment_notifications_contact_phone_number: string;
+  payment_and_rent_notifications_is_primary_contact: string;
+  payment_and_rent_notifications_contact_name: string;
+  payment_and_rent_notifications_contact_phone_number: string;
   general_updates_is_primary_contact: string;
   general_updates_contact_name: string;
   general_updates_contact_phone_number: string;
@@ -562,12 +559,9 @@ const INITIAL_FORM_DATA: KycFormData = {
   maintenance_requests_is_primary_contact: "",
   maintenance_requests_contact_name: "",
   maintenance_requests_contact_phone_number: "",
-  rent_reminders_is_primary_contact: "",
-  rent_reminders_contact_name: "",
-  rent_reminders_contact_phone_number: "",
-  payment_notifications_is_primary_contact: "",
-  payment_notifications_contact_name: "",
-  payment_notifications_contact_phone_number: "",
+  payment_and_rent_notifications_is_primary_contact: "",
+  payment_and_rent_notifications_contact_name: "",
+  payment_and_rent_notifications_contact_phone_number: "",
   general_updates_is_primary_contact: "",
   general_updates_contact_name: "",
   general_updates_contact_phone_number: "",
@@ -1361,18 +1355,11 @@ function CorporateInformationStep({
                         phoneField: "maintenance_requests_contact_phone_number",
                       },
                       {
-                        title: "Rent Reminders",
-                        question: "Will the primary contact be the one receiving rent reminders?",
-                        isPrimaryField: "rent_reminders_is_primary_contact",
-                        nameField: "rent_reminders_contact_name",
-                        phoneField: "rent_reminders_contact_phone_number",
-                      },
-                      {
-                        title: "Payment Notifications",
-                        question: "Will the primary contact be the one receiving payment notifications?",
-                        isPrimaryField: "payment_notifications_is_primary_contact",
-                        nameField: "payment_notifications_contact_name",
-                        phoneField: "payment_notifications_contact_phone_number",
+                        title: "Payment & Rent Notifications",
+                        question: "Will the primary contact be the one receiving payment and rent notifications?",
+                        isPrimaryField: "payment_and_rent_notifications_is_primary_contact",
+                        nameField: "payment_and_rent_notifications_contact_name",
+                        phoneField: "payment_and_rent_notifications_contact_phone_number",
                       },
                     ] as const
                   ).map((block, index) => (
