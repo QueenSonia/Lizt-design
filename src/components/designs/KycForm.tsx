@@ -352,14 +352,14 @@ function MockFileUpload({
  * ---------------------------------------------------------------------- */
 
 const INDIVIDUAL_FORM_STEPS = [
-  { number: 1, title: "Personal Details", subtitle: "Tell us about yourself and your emergency contact" },
+  { number: 1, title: "Applicant Type", subtitle: "Let's start by identifying the type of applicant." },
   { number: 2, title: "Employment Details", subtitle: "Tell us about your work and income" },
   { number: 3, title: "Tenancy Information", subtitle: "Tell us about your rental requirements" },
   { number: 4, title: "Identification & Declaration", subtitle: "Upload your documents and confirm details" },
 ];
 
 const CORPORATE_FORM_STEPS = [
-  { number: 1, title: "Personal Details", subtitle: "Tell us about yourself and your emergency contact" },
+  { number: 1, title: "Applicant Type", subtitle: "Let's start by identifying the type of applicant." },
   { number: 2, title: "Corporate Information", subtitle: "Tell us about your company and property management contacts" },
   { number: 3, title: "Tenancy Information", subtitle: "Tell us about your rental requirements" },
   { number: 4, title: "Identification & Declaration", subtitle: "Upload your documents and confirm details" },
@@ -631,7 +631,7 @@ function inputClass(hasError?: boolean) {
 }
 
 /* -------------------------------------------------------------------------
- * Step 1 — Personal Details
+ * Step 1 — Applicant Type
  * ---------------------------------------------------------------------- */
 
 function PersonalDetailsStep({
@@ -646,9 +646,6 @@ function PersonalDetailsStep({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
-          Personal Information
-        </h3>
         <div className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="tenant_type">
@@ -681,21 +678,6 @@ function PersonalDetailsStep({
               </label>
             </div>
             <FieldError>{errors.tenant_type}</FieldError>
-          </div>
-
-          <div>
-            <Label htmlFor="phone_number">
-              WhatsApp Phone Number <span style={{ color: BRAND_COLOR }}>*</span>
-            </Label>
-            <Input
-              id="phone_number"
-              type="tel"
-              value={formData.phone_number}
-              readOnly
-              disabled
-              className="max-w-sm mt-1.5 bg-gray-50 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-500 mt-1.5">Verified phone number</p>
           </div>
 
           {formData.tenant_type === "individual" && (
