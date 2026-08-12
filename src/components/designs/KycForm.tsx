@@ -698,147 +698,151 @@ function PersonalDetailsStep({
             <p className="text-xs text-gray-500 mt-1.5">Verified phone number</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="first_name">First Name</Label>
-              <Input
-                id="first_name"
-                value={formData.first_name}
-                onChange={(e) => onChange({ first_name: e.target.value })}
-                placeholder="Enter first name"
-                className={inputClass(!!errors.first_name)}
-              />
-              <FieldError>{errors.first_name}</FieldError>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="last_name">Last Name</Label>
-              <Input
-                id="last_name"
-                value={formData.last_name}
-                onChange={(e) => onChange({ last_name: e.target.value })}
-                placeholder="Enter last name"
-                className={inputClass(!!errors.last_name)}
-              />
-              <FieldError>{errors.last_name}</FieldError>
-            </div>
-          </div>
+          {formData.tenant_type === "individual" && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="first_name">First Name</Label>
+                  <Input
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => onChange({ first_name: e.target.value })}
+                    placeholder="Enter first name"
+                    className={inputClass(!!errors.first_name)}
+                  />
+                  <FieldError>{errors.first_name}</FieldError>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="last_name">Last Name</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => onChange({ last_name: e.target.value })}
+                    placeholder="Enter last name"
+                    className={inputClass(!!errors.last_name)}
+                  />
+                  <FieldError>{errors.last_name}</FieldError>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contact_address">Contact Address</Label>
-            <Input
-              id="contact_address"
-              value={formData.contact_address}
-              onChange={(e) => onChange({ contact_address: e.target.value })}
-              placeholder="Enter your current residential address"
-              className={inputClass(!!errors.contact_address)}
-            />
-            <FieldError>{errors.contact_address}</FieldError>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact_address">Contact Address</Label>
+                <Input
+                  id="contact_address"
+                  value={formData.contact_address}
+                  onChange={(e) => onChange({ contact_address: e.target.value })}
+                  placeholder="Enter your current residential address"
+                  className={inputClass(!!errors.contact_address)}
+                />
+                <FieldError>{errors.contact_address}</FieldError>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="nationality">Nationality</Label>
-              <Input
-                id="nationality"
-                value={formData.nationality}
-                onChange={(e) => onChange({ nationality: e.target.value })}
-                placeholder="Select nationality"
-                className={inputClass(!!errors.nationality)}
-              />
-              <FieldError>{errors.nationality}</FieldError>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state_of_origin">State of Origin</Label>
-              <Input
-                id="state_of_origin"
-                value={formData.state_of_origin}
-                onChange={(e) => onChange({ state_of_origin: e.target.value })}
-                placeholder="Select state"
-                className={inputClass(!!errors.state_of_origin)}
-              />
-              <FieldError>{errors.state_of_origin}</FieldError>
-            </div>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nationality">Nationality</Label>
+                  <Input
+                    id="nationality"
+                    value={formData.nationality}
+                    onChange={(e) => onChange({ nationality: e.target.value })}
+                    placeholder="Select nationality"
+                    className={inputClass(!!errors.nationality)}
+                  />
+                  <FieldError>{errors.nationality}</FieldError>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state_of_origin">State of Origin</Label>
+                  <Input
+                    id="state_of_origin"
+                    value={formData.state_of_origin}
+                    onChange={(e) => onChange({ state_of_origin: e.target.value })}
+                    placeholder="Select state"
+                    className={inputClass(!!errors.state_of_origin)}
+                  />
+                  <FieldError>{errors.state_of_origin}</FieldError>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
-              <Select value={formData.gender} onValueChange={(v) => onChange({ gender: v })}>
-                <SelectTrigger id="gender" className={inputClass(!!errors.gender)}>
-                  <SelectValue placeholder="Select sex" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError>{errors.gender}</FieldError>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="date_of_birth">Date of Birth</Label>
-              <Input
-                id="date_of_birth"
-                type="date"
-                value={formData.date_of_birth}
-                onChange={(e) => onChange({ date_of_birth: e.target.value })}
-                className={inputClass(!!errors.date_of_birth)}
-              />
-              <FieldError>{errors.date_of_birth}</FieldError>
-            </div>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select value={formData.gender} onValueChange={(v) => onChange({ gender: v })}>
+                    <SelectTrigger id="gender" className={inputClass(!!errors.gender)}>
+                      <SelectValue placeholder="Select sex" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldError>{errors.gender}</FieldError>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date_of_birth">Date of Birth</Label>
+                  <Input
+                    id="date_of_birth"
+                    type="date"
+                    value={formData.date_of_birth}
+                    onChange={(e) => onChange({ date_of_birth: e.target.value })}
+                    className={inputClass(!!errors.date_of_birth)}
+                  />
+                  <FieldError>{errors.date_of_birth}</FieldError>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="marital_status">Marital Status</Label>
-              <Select
-                value={formData.marital_status}
-                onValueChange={(v) => onChange({ marital_status: v })}
-              >
-                <SelectTrigger id="marital_status" className={inputClass(!!errors.marital_status)}>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single">Single</SelectItem>
-                  <SelectItem value="married">Married</SelectItem>
-                  <SelectItem value="divorced">Divorced</SelectItem>
-                  <SelectItem value="widowed">Widowed</SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError>{errors.marital_status}</FieldError>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="religion">Religion</Label>
-              <Select value={formData.religion} onValueChange={(v) => onChange({ religion: v })}>
-                <SelectTrigger id="religion" className={inputClass(!!errors.religion)}>
-                  <SelectValue placeholder="Select religion" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Christianity">Christianity</SelectItem>
-                  <SelectItem value="Islam">Islam</SelectItem>
-                  <SelectItem value="Traditional">Traditional</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError>{errors.religion}</FieldError>
-            </div>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="marital_status">Marital Status</Label>
+                  <Select
+                    value={formData.marital_status}
+                    onValueChange={(v) => onChange({ marital_status: v })}
+                  >
+                    <SelectTrigger id="marital_status" className={inputClass(!!errors.marital_status)}>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single">Single</SelectItem>
+                      <SelectItem value="married">Married</SelectItem>
+                      <SelectItem value="divorced">Divorced</SelectItem>
+                      <SelectItem value="widowed">Widowed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldError>{errors.marital_status}</FieldError>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="religion">Religion</Label>
+                  <Select value={formData.religion} onValueChange={(v) => onChange({ religion: v })}>
+                    <SelectTrigger id="religion" className={inputClass(!!errors.religion)}>
+                      <SelectValue placeholder="Select religion" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Christianity">Christianity</SelectItem>
+                      <SelectItem value="Islam">Islam</SelectItem>
+                      <SelectItem value="Traditional">Traditional</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldError>{errors.religion}</FieldError>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => onChange({ email: e.target.value })}
-              placeholder="your.email@example.com"
-              className={inputClass(!!errors.email)}
-            />
-            <FieldError>{errors.email}</FieldError>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => onChange({ email: e.target.value })}
+                  placeholder="your.email@example.com"
+                  className={inputClass(!!errors.email)}
+                />
+                <FieldError>{errors.email}</FieldError>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {formData.tenant_type !== "corporate" && (
+      {formData.tenant_type === "individual" && (
       <div>
         <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
           Next of Kin Details
