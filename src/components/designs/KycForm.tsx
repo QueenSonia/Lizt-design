@@ -1049,10 +1049,7 @@ function CorporateInformationStep({
               </div>
 
               <AnimatePresence initial={false}>
-                {!(
-                  formData.has_single_property_management_contact === "yes" &&
-                  formData.is_primary_contact === "yes"
-                ) && (
+                {formData.is_primary_contact === "no" && (
                   <motion.div
                     key="primary-contact-whatsapp"
                     initial={{ opacity: 0, height: 0 }}
