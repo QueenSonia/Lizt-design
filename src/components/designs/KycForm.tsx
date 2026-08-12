@@ -2048,6 +2048,7 @@ function NavigationControls({
   onSubmit: () => void;
 }) {
   const isLastStep = currentStep === totalSteps;
+  const isApplicantTypeStep = currentStep === 1;
   return (
     <div>
       <nav className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-6 mt-8 border-t border-gray-200">
@@ -2074,7 +2075,10 @@ function NavigationControls({
             <button
               type="button"
               onClick={onNext}
-              className="flex-1 h-11 px-6 rounded-md text-white text-sm font-medium transition-all w-full sm:w-auto inline-flex items-center justify-center gap-2"
+              className={cn(
+                "h-11 px-6 rounded-md text-white text-sm font-medium transition-all inline-flex items-center justify-center gap-2",
+                isApplicantTypeStep ? "w-auto" : "flex-1 w-full sm:w-auto",
+              )}
               style={{ backgroundColor: BRAND_COLOR }}
             >
               Continue <ArrowRight className="ml-1 w-4 h-4" />
