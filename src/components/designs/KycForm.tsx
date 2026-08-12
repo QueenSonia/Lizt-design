@@ -487,12 +487,16 @@ interface KycFormData {
   has_single_property_management_contact: string;
   property_management_contact_name: string;
   property_management_contact_phone_number: string;
+  maintenance_requests_is_primary_contact: string;
   maintenance_requests_contact_name: string;
   maintenance_requests_contact_phone_number: string;
+  rent_reminders_is_primary_contact: string;
   rent_reminders_contact_name: string;
   rent_reminders_contact_phone_number: string;
+  payment_notifications_is_primary_contact: string;
   payment_notifications_contact_name: string;
   payment_notifications_contact_phone_number: string;
+  general_updates_is_primary_contact: string;
   general_updates_contact_name: string;
   general_updates_contact_phone_number: string;
   passport_photo: File | null;
@@ -555,12 +559,16 @@ const INITIAL_FORM_DATA: KycFormData = {
   has_single_property_management_contact: "",
   property_management_contact_name: "",
   property_management_contact_phone_number: "",
+  maintenance_requests_is_primary_contact: "",
   maintenance_requests_contact_name: "",
   maintenance_requests_contact_phone_number: "",
+  rent_reminders_is_primary_contact: "",
   rent_reminders_contact_name: "",
   rent_reminders_contact_phone_number: "",
+  payment_notifications_is_primary_contact: "",
   payment_notifications_contact_name: "",
   payment_notifications_contact_phone_number: "",
+  general_updates_is_primary_contact: "",
   general_updates_contact_name: "",
   general_updates_contact_phone_number: "",
   passport_photo: null,
@@ -1130,21 +1138,29 @@ function CorporateInformationStep({
                     [
                       {
                         title: "Maintenance Requests",
+                        question: "Will the primary contact be the one making maintenance requests?",
+                        isPrimaryField: "maintenance_requests_is_primary_contact",
                         nameField: "maintenance_requests_contact_name",
                         phoneField: "maintenance_requests_contact_phone_number",
                       },
                       {
                         title: "Rent Reminders",
+                        question: "Will the primary contact be the one receiving rent reminders?",
+                        isPrimaryField: "rent_reminders_is_primary_contact",
                         nameField: "rent_reminders_contact_name",
                         phoneField: "rent_reminders_contact_phone_number",
                       },
                       {
                         title: "Payment Notifications",
+                        question: "Will the primary contact be the one receiving payment notifications?",
+                        isPrimaryField: "payment_notifications_is_primary_contact",
                         nameField: "payment_notifications_contact_name",
                         phoneField: "payment_notifications_contact_phone_number",
                       },
                       {
                         title: "General Tenancy Updates",
+                        question: "Will the primary contact be the one receiving general tenancy updates?",
+                        isPrimaryField: "general_updates_is_primary_contact",
                         nameField: "general_updates_contact_name",
                         phoneField: "general_updates_contact_phone_number",
                       },
@@ -1153,35 +1169,87 @@ function CorporateInformationStep({
                     <div key={block.nameField} className="space-y-4">
                       {index > 0 && <hr className="border-t border-gray-200 mb-6" />}
                       <h6 className="text-sm font-medium text-gray-700">{block.title}</h6>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor={block.nameField} className="mb-2">
-                            Full Name
-                          </Label>
-                          <Input
-                            id={block.nameField}
-                            value={formData[block.nameField]}
-                            onChange={(e) => onChange({ [block.nameField]: e.target.value })}
-                            placeholder="Enter contact's full name"
-                            className={inputClass(!!errors[block.nameField])}
-                          />
-                          <FieldError>{errors[block.nameField]}</FieldError>
+                      <div>
+                        <Label htmlFor={block.isPrimaryField} className="mb-2">
+                          {block.question}
+                        </Label>
+                        <div className="flex items-center gap-6 mt-1.5">
+                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={block.isPrimaryField}
+                              value="yes"
+                              checked={formData[block.isPrimaryField] === "yes"}
+                              onChange={() =>
+                                onChange({
+                                  [block.isPrimaryField]: "yes",
+                                  [block.nameField]: "",
+                                  [block.phoneField]: "",
+                                })
+                              }
+                              className="accent-orange-600"
+                              style={{ accentColor: BRAND_COLOR }}
+                            />
+                            Yes
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={block.isPrimaryField}
+                              value="no"
+                              checked={formData[block.isPrimaryField] === "no"}
+                              onChange={() => onChange({ [block.isPrimaryField]: "no" })}
+                              className="accent-orange-600"
+                              style={{ accentColor: BRAND_COLOR }}
+                            />
+                            No
+                          </label>
                         </div>
-                        <div>
-                          <Label htmlFor={block.phoneField} className="mb-2">
-                            WhatsApp Phone Number
-                          </Label>
-                          <Input
-                            id={block.phoneField}
-                            type="tel"
-                            value={formData[block.phoneField]}
-                            onChange={(e) => onChange({ [block.phoneField]: e.target.value })}
-                            placeholder="+234 800 000 0000"
-                            className={inputClass(!!errors[block.phoneField])}
-                          />
-                          <FieldError>{errors[block.phoneField]}</FieldError>
-                        </div>
+                        <FieldError>{errors[block.isPrimaryField]}</FieldError>
                       </div>
+
+                      <AnimatePresence initial={false}>
+                        {formData[block.isPrimaryField] === "no" && (
+                          <motion.div
+                            key={`${block.nameField}-fields`}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                            className="overflow-hidden"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                              <div>
+                                <Label htmlFor={block.nameField} className="mb-2">
+                                  Full Name
+                                </Label>
+                                <Input
+                                  id={block.nameField}
+                                  value={formData[block.nameField]}
+                                  onChange={(e) => onChange({ [block.nameField]: e.target.value })}
+                                  placeholder="Enter contact's full name"
+                                  className={inputClass(!!errors[block.nameField])}
+                                />
+                                <FieldError>{errors[block.nameField]}</FieldError>
+                              </div>
+                              <div>
+                                <Label htmlFor={block.phoneField} className="mb-2">
+                                  WhatsApp Phone Number
+                                </Label>
+                                <Input
+                                  id={block.phoneField}
+                                  type="tel"
+                                  value={formData[block.phoneField]}
+                                  onChange={(e) => onChange({ [block.phoneField]: e.target.value })}
+                                  placeholder="+234 800 000 0000"
+                                  className={inputClass(!!errors[block.phoneField])}
+                                />
+                                <FieldError>{errors[block.phoneField]}</FieldError>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   ))}
                 </div>
