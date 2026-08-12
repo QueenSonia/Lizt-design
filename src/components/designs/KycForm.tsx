@@ -1048,6 +1048,35 @@ function CorporateInformationStep({
                 </div>
               </div>
 
+              <AnimatePresence initial={false}>
+                {!(
+                  formData.has_single_property_management_contact === "yes" &&
+                  formData.is_primary_contact === "yes"
+                ) && (
+                  <motion.div
+                    key="primary-contact-whatsapp"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="company_contact_phone_number">WhatsApp Phone Number</Label>
+                      <Input
+                        id="company_contact_phone_number"
+                        type="tel"
+                        value={formData.company_contact_phone_number}
+                        onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
+                        placeholder="+234 800 000 0000"
+                        className={inputClass(!!errors.company_contact_phone_number)}
+                      />
+                      <FieldError>{errors.company_contact_phone_number}</FieldError>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="space-y-2">
                 <Label htmlFor="contact_address">Contact Address</Label>
                 <Input
@@ -1160,35 +1189,6 @@ function CorporateInformationStep({
                 />
                 <FieldError>{errors.email}</FieldError>
               </div>
-
-              <AnimatePresence initial={false}>
-                {!(
-                  formData.has_single_property_management_contact === "yes" &&
-                  formData.is_primary_contact === "yes"
-                ) && (
-                  <motion.div
-                    key="primary-contact-whatsapp"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="space-y-2">
-                      <Label htmlFor="company_contact_phone_number">WhatsApp Phone Number</Label>
-                      <Input
-                        id="company_contact_phone_number"
-                        type="tel"
-                        value={formData.company_contact_phone_number}
-                        onChange={(e) => onChange({ company_contact_phone_number: e.target.value })}
-                        placeholder="+234 800 000 0000"
-                        className={inputClass(!!errors.company_contact_phone_number)}
-                      />
-                      <FieldError>{errors.company_contact_phone_number}</FieldError>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
           </div>
 
