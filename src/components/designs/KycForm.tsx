@@ -2154,60 +2154,61 @@ function MultiStepForm({ verifiedPhone, onSubmitted }: { verifiedPhone: string; 
         <BrandBanner onBack={goToPreviousStep} showBackButton={currentStep > 1} />
       </div>
 
-      <div
-        className={cn(
-          "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12",
-          currentStep === 1 && "min-h-[calc(100vh-4rem)] flex flex-col justify-center",
-        )}
-      >
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="mb-10 sm:mb-12">
           <HorizontalStepTracker currentStep={currentStep} steps={steps} />
         </div>
 
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={currentStep}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
-          >
-            <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-10">
-              <div className="mb-6">
-                <h2 className="text-gray-900 text-lg font-semibold">{stepData.title}</h2>
-                <p className="text-sm text-gray-500">{stepData.subtitle}</p>
-              </div>
+        <div
+          className={cn(
+            currentStep === 1 && "min-h-[calc(100vh-16rem)] flex flex-col justify-center",
+          )}
+        >
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={currentStep}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
+            >
+              <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-10">
+                <div className="mb-6">
+                  <h2 className="text-gray-900 text-lg font-semibold">{stepData.title}</h2>
+                  <p className="text-sm text-gray-500">{stepData.subtitle}</p>
+                </div>
 
-              <div className="space-y-4">
-                {currentStep === 1 && (
-                  <PersonalDetailsStep formData={formData} onChange={handleDataChange} errors={errors} />
-                )}
-                {currentStep === 2 && formData.tenant_type === "corporate" && (
-                  <CorporateInformationStep formData={formData} onChange={handleDataChange} errors={errors} />
-                )}
-                {currentStep === 2 && formData.tenant_type !== "corporate" && (
-                  <EmploymentDetailsStep formData={formData} onChange={handleDataChange} errors={errors} />
-                )}
-                {currentStep === 3 && (
-                  <TenancyInformationStep formData={formData} onChange={handleDataChange} errors={errors} />
-                )}
-                {currentStep === 4 && (
-                  <IdentificationDeclarationStep formData={formData} onChange={handleDataChange} errors={errors} />
-                )}
+                <div className="space-y-4">
+                  {currentStep === 1 && (
+                    <PersonalDetailsStep formData={formData} onChange={handleDataChange} errors={errors} />
+                  )}
+                  {currentStep === 2 && formData.tenant_type === "corporate" && (
+                    <CorporateInformationStep formData={formData} onChange={handleDataChange} errors={errors} />
+                  )}
+                  {currentStep === 2 && formData.tenant_type !== "corporate" && (
+                    <EmploymentDetailsStep formData={formData} onChange={handleDataChange} errors={errors} />
+                  )}
+                  {currentStep === 3 && (
+                    <TenancyInformationStep formData={formData} onChange={handleDataChange} errors={errors} />
+                  )}
+                  {currentStep === 4 && (
+                    <IdentificationDeclarationStep formData={formData} onChange={handleDataChange} errors={errors} />
+                  )}
 
-                <NavigationControls
-                  currentStep={currentStep}
-                  totalSteps={totalSteps}
-                  isSubmitting={isSubmitting}
-                  onNext={goToNextStep}
-                  onSubmit={handleSubmit}
-                />
+                  <NavigationControls
+                    currentStep={currentStep}
+                    totalSteps={totalSteps}
+                    isSubmitting={isSubmitting}
+                    onNext={goToNextStep}
+                    onSubmit={handleSubmit}
+                  />
+                </div>
               </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
