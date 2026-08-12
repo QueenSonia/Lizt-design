@@ -1290,9 +1290,12 @@ function CorporateInformationStep({
                           className="overflow-hidden"
                         >
                           <div className="pt-1">
-                            <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
-                              Personal Details
+                            <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                              Primary Contact Person Details
                             </h4>
+                            <p className="text-sm text-gray-500 mt-1 mb-5">
+                              Enter the details of the person who will be the primary contact for this company.
+                            </p>
                             <div className="space-y-5">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
