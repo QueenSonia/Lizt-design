@@ -1374,13 +1374,6 @@ function CorporateInformationStep({
                         nameField: "payment_notifications_contact_name",
                         phoneField: "payment_notifications_contact_phone_number",
                       },
-                      {
-                        title: "General Tenancy Updates",
-                        question: "Will the primary contact be the one receiving general tenancy updates?",
-                        isPrimaryField: "general_updates_is_primary_contact",
-                        nameField: "general_updates_contact_name",
-                        phoneField: "general_updates_contact_phone_number",
-                      },
                     ] as const
                   ).map((block, index) => (
                     <div key={block.nameField} className="space-y-4">
