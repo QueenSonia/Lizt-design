@@ -1042,21 +1042,7 @@ function CorporateInformationStep({
                         name="is_primary_contact"
                         value="yes"
                         checked={formData.is_primary_contact === "yes"}
-                        onChange={() =>
-                          onChange({
-                            is_primary_contact: "yes",
-                            first_name: "",
-                            last_name: "",
-                            contact_address: "",
-                            nationality: "",
-                            state_of_origin: "",
-                            gender: "",
-                            date_of_birth: "",
-                            marital_status: "",
-                            religion: "",
-                            email: "",
-                          })
-                        }
+                        onChange={() => onChange({ is_primary_contact: "yes" })}
                         className="accent-orange-600"
                         style={{ accentColor: BRAND_COLOR }}
                       />
@@ -1082,10 +1068,7 @@ function CorporateInformationStep({
           </AnimatePresence>
 
           <AnimatePresence initial={false}>
-            {!(
-              formData.has_single_property_management_contact === "yes" &&
-              formData.is_primary_contact === "yes"
-            ) && (
+            {formData.has_single_property_management_contact === "yes" && (
               <motion.div
                 key="responsible-person-personal-details"
                 initial={{ opacity: 0, height: 0 }}
