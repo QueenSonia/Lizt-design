@@ -657,7 +657,7 @@ function PersonalDetailsStep({
                   className="accent-orange-600"
                   style={{ accentColor: BRAND_COLOR }}
                 />
-                Individual Tenant (Residential)
+                Individual
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                 <input
@@ -669,7 +669,7 @@ function PersonalDetailsStep({
                   className="accent-orange-600"
                   style={{ accentColor: BRAND_COLOR }}
                 />
-                Corporate Tenant (Commercial)
+                Corporate Body
               </label>
             </div>
             <FieldError>{errors.tenant_type}</FieldError>
