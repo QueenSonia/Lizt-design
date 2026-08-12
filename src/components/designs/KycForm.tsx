@@ -1200,7 +1200,6 @@ function CorporateInformationStep({
                   </div>
 
                   <div className="space-y-4">
-                    <h6 className="text-sm font-medium text-gray-700">Primary Contact Person</h6>
                     <div className="pt-1">
                       <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
                         Primary Contact Person Details
