@@ -977,35 +977,18 @@ function CorporateInformationStep({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="company_nature_of_business" className="mb-2">
-                Nature of Business
-              </Label>
-              <Input
-                id="company_nature_of_business"
-                value={formData.company_nature_of_business}
-                onChange={(e) => onChange({ company_nature_of_business: e.target.value })}
-                placeholder="Briefly describe the business"
-                className={inputClass(!!errors.company_nature_of_business)}
-              />
-              <FieldError>{errors.company_nature_of_business}</FieldError>
-            </div>
-            <div>
-              <Label htmlFor="company_years_in_operation" className="mb-2">
-                Years in Operation
-              </Label>
-              <Input
-                id="company_years_in_operation"
-                type="number"
-                min="0"
-                value={formData.company_years_in_operation}
-                onChange={(e) => onChange({ company_years_in_operation: e.target.value })}
-                placeholder="e.g., 5"
-                className={inputClass(!!errors.company_years_in_operation)}
-              />
-              <FieldError>{errors.company_years_in_operation}</FieldError>
-            </div>
+          <div>
+            <Label htmlFor="company_nature_of_business" className="mb-2">
+              Nature of Business
+            </Label>
+            <Input
+              id="company_nature_of_business"
+              value={formData.company_nature_of_business}
+              onChange={(e) => onChange({ company_nature_of_business: e.target.value })}
+              placeholder="Briefly describe the business"
+              className={inputClass(!!errors.company_nature_of_business)}
+            />
+            <FieldError>{errors.company_nature_of_business}</FieldError>
           </div>
 
           <div>
