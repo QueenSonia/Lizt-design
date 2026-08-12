@@ -1031,7 +1031,21 @@ function CorporateInformationStep({
                   name="has_single_property_management_contact"
                   value="no"
                   checked={formData.has_single_property_management_contact === "no"}
-                  onChange={() => onChange({ has_single_property_management_contact: "no" })}
+                  onChange={() =>
+                    onChange({
+                      has_single_property_management_contact: "no",
+                      first_name: "",
+                      last_name: "",
+                      contact_address: "",
+                      nationality: "",
+                      state_of_origin: "",
+                      gender: "",
+                      date_of_birth: "",
+                      marital_status: "",
+                      religion: "",
+                      email: "",
+                    })
+                  }
                   className="accent-orange-600"
                   style={{ accentColor: BRAND_COLOR }}
                 />
@@ -1040,6 +1054,164 @@ function CorporateInformationStep({
             </div>
             <FieldError>{errors.has_single_property_management_contact}</FieldError>
           </div>
+
+          <AnimatePresence initial={false}>
+            {formData.has_single_property_management_contact === "yes" && (
+              <motion.div
+                key="responsible-person-personal-details"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="pt-1">
+                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-5">
+                    Personal Details
+                  </h4>
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="first_name">First Name</Label>
+                        <Input
+                          id="first_name"
+                          value={formData.first_name}
+                          onChange={(e) => onChange({ first_name: e.target.value })}
+                          placeholder="Enter first name"
+                          className={inputClass(!!errors.first_name)}
+                        />
+                        <FieldError>{errors.first_name}</FieldError>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="last_name">Last Name</Label>
+                        <Input
+                          id="last_name"
+                          value={formData.last_name}
+                          onChange={(e) => onChange({ last_name: e.target.value })}
+                          placeholder="Enter last name"
+                          className={inputClass(!!errors.last_name)}
+                        />
+                        <FieldError>{errors.last_name}</FieldError>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contact_address">Contact Address</Label>
+                      <Input
+                        id="contact_address"
+                        value={formData.contact_address}
+                        onChange={(e) => onChange({ contact_address: e.target.value })}
+                        placeholder="Enter your current residential address"
+                        className={inputClass(!!errors.contact_address)}
+                      />
+                      <FieldError>{errors.contact_address}</FieldError>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nationality">Nationality</Label>
+                        <Input
+                          id="nationality"
+                          value={formData.nationality}
+                          onChange={(e) => onChange({ nationality: e.target.value })}
+                          placeholder="Select nationality"
+                          className={inputClass(!!errors.nationality)}
+                        />
+                        <FieldError>{errors.nationality}</FieldError>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="state_of_origin">State of Origin</Label>
+                        <Input
+                          id="state_of_origin"
+                          value={formData.state_of_origin}
+                          onChange={(e) => onChange({ state_of_origin: e.target.value })}
+                          placeholder="Select state"
+                          className={inputClass(!!errors.state_of_origin)}
+                        />
+                        <FieldError>{errors.state_of_origin}</FieldError>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="gender">Gender</Label>
+                        <Select value={formData.gender} onValueChange={(v) => onChange({ gender: v })}>
+                          <SelectTrigger id="gender" className={inputClass(!!errors.gender)}>
+                            <SelectValue placeholder="Select sex" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FieldError>{errors.gender}</FieldError>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="date_of_birth">Date of Birth</Label>
+                        <Input
+                          id="date_of_birth"
+                          type="date"
+                          value={formData.date_of_birth}
+                          onChange={(e) => onChange({ date_of_birth: e.target.value })}
+                          className={inputClass(!!errors.date_of_birth)}
+                        />
+                        <FieldError>{errors.date_of_birth}</FieldError>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="marital_status">Marital Status</Label>
+                        <Select
+                          value={formData.marital_status}
+                          onValueChange={(v) => onChange({ marital_status: v })}
+                        >
+                          <SelectTrigger id="marital_status" className={inputClass(!!errors.marital_status)}>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="single">Single</SelectItem>
+                            <SelectItem value="married">Married</SelectItem>
+                            <SelectItem value="divorced">Divorced</SelectItem>
+                            <SelectItem value="widowed">Widowed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FieldError>{errors.marital_status}</FieldError>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="religion">Religion</Label>
+                        <Select value={formData.religion} onValueChange={(v) => onChange({ religion: v })}>
+                          <SelectTrigger id="religion" className={inputClass(!!errors.religion)}>
+                            <SelectValue placeholder="Select religion" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Christianity">Christianity</SelectItem>
+                            <SelectItem value="Islam">Islam</SelectItem>
+                            <SelectItem value="Traditional">Traditional</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FieldError>{errors.religion}</FieldError>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => onChange({ email: e.target.value })}
+                        placeholder="your.email@example.com"
+                        className={inputClass(!!errors.email)}
+                      />
+                      <FieldError>{errors.email}</FieldError>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence initial={false}>
             {formData.has_single_property_management_contact === "no" && (
