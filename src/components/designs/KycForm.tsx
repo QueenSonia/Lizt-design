@@ -2064,8 +2064,16 @@ function IdentificationDeclarationStep({
         <h3 className="text-gray-900 mb-8 pb-2 border-b border-gray-200">Document Uploads</h3>
         <div className="space-y-6">
           <MockFileUpload
-            label="Passport Photograph"
-            description="Upload a recent passport-size photograph (JPG, PNG - Max 5MB)"
+            label={
+              formData.tenant_type === "corporate"
+                ? "Primary Contact Person's Passport Photograph"
+                : "Passport Photograph"
+            }
+            description={
+              formData.tenant_type === "corporate"
+                ? "Upload a recent passport-size photograph of the primary contact person (JPG, PNG - Max 5MB)"
+                : "Upload a recent passport-size photograph (JPG, PNG - Max 5MB)"
+            }
             accept="image/*"
             required
             file={formData.passport_photo}
@@ -2074,8 +2082,16 @@ function IdentificationDeclarationStep({
           <FieldError>{errors.passport_photo}</FieldError>
 
           <MockFileUpload
-            label="Means of Identification"
-            description="Upload valid ID (National ID, Driver's License, Voter's Card, Int'l Passport)"
+            label={
+              formData.tenant_type === "corporate"
+                ? "Primary Contact Person's Means of Identification"
+                : "Means of Identification"
+            }
+            description={
+              formData.tenant_type === "corporate"
+                ? "Upload a valid ID belonging to the primary contact person (National ID, Driver's License, Voter's Card, Int'l Passport)"
+                : "Upload valid ID (National ID, Driver's License, Voter's Card, Int'l Passport)"
+            }
             accept="image/*,.pdf"
             required
             file={formData.id_document}
