@@ -1355,7 +1355,7 @@ function CorporateInformationStep({
                         phoneField: "maintenance_requests_contact_phone_number",
                       },
                       {
-                        title: "Payment & Rent Notifications",
+                        title: "Rent Reminders & Payment Notifications",
                         question: "Will the primary contact be the one receiving payment and rent notifications?",
                         isPrimaryField: "payment_and_rent_notifications_is_primary_contact",
                         nameField: "payment_and_rent_notifications_contact_name",
