@@ -2350,7 +2350,12 @@ function MultiStepForm({ verifiedPhone, onSubmitted }: { verifiedPhone: string; 
               exit="exit"
               transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
             >
-              <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-10">
+              <div
+                className={cn(
+                  "w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-10",
+                  currentStep === 1 && "max-w-[440px] mx-auto",
+                )}
+              >
                 <div className="mb-6">
                   <h2 className="text-gray-900 text-lg font-semibold">{stepData.title}</h2>
                   <p className="text-sm text-gray-500">{stepData.subtitle}</p>
