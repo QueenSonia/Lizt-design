@@ -1313,7 +1313,7 @@ export function LandlordFacility({
                         return (
                           <tr
                             key={manager.id}
-                            onClick={() => openDetailModal(manager)}
+                            onClick={() => router.push(`/${userRole}/facility-manager-detail?id=${manager.id}`)}
                             className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors last:border-0"
                           >
                             {fmColumnVisibility.name && (
