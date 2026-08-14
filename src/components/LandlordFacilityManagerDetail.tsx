@@ -20,7 +20,13 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Button } from "./ui/button";
-import { ChevronLeft, ChevronRight, Wrench } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { ChevronLeft, ChevronRight, Wrench, RotateCcw, CheckCircle2, XCircle } from "lucide-react";
 
 // Bank details are not part of the shared FacilityManager type — layer them on
 // locally, keyed by id, matching what the Facility list shows for each manager.
@@ -42,6 +48,110 @@ function formatDate(dateString: string) {
     month: "long",
     day: "numeric",
   });
+}
+
+function formatDateTime(dateString: string) {
+  return new Date(dateString).toLocaleString("en-US", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+function formatShortDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+// Human-readable duration formatting — never raw decimal hours. Rounds to the
+// two most significant units (e.g. "1 day 8 hrs", "3 hrs 20 min").
+function formatDuration(totalMinutes: number): string {
+  const minutes = Math.round(totalMinutes);
+  if (minutes < 60) return `${minutes} min`;
+
+  const totalHours = Math.round(minutes / 60);
+  if (totalHours < 24) {
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hrs} hr${hrs === 1 ? "" : "s"} ${mins} min` : `${hrs} hr${hrs === 1 ? "" : "s"}`;
+  }
+
+  const days = Math.floor(totalHours / 24);
+  const hrs = totalHours % 24;
+  return hrs > 0 ? `${days} day${days === 1 ? "" : "s"} ${hrs} hr${hrs === 1 ? "" : "s"}` : `${days} day${days === 1 ? "" : "s"}`;
+}
+
+// Precise duration formatting for individual request rows — keeps minutes
+// visible even at the day scale (e.g. "1 day 7 hrs 15 min").
+function formatDurationPrecise(totalMinutes: number): string {
+  const minutes = Math.round(totalMinutes);
+  if (minutes < 60) return `${minutes} min`;
+
+  const days = Math.floor(minutes / 1440);
+  const hrs = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} day${days === 1 ? "" : "s"}`);
+  if (hrs > 0) parts.push(`${hrs} hr${hrs === 1 ? "" : "s"}`);
+  if (mins > 0 || parts.length === 0) parts.push(`${mins} min`);
+  return parts.join(" ");
+}
+
+interface BreakdownRequest {
+  id: string;
+  tenantName: string;
+  propertyName: string;
+  description: string;
+}
+
+interface ResponseTimeRow extends BreakdownRequest {
+  assignedAt: string;
+  firstResponseAt: string;
+  responseMinutes: number;
+}
+
+interface ResolutionTimeRow extends BreakdownRequest {
+  assignedAt: string;
+  tenantConfirmedAt: string;
+  resolutionMinutes: number;
+}
+
+interface ReopenRateRow extends BreakdownRequest {
+  resolvedAt: string;
+  reopenedAt: string | null;
+  wasReopened: boolean;
+}
+
+interface TargetComplianceRow extends BreakdownRequest {
+  targetHours: number;
+  actualHours: number;
+  metTarget: boolean;
+}
+
+type MetricKey = "response" | "resolution" | "reopen" | "target";
+
+interface PerformanceData {
+  total: number;
+  open: number;
+  completed: number;
+  reopened: number;
+  resolvedCount: number;
+  resolutionCount: number;
+  withinTargetCount: number;
+  avgResponseMinutes: number | null;
+  avgResolutionHours: number | null;
+  reopenRate: number | null;
+  targetCompliance: number | null;
+  responseRows: ResponseTimeRow[];
+  resolutionRows: ResolutionTimeRow[];
+  reopenRows: ReopenRateRow[];
+  targetRows: TargetComplianceRow[];
+  isResolutionMocked: boolean;
 }
 
 type PeriodOption = "7d" | "30d" | "90d" | "custom";
@@ -84,12 +194,16 @@ interface PerformanceRowProps {
   value: string;
   description: string;
   isLast?: boolean;
+  onClick?: () => void;
 }
 
-function PerformanceRow({ label, value, description, isLast }: PerformanceRowProps) {
-  return (
-    <div className={isLast ? "py-4" : "py-4 border-b border-gray-100"}>
-      <p className="text-sm font-medium text-gray-900">{label}</p>
+function PerformanceRow({ label, value, description, isLast, onClick }: PerformanceRowProps) {
+  const content = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        {onClick && <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />}
+      </div>
       {value ? (
         <>
           <p className="text-xl font-semibold text-gray-900 mt-1">{value}</p>
@@ -101,7 +215,206 @@ function PerformanceRow({ label, value, description, isLast }: PerformanceRowPro
           <p className="text-xs text-gray-400 mt-0.5">{description}</p>
         </>
       )}
+    </>
+  );
+
+  const rowClass = isLast ? "py-4" : "py-4 border-b border-gray-100";
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${rowClass} w-full text-left -mx-2 px-2 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={rowClass}>{content}</div>;
+}
+
+const METRIC_LABEL: Record<MetricKey, string> = {
+  response: "Response Time",
+  resolution: "Resolution Time",
+  reopen: "Reopen Rate",
+  target: "Resolution Target Compliance",
+};
+
+function BreakdownRequestHeader({ row }: { row: BreakdownRequest }) {
+  return (
+    <div className="mb-2">
+      <p className="text-sm font-medium text-gray-900">{row.tenantName}</p>
+      <p className="text-xs text-gray-500">{row.propertyName}</p>
+      <p className="text-xs text-gray-500 mt-0.5">{row.description}</p>
     </div>
+  );
+}
+
+function MetricBreakdownContent({
+  metric,
+  performance,
+  periodLabel,
+  onClose,
+}: {
+  metric: MetricKey;
+  performance: PerformanceData;
+  periodLabel: string;
+  onClose: () => void;
+}) {
+  let value = "";
+  let requestCount = 0;
+  if (metric === "response") {
+    value = performance.avgResponseMinutes !== null ? formatDuration(performance.avgResponseMinutes) : "";
+    requestCount = performance.responseRows.length;
+  } else if (metric === "resolution") {
+    value =
+      performance.avgResolutionHours !== null
+        ? formatDuration(performance.avgResolutionHours * 60)
+        : "";
+    requestCount = performance.resolutionRows.length;
+  } else if (metric === "reopen") {
+    value = performance.reopenRate !== null ? `${Math.round(performance.reopenRate)}%` : "";
+    requestCount = performance.reopenRows.length;
+  } else {
+    value = performance.targetCompliance !== null ? `${Math.round(performance.targetCompliance)}%` : "";
+    requestCount = performance.targetRows.length;
+  }
+
+  return (
+    <>
+      <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100">
+        <DialogTitle className="text-base font-semibold text-gray-900">
+          {METRIC_LABEL[metric]}
+        </DialogTitle>
+        <p className="text-sm text-gray-500 mt-1">
+          {periodLabel} · {value ? `${value} average` : "Not enough data"} ·{" "}
+          {requestCount} request{requestCount === 1 ? "" : "s"}
+        </p>
+        {metric === "resolution" && performance.isResolutionMocked && (
+          <p className="text-xs text-amber-600 mt-1">
+            Sample data shown — no tenant-confirmed resolutions yet in this period.
+          </p>
+        )}
+      </DialogHeader>
+
+      <div className="flex-1 overflow-y-auto px-6 py-4">
+        {requestCount === 0 ? (
+          <p className="text-sm text-gray-500 py-6 text-center">
+            No maintenance requests to show for this period.
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {metric === "response" &&
+              performance.responseRows.map((row) => (
+                <li key={row.id} className="py-4 first:pt-0">
+                  <BreakdownRequestHeader row={row} />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs">
+                    <div>
+                      <p className="text-gray-400">Assigned</p>
+                      <p className="text-gray-700">{formatDateTime(row.assignedAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">First response</p>
+                      <p className="text-gray-700">{formatDateTime(row.firstResponseAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Response time</p>
+                      <p className="text-gray-900 font-medium">
+                        {formatDurationPrecise(row.responseMinutes)}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+
+            {metric === "resolution" &&
+              performance.resolutionRows.map((row) => (
+                <li key={row.id} className="py-4 first:pt-0">
+                  <BreakdownRequestHeader row={row} />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs">
+                    <div>
+                      <p className="text-gray-400">Assigned</p>
+                      <p className="text-gray-700">{formatDateTime(row.assignedAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Tenant confirmed</p>
+                      <p className="text-gray-700">{formatDateTime(row.tenantConfirmedAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Resolution time</p>
+                      <p className="text-gray-900 font-medium">
+                        {formatDurationPrecise(row.resolutionMinutes)}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+
+            {metric === "reopen" &&
+              performance.reopenRows.map((row) => (
+                <li key={row.id} className="py-4 first:pt-0">
+                  <BreakdownRequestHeader row={row} />
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
+                    <span className="text-gray-700">
+                      <span className="text-gray-400">Resolved:</span> {formatShortDate(row.resolvedAt)}
+                    </span>
+                    {row.reopenedAt && (
+                      <span className="text-gray-700">
+                        <span className="text-gray-400">Reopened:</span> {formatShortDate(row.reopenedAt)}
+                      </span>
+                    )}
+                    {row.wasReopened ? (
+                      <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 font-medium">
+                        <RotateCcw className="w-3 h-3" />
+                        Reopened
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 font-medium">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Not Reopened
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+
+            {metric === "target" &&
+              performance.targetRows.map((row) => (
+                <li key={row.id} className="py-4 first:pt-0">
+                  <BreakdownRequestHeader row={row} />
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
+                    <span className="text-gray-700">
+                      <span className="text-gray-400">Target:</span> {formatDuration(row.targetHours * 60)}
+                    </span>
+                    <span className="text-gray-700">
+                      <span className="text-gray-400">Actual:</span> {formatDuration(row.actualHours * 60)}
+                    </span>
+                    {row.metTarget ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 font-medium">
+                        <CheckCircle2 className="w-3 h-3" />
+                        On Target
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 font-medium">
+                        <XCircle className="w-3 h-3" />
+                        Target Exceeded
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="px-6 py-4 border-t border-gray-100 shrink-0">
+        <Button variant="outline" className="w-full" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </>
   );
 }
 
@@ -114,6 +427,7 @@ export default function LandlordFacilityManagerDetail() {
   const managerId = searchParams.get("id") ?? "";
 
   const [period, setPeriod] = useState<PeriodOption>("30d");
+  const [openMetric, setOpenMetric] = useState<MetricKey | null>(null);
 
   const manager: FacilityManager | undefined = MOCK_FACILITY_MANAGERS.find(
     (m) => m.id === managerId,
@@ -172,6 +486,11 @@ export default function LandlordFacilityManagerDetail() {
     let resolutionCount = 0;
     let withinTargetCount = 0;
 
+    const responseRows: ResponseTimeRow[] = [];
+    const resolutionRows: ResolutionTimeRow[] = [];
+    const reopenRows: ReopenRateRow[] = [];
+    const targetRows: TargetComplianceRow[] = [];
+
     for (const r of resolvedRequests) {
       const resolutions = r.resolutions ?? (r.resolution ? [r.resolution] : []);
       const finalResolution = resolutions[resolutions.length - 1];
@@ -179,6 +498,12 @@ export default function LandlordFacilityManagerDetail() {
 
       const reportedAt = new Date(r.date_reported).getTime();
       const resolvedAt = new Date(finalResolution.resolvedAt).getTime();
+      const base: BreakdownRequest = {
+        id: r.id,
+        tenantName: r.tenant_name && r.tenant_name !== "—" ? r.tenant_name : r.reporter_name || "—",
+        propertyName: r.property_name,
+        description: r.description,
+      };
 
       // Response time: first meaningful update from the facility manager — approximated
       // here as the first resolution attempt's timestamp, since a dedicated
@@ -190,8 +515,22 @@ export default function LandlordFacilityManagerDetail() {
         if (diffMinutes > 0) {
           responseMinutesSum += diffMinutes;
           responseCount += 1;
+          responseRows.push({
+            ...base,
+            assignedAt: r.date_reported,
+            firstResponseAt: firstResolution.resolvedAt,
+            responseMinutes: diffMinutes,
+          });
         }
       }
+
+      // Reopen rate breakdown — every resolved request, reopened or not.
+      reopenRows.push({
+        ...base,
+        resolvedAt: finalResolution.resolvedAt,
+        reopenedAt: r.reopened_at ?? null,
+        wasReopened: !!r.reopened_at,
+      });
 
       // Resolution time: tenant confirmation, not the facility manager's own resolved
       // mark — a request only truly counts as "resolved" here once no further
@@ -202,11 +541,67 @@ export default function LandlordFacilityManagerDetail() {
         if (diffHours > 0) {
           resolutionHoursSum += diffHours;
           resolutionCount += 1;
+          resolutionRows.push({
+            ...base,
+            assignedAt: r.date_reported,
+            tenantConfirmedAt: finalResolution.resolvedAt,
+            resolutionMinutes: diffHours * 60,
+          });
 
           const targetHours = CATEGORY_TARGET_HOURS[r.issue_category] ?? DEFAULT_TARGET_HOURS;
-          if (diffHours <= targetHours) withinTargetCount += 1;
+          const metTarget = diffHours <= targetHours;
+          if (metTarget) withinTargetCount += 1;
+          targetRows.push({
+            ...base,
+            targetHours,
+            actualHours: diffHours,
+            metTarget,
+          });
         }
       }
+    }
+
+    // Design placeholder: when there are no tenant-confirmed completions yet
+    // (resolutionCount === 0), the mock request dataset can't support a real
+    // Resolution Time / Target Compliance breakdown. Synthesize realistic rows
+    // from the manager's own resolved requests so the drill-down still shows
+    // something consistent with the MOCK_RESOLUTION_TIME_HOURS fallback used
+    // in the summary, rather than leaving the modal empty.
+    let mockResolutionRows: ResolutionTimeRow[] = [];
+    let mockTargetRows: TargetComplianceRow[] = [];
+    if (resolutionCount === 0 && resolvedRequests.length > 0) {
+      mockResolutionRows = resolvedRequests.slice(0, 3).map((r, i) => {
+        const resolutions = r.resolutions ?? (r.resolution ? [r.resolution] : []);
+        const finalResolution = resolutions[resolutions.length - 1];
+        const assignedAt = new Date(r.date_reported);
+        // Spread mock completion times around the placeholder average (32 hrs)
+        // so the set of rows is varied but still averages close to it.
+        const offsetHours = MOCK_RESOLUTION_TIME_HOURS + (i - 1) * 6;
+        const confirmedAt = new Date(assignedAt.getTime() + offsetHours * 3600000);
+        return {
+          id: r.id,
+          tenantName: r.tenant_name && r.tenant_name !== "—" ? r.tenant_name : r.reporter_name || "—",
+          propertyName: r.property_name,
+          description: r.description,
+          assignedAt: r.date_reported,
+          tenantConfirmedAt: finalResolution?.resolvedAt ?? confirmedAt.toISOString(),
+          resolutionMinutes: offsetHours * 60,
+        };
+      });
+      mockTargetRows = mockResolutionRows.map((row) => {
+        const req = resolvedRequests.find((r) => r.id === row.id)!;
+        const targetHours = CATEGORY_TARGET_HOURS[req.issue_category] ?? DEFAULT_TARGET_HOURS;
+        const actualHours = row.resolutionMinutes / 60;
+        return {
+          id: row.id,
+          tenantName: row.tenantName,
+          propertyName: row.propertyName,
+          description: row.description,
+          targetHours,
+          actualHours,
+          metTarget: actualHours <= targetHours,
+        };
+      });
     }
 
     const avgResponseMinutes = responseCount > 0 ? responseMinutesSum / responseCount : null;
@@ -216,37 +611,40 @@ export default function LandlordFacilityManagerDetail() {
     const targetCompliance =
       resolutionCount > 0 ? (withinTargetCount / resolutionCount) * 100 : null;
 
+    const effectiveResolutionRows = resolutionCount > 0 ? resolutionRows : mockResolutionRows;
+    const effectiveTargetRows = resolutionCount > 0 ? targetRows : mockTargetRows;
+    const effectiveWithinTargetCount =
+      resolutionCount > 0
+        ? withinTargetCount
+        : mockTargetRows.filter((r) => r.metTarget).length;
+    const effectiveResolutionCount =
+      resolutionCount > 0 ? resolutionCount : mockResolutionRows.length;
+    const effectiveTargetCompliance =
+      resolutionCount > 0
+        ? targetCompliance
+        : mockTargetRows.length > 0
+          ? (mockTargetRows.filter((r) => r.metTarget).length / mockTargetRows.length) * 100
+          : null;
+
     return {
       total,
       open,
       completed,
       reopened,
       resolvedCount: resolvedRequests.length,
-      resolutionCount,
-      withinTargetCount,
+      resolutionCount: effectiveResolutionCount,
+      withinTargetCount: effectiveWithinTargetCount,
       avgResponseMinutes,
-      avgResolutionHours,
+      avgResolutionHours: avgResolutionHours ?? (mockResolutionRows.length > 0 ? MOCK_RESOLUTION_TIME_HOURS : null),
       reopenRate,
-      targetCompliance,
+      targetCompliance: effectiveTargetCompliance,
+      responseRows,
+      resolutionRows: effectiveResolutionRows,
+      reopenRows,
+      targetRows: effectiveTargetRows,
+      isResolutionMocked: resolutionCount === 0 && mockResolutionRows.length > 0,
     };
   }, [requestsInPeriod]);
-
-  // Human-readable duration formatting — never raw decimal hours.
-  function formatDuration(totalMinutes: number): string {
-    const minutes = Math.round(totalMinutes);
-    if (minutes < 60) return `${minutes} min`;
-
-    const totalHours = Math.round(minutes / 60);
-    if (totalHours < 24) {
-      const hrs = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return mins > 0 ? `${hrs} hr${hrs === 1 ? "" : "s"} ${mins} min` : `${hrs} hr${hrs === 1 ? "" : "s"}`;
-    }
-
-    const days = Math.floor(totalHours / 24);
-    const hrs = totalHours % 24;
-    return hrs > 0 ? `${days} day${days === 1 ? "" : "s"} ${hrs} hr${hrs === 1 ? "" : "s"}` : `${days} day${days === 1 ? "" : "s"}`;
-  }
 
   function formatResponseTime(minutes: number | null): string {
     if (minutes === null) return "";
@@ -406,13 +804,21 @@ export default function LandlordFacilityManagerDetail() {
                     ? "Average time taken to respond after a request is assigned."
                     : "Requires at least one request with a recorded response."
                 }
+                onClick={
+                  performance.avgResponseMinutes !== null
+                    ? () => setOpenMetric("response")
+                    : undefined
+                }
               />
               <PerformanceRow
                 label="Resolution Time"
-                value={formatResolutionTime(
-                  performance.avgResolutionHours ?? MOCK_RESOLUTION_TIME_HOURS,
-                )}
+                value={formatResolutionTime(performance.avgResolutionHours)}
                 description="Average time until the tenant confirms resolution."
+                onClick={
+                  performance.avgResolutionHours !== null
+                    ? () => setOpenMetric("resolution")
+                    : undefined
+                }
               />
               <PerformanceRow
                 label="Reopen Rate"
@@ -422,11 +828,19 @@ export default function LandlordFacilityManagerDetail() {
                     ? `${performance.reopened} of ${performance.resolvedCount} resolved requests were reopened by tenants.`
                     : "Requires at least one resolved request."
                 }
+                onClick={
+                  performance.reopenRate !== null ? () => setOpenMetric("reopen") : undefined
+                }
               />
               <PerformanceRow
                 isLast
                 label="Resolution Target Compliance"
                 value={formatPercent(performance.targetCompliance)}
+                onClick={
+                  performance.targetCompliance !== null
+                    ? () => setOpenMetric("target")
+                    : undefined
+                }
                 description={
                   performance.targetCompliance !== null
                     ? `${performance.withinTargetCount} of ${performance.resolutionCount} requests were resolved within their category target.`
@@ -465,6 +879,20 @@ export default function LandlordFacilityManagerDetail() {
           </div>
         </div>
       </div>
+
+      {/* ── Metric breakdown modal ── */}
+      <Dialog open={openMetric !== null} onOpenChange={(open) => !open && setOpenMetric(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0">
+          {openMetric && (
+            <MetricBreakdownContent
+              metric={openMetric}
+              performance={performance}
+              periodLabel={PERIOD_LABEL[period]}
+              onClose={() => setOpenMetric(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
