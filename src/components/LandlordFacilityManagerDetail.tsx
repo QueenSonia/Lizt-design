@@ -338,29 +338,29 @@ export default function LandlordFacilityManagerDetail() {
           </div>
         </div>
 
-        {/* ── Performance + Maintenance Activity ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Performance */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Performance
-              </p>
-              <Select value={period} onValueChange={(v) => setPeriod(v as PeriodOption)}>
-                <SelectTrigger className="h-9 text-sm w-full sm:w-44">
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(PERIOD_LABEL) as PeriodOption[]).map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {PERIOD_LABEL[opt]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* ── Performance ── */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Performance
+            </p>
+            <Select value={period} onValueChange={(v) => setPeriod(v as PeriodOption)}>
+              <SelectTrigger className="h-9 text-sm w-full sm:w-44">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(PERIOD_LABEL) as PeriodOption[]).map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {PERIOD_LABEL[opt]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div>
+          <div className="flex flex-col lg:flex-row lg:gap-8">
+            {/* Performance Metrics */}
+            <div className="lg:flex-1">
               <PerformanceRow
                 label="Response Time"
                 value={formatResponseTime(performance.avgResponseMinutes)}
@@ -397,29 +397,32 @@ export default function LandlordFacilityManagerDetail() {
                 }
               />
             </div>
-          </div>
 
-          {/* Maintenance Activity */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-5">
-              Maintenance Activity
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm py-1">
-                <span className="text-gray-500">Total Requests</span>
-                <span className="text-gray-900 font-medium">{performance.total}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm py-1">
-                <span className="text-gray-500">Completed</span>
-                <span className="text-gray-900 font-medium">{performance.completed}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm py-1">
-                <span className="text-gray-500">Open</span>
-                <span className="text-gray-900 font-medium">{performance.open}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm py-1">
-                <span className="text-gray-500">Reopened</span>
-                <span className="text-gray-900 font-medium">{performance.reopened}</span>
+            {/* Divider */}
+            <div className="border-t border-gray-100 my-5 lg:my-0 lg:border-t-0 lg:border-l lg:mx-0 lg:w-px shrink-0" />
+
+            {/* Maintenance Activity */}
+            <div className="lg:flex-1 pt-5 lg:pt-0 lg:pl-8">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-5">
+                Maintenance Activity
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm py-1">
+                  <span className="text-gray-500">Total Requests</span>
+                  <span className="text-gray-900 font-medium">{performance.total}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm py-1">
+                  <span className="text-gray-500">Completed</span>
+                  <span className="text-gray-900 font-medium">{performance.completed}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm py-1">
+                  <span className="text-gray-500">Open</span>
+                  <span className="text-gray-900 font-medium">{performance.open}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm py-1">
+                  <span className="text-gray-500">Reopened</span>
+                  <span className="text-gray-900 font-medium">{performance.reopened}</span>
+                </div>
               </div>
             </div>
           </div>
