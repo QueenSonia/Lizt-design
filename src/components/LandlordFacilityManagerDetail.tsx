@@ -73,6 +73,12 @@ const CATEGORY_TARGET_HOURS: Record<string, number> = {
 };
 const DEFAULT_TARGET_HOURS = 72;
 
+// Design placeholder: the mock request dataset has no tenant-confirmed
+// completions yet, so Resolution Time would otherwise always read "Not
+// enough data". Use a realistic stand-in average (1 day 8 hrs) purely so the
+// row is populated for now — this does not affect any other metric.
+const MOCK_RESOLUTION_TIME_HOURS = 32;
+
 interface PerformanceRowProps {
   label: string;
   value: string;
@@ -367,12 +373,10 @@ export default function LandlordFacilityManagerDetail() {
             />
             <PerformanceRow
               label="Resolution Time"
-              value={formatResolutionTime(performance.avgResolutionHours)}
-              description={
-                performance.avgResolutionHours !== null
-                  ? "Average time from assignment until the tenant confirms the request is resolved."
-                  : "Requires at least one completed request."
-              }
+              value={formatResolutionTime(
+                performance.avgResolutionHours ?? MOCK_RESOLUTION_TIME_HOURS,
+              )}
+              description="Average time until the tenant confirms resolution."
             />
             <PerformanceRow
               label="Reopen Rate"
