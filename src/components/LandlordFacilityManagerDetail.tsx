@@ -318,24 +318,22 @@ export default function LandlordFacilityManagerDetail() {
 
       <div className="max-w-5xl space-y-6">
         {/* ── Bank Account Details ── */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">
+        <div className="bg-white border border-gray-200 rounded-xl px-6 py-4">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
             Bank Account Details
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-3">
-            <div className="flex items-center justify-between sm:block">
-              <span className="text-sm text-gray-500">Bank Name</span>
-              <span className="text-sm text-gray-900 sm:block sm:mt-0.5">{bank?.bankName || "—"}</span>
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-x-6 gap-y-2">
+            <div className="sm:pr-6">
+              <p className="text-xs text-gray-500">Bank Name</p>
+              <p className="text-sm text-gray-900 mt-0.5">{bank?.bankName || "—"}</p>
             </div>
-            <div className="flex items-center justify-between sm:block">
-              <span className="text-sm text-gray-500">Account Number</span>
-              <span className="text-sm text-gray-900 font-mono sm:block sm:mt-0.5">
-                {bank?.accountNumber || "—"}
-              </span>
+            <div className="sm:px-6 sm:border-l sm:border-gray-100">
+              <p className="text-xs text-gray-500">Account Number</p>
+              <p className="text-sm text-gray-900 font-mono mt-0.5">{bank?.accountNumber || "—"}</p>
             </div>
-            <div className="flex items-center justify-between sm:block">
-              <span className="text-sm text-gray-500">Account Name</span>
-              <span className="text-sm text-gray-900 sm:block sm:mt-0.5">{bank?.accountName || "—"}</span>
+            <div className="sm:pl-6 sm:border-l sm:border-gray-100">
+              <p className="text-xs text-gray-500">Account Name</p>
+              <p className="text-sm text-gray-900 mt-0.5">{bank?.accountName || "—"}</p>
             </div>
           </div>
         </div>
