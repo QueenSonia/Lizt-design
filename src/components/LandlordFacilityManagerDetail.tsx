@@ -338,6 +338,43 @@ export default function LandlordFacilityManagerDetail() {
           </div>
         </div>
 
+        {/* ── Active Maintenance Requests ── */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">
+            Active Maintenance Requests
+          </p>
+          {activeRequests.length === 0 ? (
+            <p className="text-sm text-gray-500">No active maintenance requests assigned.</p>
+          ) : (
+            <ul className="space-y-2">
+              {activeRequests.map((r) => (
+                <li
+                  key={r.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/${userRole}/maintenance-request-detail?id=${r.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/${userRole}/maintenance-request-detail?id=${r.id}`);
+                    }
+                  }}
+                  className="flex items-start gap-2 px-3 py-2.5 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+                >
+                  <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-900 leading-snug mb-0.5">{r.description}</p>
+                    <p className="text-xs text-gray-500">
+                      {r.property_name} · {formatStatusLabel(r.status)}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         {/* ── Performance ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
@@ -426,43 +463,6 @@ export default function LandlordFacilityManagerDetail() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* ── Active Maintenance Requests ── */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">
-            Active Maintenance Requests
-          </p>
-          {activeRequests.length === 0 ? (
-            <p className="text-sm text-gray-500">No active maintenance requests assigned.</p>
-          ) : (
-            <ul className="space-y-2">
-              {activeRequests.map((r) => (
-                <li
-                  key={r.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => router.push(`/${userRole}/maintenance-request-detail?id=${r.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      router.push(`/${userRole}/maintenance-request-detail?id=${r.id}`);
-                    }
-                  }}
-                  className="flex items-start gap-2 px-3 py-2.5 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
-                >
-                  <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-gray-900 leading-snug mb-0.5">{r.description}</p>
-                    <p className="text-xs text-gray-500">
-                      {r.property_name} · {formatStatusLabel(r.status)}
-                    </p>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       </div>
     </div>
