@@ -20,15 +20,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Button } from "./ui/button";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Wrench,
-  Clock,
-  CheckCircle2,
-  RotateCcw,
-  Target,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Wrench } from "lucide-react";
 
 // Bank details are not part of the shared FacilityManager type — layer them on
 // locally, keyed by id, matching what the Facility list shows for each manager.
@@ -81,24 +73,28 @@ const CATEGORY_TARGET_HOURS: Record<string, number> = {
 };
 const DEFAULT_TARGET_HOURS = 72;
 
-interface MetricCardProps {
+interface PerformanceRowProps {
   label: string;
   value: string;
-  hint: string;
-  icon: typeof Clock;
+  description: string;
+  isLast?: boolean;
 }
 
-function MetricCard({ label, value, hint, icon: Icon }: MetricCardProps) {
+function PerformanceRow({ label, value, description, isLast }: PerformanceRowProps) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-          <Icon className="w-3.5 h-3.5 text-[#FF5000]" />
-        </div>
-        <p className="text-xs font-medium text-gray-500">{label}</p>
-      </div>
-      <p className="text-2xl font-semibold text-gray-900 tracking-tight">{value}</p>
-      <p className="text-xs text-gray-400 mt-1">{hint}</p>
+    <div className={isLast ? "py-4" : "py-4 border-b border-gray-100"}>
+      <p className="text-sm font-medium text-gray-900">{label}</p>
+      {value ? (
+        <>
+          <p className="text-xl font-semibold text-gray-900 mt-1">{value}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-medium text-gray-400 mt-1">Not enough data</p>
+          <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+        </>
+      )}
     </div>
   );
 }
@@ -220,6 +216,8 @@ export default function LandlordFacilityManagerDetail() {
       completed,
       reopened,
       resolvedCount: resolvedRequests.length,
+      resolutionCount,
+      withinTargetCount,
       avgResponseMinutes,
       avgResolutionHours,
       reopenRate,
@@ -227,22 +225,36 @@ export default function LandlordFacilityManagerDetail() {
     };
   }, [requestsInPeriod]);
 
+  // Human-readable duration formatting — never raw decimal hours.
+  function formatDuration(totalMinutes: number): string {
+    const minutes = Math.round(totalMinutes);
+    if (minutes < 60) return `${minutes} min`;
+
+    const totalHours = Math.round(minutes / 60);
+    if (totalHours < 24) {
+      const hrs = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hrs} hr${hrs === 1 ? "" : "s"} ${mins} min` : `${hrs} hr${hrs === 1 ? "" : "s"}`;
+    }
+
+    const days = Math.floor(totalHours / 24);
+    const hrs = totalHours % 24;
+    return hrs > 0 ? `${days} day${days === 1 ? "" : "s"} ${hrs} hr${hrs === 1 ? "" : "s"}` : `${days} day${days === 1 ? "" : "s"}`;
+  }
+
   function formatResponseTime(minutes: number | null): string {
-    if (minutes === null) return "—";
-    if (minutes < 60) return `${Math.round(minutes)} min`;
-    const hours = minutes / 60;
-    return `${hours.toFixed(1)} hrs`;
+    if (minutes === null) return "";
+    return formatDuration(minutes);
   }
 
   function formatResolutionTime(hours: number | null): string {
-    if (hours === null) return "—";
-    if (hours < 24) return `${Math.round(hours)} hrs`;
-    return `${(hours / 24).toFixed(1)} days`;
+    if (hours === null) return "";
+    return formatDuration(hours * 60);
   }
 
   function formatPercent(value: number | null): string {
-    if (value === null) return "—";
-    return `${value.toFixed(1)}%`;
+    if (value === null) return "";
+    return `${Math.round(value)}%`;
   }
 
   if (!manager) {
@@ -342,55 +354,68 @@ export default function LandlordFacilityManagerDetail() {
             </Select>
           </div>
 
-          {/* Metric cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <MetricCard
-              icon={Clock}
-              label="Average Response Time"
+          {/* Performance summary */}
+          <div>
+            <PerformanceRow
+              label="Response Time"
               value={formatResponseTime(performance.avgResponseMinutes)}
-              hint={`Across ${performance.resolvedCount} request${performance.resolvedCount === 1 ? "" : "s"}`}
+              description={
+                performance.avgResponseMinutes !== null
+                  ? "Average time taken to respond after a request is assigned."
+                  : "Requires at least one request with a recorded response."
+              }
             />
-            <MetricCard
-              icon={CheckCircle2}
-              label="Average Resolution Time"
+            <PerformanceRow
+              label="Resolution Time"
               value={formatResolutionTime(performance.avgResolutionHours)}
-              hint={`Across ${performance.resolvedCount} request${performance.resolvedCount === 1 ? "" : "s"}`}
+              description={
+                performance.avgResolutionHours !== null
+                  ? "Average time from assignment until the tenant confirms the request is resolved."
+                  : "Requires at least one completed request."
+              }
             />
-            <MetricCard
-              icon={RotateCcw}
+            <PerformanceRow
               label="Reopen Rate"
               value={formatPercent(performance.reopenRate)}
-              hint={`${performance.reopened} of ${performance.resolvedCount} resolved`}
+              description={
+                performance.reopenRate !== null
+                  ? `${performance.reopened} of ${performance.resolvedCount} resolved requests were reopened by tenants.`
+                  : "Requires at least one resolved request."
+              }
             />
-            <MetricCard
-              icon={Target}
+            <PerformanceRow
+              isLast
               label="Resolution Target Compliance"
               value={formatPercent(performance.targetCompliance)}
-              hint={`Within category target`}
+              description={
+                performance.targetCompliance !== null
+                  ? `${performance.withinTargetCount} of ${performance.resolutionCount} requests were resolved within their category target.`
+                  : "Requires at least one completed request."
+              }
             />
           </div>
 
-          {/* Activity summary */}
-          <div className="mt-5 pt-5 border-t border-gray-100">
+          {/* Maintenance Activity */}
+          <div className="mt-2 pt-5 border-t border-gray-200">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-              Activity — {PERIOD_LABEL[period]}
+              Maintenance Activity
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-lg bg-gray-50 px-3 py-2.5">
-                <p className="text-xs text-gray-500">Total Requests</p>
-                <p className="text-base font-semibold text-gray-900 mt-0.5">{performance.total}</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Total Requests</span>
+                <span className="text-gray-900 font-medium">{performance.total}</span>
               </div>
-              <div className="rounded-lg bg-gray-50 px-3 py-2.5">
-                <p className="text-xs text-gray-500">Completed</p>
-                <p className="text-base font-semibold text-gray-900 mt-0.5">{performance.completed}</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Completed</span>
+                <span className="text-gray-900 font-medium">{performance.completed}</span>
               </div>
-              <div className="rounded-lg bg-gray-50 px-3 py-2.5">
-                <p className="text-xs text-gray-500">Open</p>
-                <p className="text-base font-semibold text-gray-900 mt-0.5">{performance.open}</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Open</span>
+                <span className="text-gray-900 font-medium">{performance.open}</span>
               </div>
-              <div className="rounded-lg bg-gray-50 px-3 py-2.5">
-                <p className="text-xs text-gray-500">Reopened</p>
-                <p className="text-base font-semibold text-gray-900 mt-0.5">{performance.reopened}</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Reopened</span>
+                <span className="text-gray-900 font-medium">{performance.reopened}</span>
               </div>
             </div>
           </div>
