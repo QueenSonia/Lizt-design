@@ -293,32 +293,12 @@ export default function LandlordFacilityManagerDetail() {
           <div className="min-w-0">
             <h1 className="text-xl font-semibold text-slate-900 leading-snug">{manager.name}</h1>
             <p className="text-sm text-slate-500">{manager.phone_number}</p>
+            <p className="text-xs text-slate-400 mt-0.5">Added {formatDate(manager.date)}</p>
           </div>
         </div>
       </div>
 
       <div className="max-w-5xl space-y-6">
-        {/* ── Facility Manager information ── */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">
-            Facility Manager Information
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-            <div className="flex items-center justify-between sm:block">
-              <span className="text-sm text-gray-500">Email Address</span>
-              <span className="text-sm text-gray-900 sm:block sm:mt-0.5">{manager.email || "—"}</span>
-            </div>
-            <div className="flex items-center justify-between sm:block">
-              <span className="text-sm text-gray-500">Phone Number</span>
-              <span className="text-sm text-gray-900 sm:block sm:mt-0.5">{manager.phone_number}</span>
-            </div>
-            <div className="flex items-center justify-between sm:block">
-              <span className="text-sm text-gray-500">Date Added</span>
-              <span className="text-sm text-gray-900 sm:block sm:mt-0.5">{formatDate(manager.date)}</span>
-            </div>
-          </div>
-        </div>
-
         {/* ── Bank Account Details ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">
