@@ -318,7 +318,7 @@ export default function LandlordFacilityManagerDetail() {
 
       <div className="max-w-5xl space-y-6">
         {/* ── Bank Account Details ── */}
-        <div className="bg-white border border-gray-200 rounded-xl px-6 py-4">
+        <div className="bg-white border border-gray-200 rounded-xl px-6 py-4 inline-block w-full sm:w-auto">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
             Bank Account Details
           </p>
