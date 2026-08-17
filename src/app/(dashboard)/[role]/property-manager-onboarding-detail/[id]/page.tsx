@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import PropertyManagerOnboardingDetail from "@/components/PropertyManagerOnboardingDetail";
+import LandlordOnboardingDetail from "@/components/LandlordOnboardingDetail";
 import { LoadingFallback } from "@/components/LoadingFallback";
 import { MOCK_PROPERTY_MANAGER_ONBOARDING_SUBMISSIONS } from "@/types/propertyManagerOnboarding";
 
@@ -40,7 +40,7 @@ function PropertyManagerOnboardingDetailContent() {
     );
   }
 
-  return <PropertyManagerOnboardingDetail submission={submission} onBack={handleBack} />;
+  return <LandlordOnboardingDetail submission={submission} onBack={handleBack} />;
 }
 
 export default function PropertyManagerOnboardingDetailPage() {

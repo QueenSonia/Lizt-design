@@ -22,6 +22,7 @@ import {
   OnboardingProperty,
   OnboardingDocument,
   OnboardingLandlordInfo,
+  entityLabel,
 } from "@/types/onboarding";
 import {
   isLandlordOnboarded,
@@ -79,18 +80,24 @@ function DocumentRow({ document }: { document: OnboardingDocument }) {
 
 const SERVICE_BADGE_STYLE = "bg-orange-50 text-[#FF5000] border-orange-100";
 
-/** Landlord identity section — layout depends on whether onboarding was Individual or Corporate. */
-function LandlordInformationSection({ info }: { info: OnboardingLandlordInfo }) {
+/** Identity section — layout depends on whether onboarding was Individual or Corporate. */
+function LandlordInformationSection({
+  info,
+  entityLabel: label,
+}: {
+  info: OnboardingLandlordInfo;
+  entityLabel: string;
+}) {
   const isIndividual = info.landlordType === "individual";
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-        Landlord Information
+        {label} Information
       </h3>
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          <InfoRow label="Landlord Type" value={isIndividual ? "Individual" : "Corporate"} />
+          <InfoRow label={`${label} Type`} value={isIndividual ? "Individual" : "Corporate"} />
           {isIndividual ? (
             <>
               <InfoRow label="First Name" value={info.firstName} />
@@ -163,11 +170,13 @@ function ScopeOfServicesSection({
 function OnboardLandlordModal({
   open,
   properties,
+  entityLabel: label,
   onClose,
   onConfirm,
 }: {
   open: boolean;
   properties: OnboardingProperty[];
+  entityLabel: string;
   onClose: () => void;
   onConfirm: (selectedPropertyIds: string[]) => void;
 }) {
@@ -190,13 +199,13 @@ function OnboardLandlordModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg w-full">
         <DialogHeader>
-          <DialogTitle>Onboard Landlord</DialogTitle>
+          <DialogTitle>Onboard {label}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <p className="text-sm text-gray-600">
-            This will create the landlord in the Landlords module using the information submitted
-            during onboarding.
+            This will create the {label.toLowerCase()} in the Landlords module using the
+            information submitted during onboarding.
           </p>
 
           {properties.length > 0 && (
@@ -228,7 +237,7 @@ function OnboardLandlordModal({
             className="bg-[#FF5000] hover:bg-[#e04600] text-white"
             onClick={() => onConfirm(Array.from(selected))}
           >
-            Onboard Landlord
+            Onboard {label}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -415,6 +424,7 @@ export default function LandlordOnboardingDetail({
   }, []);
 
   const landlordOnboarded = isLandlordOnboarded(submission.id);
+  const label = entityLabel(submission);
 
   function handleConfirmOnboard(selectedPropertyIds: string[]) {
     onboardLandlord(submission.id, generateLandlordId(), selectedPropertyIds);
@@ -456,14 +466,14 @@ export default function LandlordOnboardingDetail({
             {landlordOnboarded ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-green-50 text-green-700 border border-green-200">
                 <Check className="w-3.5 h-3.5" />
-                Landlord Onboarded
+                {label} Onboarded
               </span>
             ) : (
               <Button
                 onClick={() => setShowOnboardModal(true)}
                 className="bg-[#FF5000] hover:bg-[#e04600] text-white"
               >
-                Onboard Landlord
+                Onboard {label}
               </Button>
             )}
           </div>
@@ -472,8 +482,8 @@ export default function LandlordOnboardingDetail({
 
       {/* Content */}
       <div className="max-w-5xl space-y-6">
-        {/* Landlord Information */}
-        <LandlordInformationSection info={submission.landlordInfo} />
+        {/* Identity Information */}
+        <LandlordInformationSection info={submission.landlordInfo} entityLabel={label} />
 
         {/* Scope of Services */}
         <ScopeOfServicesSection
@@ -504,6 +514,7 @@ export default function LandlordOnboardingDetail({
       <OnboardLandlordModal
         open={showOnboardModal}
         properties={submission.properties}
+        entityLabel={label}
         onClose={() => setShowOnboardModal(false)}
         onConfirm={handleConfirmOnboard}
       />

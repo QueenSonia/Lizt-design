@@ -71,8 +71,18 @@ export type OnboardingService =
 
 export type OnboardingSubmissionStatus = "pending" | "approved" | "rejected";
 
+/**
+ * Which kind of person/entity this submission is for. Landlord and Property Manager
+ * onboarding share the exact same data shape and review UI — this is the only thing
+ * that distinguishes them, driving the "Landlord"/"Property Manager" labels shown
+ * throughout the detail screen.
+ */
+export type OnboardingEntityType = "landlord" | "property_manager";
+
 export interface OnboardingSubmission {
   id: string;
+  /** Defaults to "landlord" when omitted, so existing Landlord submissions don't need updating. */
+  entityType?: OnboardingEntityType;
   landlordName: string;
   landlordPhone: string;
   submittedAt: string;
@@ -82,6 +92,10 @@ export interface OnboardingSubmission {
   /** Free-text description of the custom service — present only when "Others" is selected. */
   otherServiceDescription?: string;
   properties: OnboardingProperty[];
+}
+
+export function entityLabel(submission: OnboardingSubmission): string {
+  return submission.entityType === "property_manager" ? "Property Manager" : "Landlord";
 }
 
 export function propertyCount(submission: OnboardingSubmission): number {

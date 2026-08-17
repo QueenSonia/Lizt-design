@@ -14,10 +14,7 @@ import {
   occupancySummary,
   propertyCount,
 } from "@/types/onboarding";
-import {
-  MOCK_PROPERTY_MANAGER_ONBOARDING_SUBMISSIONS,
-  PropertyManagerOnboardingSubmission,
-} from "@/types/propertyManagerOnboarding";
+import { MOCK_PROPERTY_MANAGER_ONBOARDING_SUBMISSIONS } from "@/types/propertyManagerOnboarding";
 
 type DateBucket = "7d" | "30d" | "90d" | null;
 type OnboardingTypeFilter = "all" | "landlord" | "property_manager";
@@ -228,8 +225,8 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
     return propertyManagerSubmissions.filter((s) => {
       const matchesSearch =
         !q ||
-        s.propertyManagerName.toLowerCase().includes(q) ||
-        s.propertyManagerPhone.toLowerCase().includes(q);
+        s.landlordName.toLowerCase().includes(q) ||
+        s.landlordPhone.toLowerCase().includes(q);
       return matchesSearch && matchesDateBucket(s.submittedAt, filters.dateBucket);
     });
   }, [propertyManagerSubmissions, search, filters]);
@@ -240,7 +237,7 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
     router.push(`/${userRole}/onboarding-detail/${submission.id}`);
   };
 
-  const goToPropertyManagerSubmission = (submission: PropertyManagerOnboardingSubmission) => {
+  const goToPropertyManagerSubmission = (submission: OnboardingSubmission) => {
     router.push(`/${userRole}/property-manager-onboarding-detail/${submission.id}`);
   };
 
@@ -453,6 +450,9 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
                               <th className="text-left px-4 py-3">
                                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Number of Properties</span>
                               </th>
+                              <th className="text-left px-4 py-3">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Occupancy Summary</span>
+                              </th>
                               <th className="text-left px-4 py-3 pr-6">
                                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted On</span>
                               </th>
@@ -465,9 +465,10 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
                                 onClick={() => goToPropertyManagerSubmission(submission)}
                                 className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                               >
-                                <td className="px-6 py-4 font-medium text-gray-900">{submission.propertyManagerName}</td>
-                                <td className="px-4 py-4 text-gray-700">{submission.propertyManagerPhone}</td>
-                                <td className="px-4 py-4 text-gray-700">{submission.numberOfProperties}</td>
+                                <td className="px-6 py-4 font-medium text-gray-900">{submission.landlordName}</td>
+                                <td className="px-4 py-4 text-gray-700">{submission.landlordPhone}</td>
+                                <td className="px-4 py-4 text-gray-700">{propertyCount(submission)}</td>
+                                <td className="px-4 py-4 text-gray-700">{occupancySummary(submission.properties)}</td>
                                 <td className="px-4 py-4 pr-6 text-gray-500">{formatSubmittedOn(submission.submittedAt)}</td>
                               </tr>
                             ))}
@@ -483,13 +484,12 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
                             onClick={() => goToPropertyManagerSubmission(submission)}
                             className="px-4 py-4 active:bg-gray-50"
                           >
-                            <p className="font-medium text-gray-900">{submission.propertyManagerName}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{submission.propertyManagerPhone}</p>
+                            <p className="font-medium text-gray-900">{submission.landlordName}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{submission.landlordPhone}</p>
                             <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
-                              <span>
-                                {submission.numberOfProperties} propert
-                                {submission.numberOfProperties === 1 ? "y" : "ies"}
-                              </span>
+                              <span>{propertyCount(submission)} propert{propertyCount(submission) === 1 ? "y" : "ies"}</span>
+                              <span className="text-gray-300">•</span>
+                              <span>{occupancySummary(submission.properties)}</span>
                             </div>
                             <p className="text-xs text-gray-400 mt-1.5">{formatSubmittedOn(submission.submittedAt)}</p>
                           </div>
