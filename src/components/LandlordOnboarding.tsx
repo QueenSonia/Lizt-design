@@ -6,8 +6,7 @@ import { Search, ClipboardList, SlidersHorizontal, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "./ui/input";
-import { TablePagination, stickyHeadClass } from "./TableControls";
-import { useTablePagination } from "@/hooks/useTablePagination";
+import { stickyHeadClass } from "./TableControls";
 import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
 import {
   MOCK_ONBOARDING_SUBMISSIONS,
@@ -15,17 +14,26 @@ import {
   occupancySummary,
   propertyCount,
 } from "@/types/onboarding";
+import {
+  MOCK_PROPERTY_MANAGER_ONBOARDING_SUBMISSIONS,
+  PropertyManagerOnboardingSubmission,
+} from "@/types/propertyManagerOnboarding";
 
 type DateBucket = "7d" | "30d" | "90d" | null;
+type OnboardingTypeFilter = "all" | "landlord" | "property_manager";
 
 interface OnboardingFilters {
   dateBucket: DateBucket;
+  type: OnboardingTypeFilter;
 }
 
-const EMPTY_FILTERS: OnboardingFilters = { dateBucket: null };
+const EMPTY_FILTERS: OnboardingFilters = { dateBucket: null, type: "all" };
 
 function activeFilterCount(f: OnboardingFilters) {
-  return f.dateBucket ? 1 : 0;
+  let count = 0;
+  if (f.dateBucket) count += 1;
+  if (f.type !== "all") count += 1;
+  return count;
 }
 
 function matchesDateBucket(submittedAt: string, bucket: DateBucket): boolean {
@@ -96,7 +104,29 @@ function FilterPopover({
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="px-4 py-3 space-y-3">
+        <div className="px-4 py-3 space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+              Type
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <FilterBtn
+                label="All"
+                active={draft.type === "all"}
+                onClick={() => setDraft((d) => ({ ...d, type: "all" }))}
+              />
+              <FilterBtn
+                label="Landlord"
+                active={draft.type === "landlord"}
+                onClick={() => setDraft((d) => ({ ...d, type: "landlord" }))}
+              />
+              <FilterBtn
+                label="Property Manager"
+                active={draft.type === "property_manager"}
+                onClick={() => setDraft((d) => ({ ...d, type: "property_manager" }))}
+              />
+            </div>
+          </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
               Date Submitted
@@ -106,21 +136,21 @@ function FilterPopover({
                 label="Last 7 days"
                 active={draft.dateBucket === "7d"}
                 onClick={() =>
-                  setDraft((d) => ({ dateBucket: d.dateBucket === "7d" ? null : "7d" }))
+                  setDraft((d) => ({ ...d, dateBucket: d.dateBucket === "7d" ? null : "7d" }))
                 }
               />
               <FilterBtn
                 label="Last 30 days"
                 active={draft.dateBucket === "30d"}
                 onClick={() =>
-                  setDraft((d) => ({ dateBucket: d.dateBucket === "30d" ? null : "30d" }))
+                  setDraft((d) => ({ ...d, dateBucket: d.dateBucket === "30d" ? null : "30d" }))
                 }
               />
               <FilterBtn
                 label="Last 90 days"
                 active={draft.dateBucket === "90d"}
                 onClick={() =>
-                  setDraft((d) => ({ dateBucket: d.dateBucket === "90d" ? null : "90d" }))
+                  setDraft((d) => ({ ...d, dateBucket: d.dateBucket === "90d" ? null : "90d" }))
                 }
               />
             </div>
@@ -177,23 +207,41 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
   const { ref: tableScrollRef, scrolled: tableScrolled, onScroll: handleTableScroll } =
     useTableScrollShadow<HTMLDivElement>();
 
-  const submissions = MOCK_ONBOARDING_SUBMISSIONS;
+  const landlordSubmissions = MOCK_ONBOARDING_SUBMISSIONS;
+  const propertyManagerSubmissions = MOCK_PROPERTY_MANAGER_ONBOARDING_SUBMISSIONS;
 
-  const filtered = useMemo(() => {
+  const filteredLandlords = useMemo(() => {
+    if (filters.type === "property_manager") return [];
     const q = search.toLowerCase().trim();
-    return submissions.filter((s) => {
+    return landlordSubmissions.filter((s) => {
       const matchesSearch =
         !q ||
         s.landlordName.toLowerCase().includes(q) ||
         s.landlordPhone.toLowerCase().includes(q);
       return matchesSearch && matchesDateBucket(s.submittedAt, filters.dateBucket);
     });
-  }, [submissions, search, filters]);
+  }, [landlordSubmissions, search, filters]);
 
-  const pagination = useTablePagination(filtered, `${search}|${filters.dateBucket ?? ""}`);
+  const filteredPropertyManagers = useMemo(() => {
+    if (filters.type === "landlord") return [];
+    const q = search.toLowerCase().trim();
+    return propertyManagerSubmissions.filter((s) => {
+      const matchesSearch =
+        !q ||
+        s.propertyManagerName.toLowerCase().includes(q) ||
+        s.propertyManagerPhone.toLowerCase().includes(q);
+      return matchesSearch && matchesDateBucket(s.submittedAt, filters.dateBucket);
+    });
+  }, [propertyManagerSubmissions, search, filters]);
+
+  const totalResults = filteredLandlords.length + filteredPropertyManagers.length;
 
   const goToSubmission = (submission: OnboardingSubmission) => {
     router.push(`/${userRole}/onboarding-detail/${submission.id}`);
+  };
+
+  const goToPropertyManagerSubmission = (submission: PropertyManagerOnboardingSubmission) => {
+    router.push(`/${userRole}/property-manager-onboarding-detail/${submission.id}`);
   };
 
   return (
@@ -215,7 +263,7 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
             <div>
               <h1 className="text-lg font-semibold text-slate-900">Onboarding</h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Landlord onboarding submissions awaiting review
+                Landlord and Property Manager onboarding submissions awaiting review
               </p>
             </div>
           </div>
@@ -230,7 +278,7 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by landlord name or phone..."
+              placeholder="Search by name or phone..."
               className="pl-10 h-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-orange-200 text-sm"
             />
             {search && (
@@ -274,8 +322,8 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto lg:pt-[125px]">
-        <div className="px-4 sm:px-6 pt-8 pb-5">
-          {filtered.length === 0 ? (
+        <div className="px-4 sm:px-6 pt-8 pb-8 space-y-8">
+          {totalResults === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                 <ClipboardList className="w-8 h-8 text-gray-400" />
@@ -293,87 +341,164 @@ export default function LandlordOnboarding({ onMenuClick, isMobile }: LandlordOn
                     No onboarding submissions yet.
                   </p>
                   <p className="text-gray-400 text-xs">
-                    Landlord onboarding requests will appear here once they are submitted.
+                    Landlord and Property Manager onboarding requests will appear here once they
+                    are submitted.
                   </p>
                 </>
               )}
             </div>
           ) : (
             <>
-              {/* Desktop table */}
-              <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className={stickyHeadClass(tableScrolled)}>
-                    <tr>
-                      <th className="text-left px-6 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Landlord</span>
-                      </th>
-                      <th className="text-left px-4 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
-                      </th>
-                      <th className="text-left px-4 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Number of Properties</span>
-                      </th>
-                      <th className="text-left px-4 py-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Occupancy Summary</span>
-                      </th>
-                      <th className="text-left px-4 py-3 pr-6">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted On</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {pagination.paginated.map((submission) => (
-                      <tr
-                        key={submission.id}
-                        onClick={() => goToSubmission(submission)}
-                        className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-                      >
-                        <td className="px-6 py-4 font-medium text-gray-900">{submission.landlordName}</td>
-                        <td className="px-4 py-4 text-gray-700">{submission.landlordPhone}</td>
-                        <td className="px-4 py-4 text-gray-700">{propertyCount(submission)}</td>
-                        <td className="px-4 py-4 text-gray-700">{occupancySummary(submission.properties)}</td>
-                        <td className="px-4 py-4 pr-6 text-gray-500">{formatSubmittedOn(submission.submittedAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </div>
-
-              {/* Mobile cards */}
-              <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
-                {pagination.paginated.map((submission) => (
-                  <div
-                    key={submission.id}
-                    onClick={() => goToSubmission(submission)}
-                    className="px-4 py-4 active:bg-gray-50"
-                  >
-                    <p className="font-medium text-gray-900">{submission.landlordName}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{submission.landlordPhone}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
-                      <span>{propertyCount(submission)} propert{propertyCount(submission) === 1 ? "y" : "ies"}</span>
-                      <span className="text-gray-300">•</span>
-                      <span>{occupancySummary(submission.properties)}</span>
+              {/* Landlord Onboarding */}
+              {filters.type !== "property_manager" && (
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900 mb-3">Landlord Onboarding</h2>
+                  {filteredLandlords.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-100 p-6 text-center shadow-sm">
+                      <p className="text-gray-400 text-xs">No landlord submissions match your search.</p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1.5">{formatSubmittedOn(submission.submittedAt)}</p>
-                  </div>
-                ))}
-              </div>
+                  ) : (
+                    <>
+                      {/* Desktop table */}
+                      <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div ref={tableScrollRef} onScroll={handleTableScroll} className="max-h-[70vh] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className={stickyHeadClass(tableScrolled)}>
+                              <tr>
+                                <th className="text-left px-6 py-3">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Landlord</span>
+                                </th>
+                                <th className="text-left px-4 py-3">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
+                                </th>
+                                <th className="text-left px-4 py-3">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Number of Properties</span>
+                                </th>
+                                <th className="text-left px-4 py-3">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Occupancy Summary</span>
+                                </th>
+                                <th className="text-left px-4 py-3 pr-6">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted On</span>
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {filteredLandlords.map((submission) => (
+                                <tr
+                                  key={submission.id}
+                                  onClick={() => goToSubmission(submission)}
+                                  className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                                >
+                                  <td className="px-6 py-4 font-medium text-gray-900">{submission.landlordName}</td>
+                                  <td className="px-4 py-4 text-gray-700">{submission.landlordPhone}</td>
+                                  <td className="px-4 py-4 text-gray-700">{propertyCount(submission)}</td>
+                                  <td className="px-4 py-4 text-gray-700">{occupancySummary(submission.properties)}</td>
+                                  <td className="px-4 py-4 pr-6 text-gray-500">{formatSubmittedOn(submission.submittedAt)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
 
-              <TablePagination
-                page={pagination.page}
-                totalPages={pagination.totalPages}
-                pageSize={pagination.pageSize}
-                onPageChange={pagination.setPage}
-                onPageSizeChange={pagination.setPageSize}
-                rangeStart={pagination.rangeStart}
-                rangeEnd={pagination.rangeEnd}
-                total={pagination.total}
-                itemLabel="submissions"
-                getPageNumbers={pagination.getPageNumbers}
-              />
+                      {/* Mobile cards */}
+                      <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
+                        {filteredLandlords.map((submission) => (
+                          <div
+                            key={submission.id}
+                            onClick={() => goToSubmission(submission)}
+                            className="px-4 py-4 active:bg-gray-50"
+                          >
+                            <p className="font-medium text-gray-900">{submission.landlordName}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{submission.landlordPhone}</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
+                              <span>{propertyCount(submission)} propert{propertyCount(submission) === 1 ? "y" : "ies"}</span>
+                              <span className="text-gray-300">•</span>
+                              <span>{occupancySummary(submission.properties)}</span>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1.5">{formatSubmittedOn(submission.submittedAt)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Property Manager Onboarding */}
+              {filters.type !== "landlord" && (
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900 mb-3">
+                    Property Manager Onboarding
+                  </h2>
+                  {filteredPropertyManagers.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-100 p-6 text-center shadow-sm">
+                      <p className="text-gray-400 text-xs">
+                        No property manager submissions match your search.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Desktop table */}
+                      <div className="hidden sm:block bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="text-left px-6 py-3">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Property Manager</span>
+                              </th>
+                              <th className="text-left px-4 py-3">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone Number</span>
+                              </th>
+                              <th className="text-left px-4 py-3">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Number of Properties</span>
+                              </th>
+                              <th className="text-left px-4 py-3 pr-6">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted On</span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {filteredPropertyManagers.map((submission) => (
+                              <tr
+                                key={submission.id}
+                                onClick={() => goToPropertyManagerSubmission(submission)}
+                                className="bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                              >
+                                <td className="px-6 py-4 font-medium text-gray-900">{submission.propertyManagerName}</td>
+                                <td className="px-4 py-4 text-gray-700">{submission.propertyManagerPhone}</td>
+                                <td className="px-4 py-4 text-gray-700">{submission.numberOfProperties}</td>
+                                <td className="px-4 py-4 pr-6 text-gray-500">{formatSubmittedOn(submission.submittedAt)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile cards */}
+                      <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
+                        {filteredPropertyManagers.map((submission) => (
+                          <div
+                            key={submission.id}
+                            onClick={() => goToPropertyManagerSubmission(submission)}
+                            className="px-4 py-4 active:bg-gray-50"
+                          >
+                            <p className="font-medium text-gray-900">{submission.propertyManagerName}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{submission.propertyManagerPhone}</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
+                              <span>
+                                {submission.numberOfProperties} propert
+                                {submission.numberOfProperties === 1 ? "y" : "ies"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1.5">{formatSubmittedOn(submission.submittedAt)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
