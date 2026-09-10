@@ -30,6 +30,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { GlobalSearchDropdown } from "./GlobalSearch";
 import { getPaymentPlanThreads, getCurrentRevision } from "@/lib/paymentPlanThreadStore";
+import { LATE_PAYMENTS_SUMMARY } from "./LandlordLatePayments";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -854,6 +855,41 @@ function TenancyListScreen({
 
       <div className="flex-1 overflow-y-auto lg:pt-[134px]">
         <div className="px-4 sm:px-6 pt-6 pb-5">
+
+        {/* ── Late payments summary chip ──────────────────────────────────── */}
+        {(() => {
+          const { count, totalOverdue } = LATE_PAYMENTS_SUMMARY;
+          return (
+            <button
+              onClick={() => router.push(`/${userRole}/late-payments`)}
+              className={`w-full mb-4 flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition-colors group ${
+                count > 0
+                  ? "bg-red-50 border-red-200 hover:bg-red-100/70"
+                  : "bg-green-50 border-green-200 hover:bg-green-100/70"
+              }`}
+            >
+              {count > 0 ? (
+                <>
+                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                  <span className="text-sm font-medium text-red-700">
+                    {count} late payment{count !== 1 ? "s" : ""}
+                  </span>
+                  <span className="text-red-300 select-none">·</span>
+                  <span className="text-sm font-semibold text-red-700">
+                    ₦{totalOverdue.toLocaleString("en-NG")} overdue
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-red-400 ml-auto shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                  <span className="text-sm font-medium text-green-700">All payments on time</span>
+                </>
+              )}
+            </button>
+          );
+        })()}
+
         {sorted.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
             <p className="text-gray-700 text-sm font-medium mb-1">No tenancies found</p>
