@@ -198,8 +198,8 @@ export function LandlordSidebar({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-left">
-                <div className="font-semibold text-sm text-slate-900">Tunji Oginni</div>
-                <div className="text-xs text-slate-500">Property Manager</div>
+                <div className="font-semibold text-sm text-slate-900">Lizt</div>
+                <div className="text-xs text-slate-500">Admin</div>
               </div>
               <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors duration-200 shrink-0" />
             </Button>
