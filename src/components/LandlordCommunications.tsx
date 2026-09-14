@@ -384,7 +384,7 @@ function BroadcastCard({ broadcast, onSend }: { broadcast: Broadcast; onSend: ()
           className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF5000] text-xs font-medium text-[#FF5000] bg-[#FFF3EB] hover:bg-orange-100 transition-colors shrink-0"
         >
           <Send className="w-3 h-3" />
-          Send
+          Resend
         </button>
       </div>
     </div>
@@ -666,9 +666,17 @@ function MessagesTab({
 
   return (
     <>
-      <div className="px-6 py-5 border-b border-gray-100">
-        <p className="text-base font-semibold text-gray-900">Broadcast Messages</p>
-        <p className="text-sm text-gray-400 mt-0.5">Send announcements to all or selected tenants</p>
+      <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-base font-semibold text-gray-900">Broadcast Messages</p>
+          <p className="text-sm text-gray-400 mt-0.5">Send announcements to all or selected tenants</p>
+        </div>
+        <Button
+          className="bg-[#FF5000] hover:bg-[#e04600] text-white shrink-0"
+          onClick={() => setShowCompose(true)}
+        >
+          <Send className="w-4 h-4 mr-1.5" /> Send Broadcast
+        </Button>
       </div>
 
       {broadcasts.length === 0 ? (
