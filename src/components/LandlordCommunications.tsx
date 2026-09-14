@@ -360,73 +360,12 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
   );
 }
 
-// ── Edit Modal (existing, unchanged) ──────────────────────────────────────────
+// ── Broadcast Card ────────────────────────────────────────────────────────────
 
-function EditModal({ broadcast, onClose, onSaved }: { broadcast: Broadcast; onClose: () => void; onSaved: (b: Broadcast) => void }) {
-  const [broadcastTitle, setBroadcastTitle] = useState(broadcast.title);
-  const [body, setBody] = useState(broadcast.body);
-  const MAX_BODY = 500;
-  const MAX_TITLE = 100;
-  const canSave = broadcastTitle.trim().length > 0 && broadcastTitle.length <= MAX_TITLE && body.trim().length > 0 && body.length <= MAX_BODY;
-
-  function handleSave() { onSaved({ ...broadcast, title: broadcastTitle.trim(), body }); onClose(); }
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
-            <div>
-              <p className="text-base font-semibold text-gray-900">Edit Broadcast</p>
-              <p className="text-xs text-gray-400 mt-0.5">Update the title or message</p>
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-          </div>
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-gray-900">Broadcast Title <span className="text-red-500">*</span></label>
-                <span className={`text-xs tabular-nums ${broadcastTitle.length > MAX_TITLE ? "text-red-500 font-medium" : "text-gray-400"}`}>{broadcastTitle.length} / {MAX_TITLE}</span>
-              </div>
-              <Input value={broadcastTitle} onChange={e => setBroadcastTitle(e.target.value)} placeholder="e.g. Annual Maintenance Notice" className={`h-10 text-sm ${broadcastTitle.length > MAX_TITLE ? "border-red-400" : ""}`} autoFocus />
-              <p className="text-xs text-gray-400">Internal use only — not sent to tenants via WhatsApp.</p>
-            </div>
-            <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-4 space-y-2.5">
-              <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">ANNOUNCEMENT</p>
-              <p className="text-sm text-gray-800">Hi Tenant,</p>
-              <textarea value={body} onChange={e => setBody(e.target.value)} rows={5} placeholder="Type your announcement here…" className={`w-full bg-white/70 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 resize-none placeholder:text-gray-400 ${body.length > MAX_BODY ? "ring-2 ring-red-400" : "focus:ring-[#FF5000]/40"}`} />
-              <p className="text-sm text-gray-600 italic">Reply to this if you have any questions.</p>
-              <span className="inline-block border border-gray-400 text-gray-500 text-xs font-medium rounded px-3 py-1">Reply</span>
-              <p className="text-xs text-gray-400 text-right">via WhatsApp</p>
-            </div>
-            <div className="flex items-start justify-between gap-2">
-              <p className={`text-xs ${body.length > MAX_BODY ? "text-red-500 font-medium" : "text-gray-400"}`}>{body.length > MAX_BODY ? "Announcement exceeds 500-character limit." : "Only the highlighted section is editable."}</p>
-              <p className={`text-xs shrink-0 tabular-nums ${body.length > MAX_BODY ? "text-red-500 font-medium" : "text-gray-400"}`}>{body.length} / {MAX_BODY}</p>
-            </div>
-          </div>
-          <div className="px-6 py-4 border-t border-gray-100 flex gap-3 shrink-0">
-            <Button variant="outline" className="border-gray-200 text-gray-700" onClick={onClose}>Cancel</Button>
-            <Button className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white" disabled={!canSave} onClick={handleSave}>Save Changes</Button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ── Broadcast Card (existing, unchanged) ──────────────────────────────────────
-
-function BroadcastCard({ broadcast, onEdit }: { broadcast: Broadcast; onEdit: () => void }) {
+function BroadcastCard({ broadcast, onSend }: { broadcast: Broadcast; onSend: () => void }) {
   return (
     <div className="px-6 py-5 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-bold text-gray-900">{broadcast.title}</p>
-        <button onClick={onEdit} className="shrink-0 text-xs text-gray-400 hover:text-[#FF5000] font-medium transition-colors flex items-center gap-1">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Edit
-        </button>
-      </div>
+      <p className="text-sm font-bold text-gray-900">{broadcast.title}</p>
       <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-4 space-y-2">
         <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">ANNOUNCEMENT</p>
         <p className="text-sm text-gray-800">Hi Tenant,</p>
@@ -440,6 +379,13 @@ function BroadcastCard({ broadcast, onEdit }: { broadcast: Broadcast; onEdit: ()
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-gray-400">
         <span>Recipients: <span className="text-gray-600 font-medium">{broadcast.recipientLabel} ({broadcast.recipientCount})</span></span>
         <span>Sent: <span className="text-gray-600 font-medium">{fmtDate(broadcast.sentAt)} · {fmtTime(broadcast.sentAt)}</span></span>
+        <button
+          onClick={onSend}
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF5000] text-xs font-medium text-[#FF5000] bg-[#FFF3EB] hover:bg-orange-100 transition-colors shrink-0"
+        >
+          <Send className="w-3 h-3" />
+          Send
+        </button>
       </div>
     </div>
   );
@@ -708,38 +654,31 @@ function TemplateCard({
 function MessagesTab({
   broadcasts,
   onSent,
-  onEdit,
 }: {
   broadcasts: Broadcast[];
   onSent: (b: Broadcast) => void;
-  onEdit: (b: Broadcast) => void;
 }) {
   const [showCompose, setShowCompose] = useState(false);
 
+  function handleSend(b: Broadcast) {
+    toast.success(`Resending "${b.title}" to ${b.recipientCount} recipient${b.recipientCount !== 1 ? "s" : ""}.`);
+  }
+
   return (
     <>
-      <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-base font-semibold text-gray-900">Broadcast Messages</p>
-          <p className="text-sm text-gray-400 mt-0.5">Send announcements to all or selected tenants</p>
-        </div>
-        <Button
-          className="bg-[#FF5000] hover:bg-[#e04600] text-white shrink-0"
-          onClick={() => setShowCompose(true)}
-        >
-          <Send className="w-4 h-4 mr-1.5" /> Send Broadcast
-        </Button>
+      <div className="px-6 py-5 border-b border-gray-100">
+        <p className="text-base font-semibold text-gray-900">Broadcast Messages</p>
+        <p className="text-sm text-gray-400 mt-0.5">Send announcements to all or selected tenants</p>
       </div>
 
       {broadcasts.length === 0 ? (
         <div className="px-6 py-12 text-center">
           <p className="text-gray-500 text-sm">No broadcasts sent yet.</p>
-          <p className="text-gray-400 text-xs mt-1">Click Send Broadcast to create your first message.</p>
         </div>
       ) : (
         <div className="divide-y divide-gray-100">
           {broadcasts.map(b => (
-            <BroadcastCard key={b.id} broadcast={b} onEdit={() => onEdit(b)} />
+            <BroadcastCard key={b.id} broadcast={b} onSend={() => handleSend(b)} />
           ))}
         </div>
       )}
@@ -848,14 +787,9 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
   const [activeTab, setActiveTab] = useState<"messages" | "templates">("messages");
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>(SEED_BROADCASTS);
   const [templates, setTemplates] = useState<Template[]>(SEED_TEMPLATES);
-  const [editingBroadcast, setEditingBroadcast] = useState<Broadcast | null>(null);
 
   function handleSent(b: Broadcast) {
     setBroadcasts(prev => [b, ...prev]);
-  }
-
-  function handleSaved(updated: Broadcast) {
-    setBroadcasts(prev => prev.map(b => b.id === updated.id ? updated : b));
   }
 
   return (
@@ -893,7 +827,6 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
               <MessagesTab
                 broadcasts={broadcasts}
                 onSent={handleSent}
-                onEdit={setEditingBroadcast}
               />
             )}
             {activeTab === "templates" && (
@@ -905,15 +838,6 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
           </div>
         </div>
       </div>
-
-      {/* Edit modal is top-level so it overlays both tabs */}
-      {editingBroadcast && (
-        <EditModal
-          broadcast={editingBroadcast}
-          onClose={() => setEditingBroadcast(null)}
-          onSaved={handleSaved}
-        />
-      )}
     </div>
   );
 }
