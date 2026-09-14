@@ -360,9 +360,191 @@ function ComposeModal({ onClose, onSent }: { onClose: () => void; onSent: (b: Br
   );
 }
 
+// ── Resend Modal ──────────────────────────────────────────────────────────────
+
+function ResendModal({
+  broadcast,
+  onClose,
+  onConfirm,
+}: {
+  broadcast: Broadcast;
+  onClose: () => void;
+  onConfirm: (updated: Broadcast) => void;
+}) {
+  const defaultMode: RecipientMode = broadcast.recipientType === "all" ? "all" : "individuals";
+  const [mode, setMode] = useState<RecipientMode>(defaultMode);
+  const [selectedTenants, setSelectedTenants] = useState<string[]>(
+    defaultMode === "individuals" ? MOCK_TENANTS.map(t => t.id) : []
+  );
+  const [search, setSearch] = useState("");
+
+  const recipientCount = mode === "all" ? MOCK_TENANTS.length : selectedTenants.length;
+  const recipientLabel =
+    mode === "all"
+      ? "All Tenants"
+      : `${selectedTenants.length} Tenant${selectedTenants.length !== 1 ? "s" : ""}`;
+  const canConfirm = mode === "all" || selectedTenants.length > 0;
+
+  const filteredTenants = MOCK_TENANTS.filter(
+    t =>
+      !search ||
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.property.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function handleConfirm() {
+    const updated: Broadcast = {
+      ...broadcast,
+      recipientType: mode,
+      recipientCount,
+      recipientLabel,
+      sentAt: new Date().toISOString(),
+    };
+    onConfirm(updated);
+    toast.success(
+      `Resent "${broadcast.title}" to ${recipientCount} recipient${recipientCount !== 1 ? "s" : ""}.`
+    );
+    onClose();
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
+            <div>
+              <p className="text-base font-semibold text-gray-900">Resend Broadcast</p>
+              <p className="text-xs text-gray-400 mt-0.5">Review message and confirm recipients before sending</p>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+            {/* Message preview */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Message</p>
+              <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-sm px-4 py-4 space-y-2">
+                <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">ANNOUNCEMENT</p>
+                <p className="text-sm text-gray-800">Hi Tenant,</p>
+                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">{broadcast.body}</p>
+                <p className="text-sm text-gray-600 italic">Reply to this if you have any questions.</p>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="inline-block border border-gray-400 text-gray-500 text-xs font-medium rounded px-3 py-1">Reply</span>
+                  <p className="text-xs text-gray-400">via WhatsApp</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recipient selector */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Recipients</p>
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="resendMode"
+                    checked={mode === "all"}
+                    onChange={() => { setMode("all"); setSelectedTenants([]); setSearch(""); }}
+                    className="mt-0.5 w-4 h-4 accent-[#FF5000] cursor-pointer shrink-0"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">All Tenants</p>
+                    {mode === "all" && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Message will be sent to all <strong>{MOCK_TENANTS.length} active tenants</strong>.
+                      </p>
+                    )}
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="resendMode"
+                    checked={mode === "individuals"}
+                    onChange={() => { setMode("individuals"); setSelectedTenants([]); setSearch(""); }}
+                    className="mt-0.5 w-4 h-4 accent-[#FF5000] cursor-pointer shrink-0"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">Select Tenants</p>
+                  </div>
+                </label>
+
+                {mode === "individuals" && (
+                  <div className="ml-7 space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                      <Input
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Search tenants…"
+                        className="pl-9 h-9 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {filteredTenants.map(t => {
+                        const sel = selectedTenants.includes(t.id);
+                        return (
+                          <label
+                            key={t.id}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                              sel ? "border-[#FF5000] bg-[#FFF3EB]" : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={sel}
+                              onChange={() =>
+                                setSelectedTenants(prev =>
+                                  sel ? prev.filter(x => x !== t.id) : [...prev, t.id]
+                                )
+                              }
+                              className="w-4 h-4 accent-[#FF5000] shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-900 font-medium truncate">{t.name}</p>
+                              <p className="text-xs text-gray-400 truncate">{t.property}</p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {selectedTenants.length > 0 && (
+                      <p className="text-xs font-medium text-gray-500 text-center pt-1">
+                        {selectedTenants.length} recipient{selectedTenants.length !== 1 ? "s" : ""} selected
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 border-t border-gray-100 flex gap-3 shrink-0">
+            <Button variant="outline" className="border-gray-200 text-gray-700" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white"
+              disabled={!canConfirm}
+              onClick={handleConfirm}
+            >
+              <Send className="w-4 h-4 mr-1.5" /> Confirm &amp; Send
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Broadcast Card ────────────────────────────────────────────────────────────
 
-function BroadcastCard({ broadcast, onSend }: { broadcast: Broadcast; onSend: () => void }) {
+function BroadcastCard({ broadcast, onResend }: { broadcast: Broadcast; onResend: () => void }) {
   return (
     <div className="px-6 py-5 space-y-4">
       <p className="text-sm font-bold text-gray-900">{broadcast.title}</p>
@@ -380,7 +562,7 @@ function BroadcastCard({ broadcast, onSend }: { broadcast: Broadcast; onSend: ()
         <span>Recipients: <span className="text-gray-600 font-medium">{broadcast.recipientLabel} ({broadcast.recipientCount})</span></span>
         <span>Sent: <span className="text-gray-600 font-medium">{fmtDate(broadcast.sentAt)} · {fmtTime(broadcast.sentAt)}</span></span>
         <button
-          onClick={onSend}
+          onClick={onResend}
           className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FF5000] text-xs font-medium text-[#FF5000] bg-[#FFF3EB] hover:bg-orange-100 transition-colors shrink-0"
         >
           <Send className="w-3 h-3" />
@@ -654,15 +836,14 @@ function TemplateCard({
 function MessagesTab({
   broadcasts,
   onSent,
+  onResent,
 }: {
   broadcasts: Broadcast[];
   onSent: (b: Broadcast) => void;
+  onResent: (updated: Broadcast) => void;
 }) {
   const [showCompose, setShowCompose] = useState(false);
-
-  function handleSend(b: Broadcast) {
-    toast.success(`Resending "${b.title}" to ${b.recipientCount} recipient${b.recipientCount !== 1 ? "s" : ""}.`);
-  }
+  const [resendingBroadcast, setResendingBroadcast] = useState<Broadcast | null>(null);
 
   return (
     <>
@@ -686,13 +867,21 @@ function MessagesTab({
       ) : (
         <div className="divide-y divide-gray-100">
           {broadcasts.map(b => (
-            <BroadcastCard key={b.id} broadcast={b} onSend={() => handleSend(b)} />
+            <BroadcastCard key={b.id} broadcast={b} onResend={() => setResendingBroadcast(b)} />
           ))}
         </div>
       )}
 
       {showCompose && (
         <ComposeModal onClose={() => setShowCompose(false)} onSent={onSent} />
+      )}
+
+      {resendingBroadcast && (
+        <ResendModal
+          broadcast={resendingBroadcast}
+          onClose={() => setResendingBroadcast(null)}
+          onConfirm={updated => { onResent(updated); setResendingBroadcast(null); }}
+        />
       )}
     </>
   );
@@ -800,6 +989,10 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
     setBroadcasts(prev => [b, ...prev]);
   }
 
+  function handleResent(updated: Broadcast) {
+    setBroadcasts(prev => prev.map(b => b.id === updated.id ? updated : b));
+  }
+
   return (
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
       <LandlordTopNav
@@ -835,6 +1028,7 @@ export default function LandlordCommunications({ onMenuClick, isMobile }: Props)
               <MessagesTab
                 broadcasts={broadcasts}
                 onSent={handleSent}
+                onResent={handleResent}
               />
             )}
             {activeTab === "templates" && (
