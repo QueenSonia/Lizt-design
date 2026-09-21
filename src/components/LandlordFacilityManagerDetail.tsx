@@ -778,11 +778,7 @@ export default function LandlordFacilityManagerDetail() {
                     : undefined
                 }
               />
-              <PerformanceRow
-                label="Open vs Completed"
-                value={`${performance.open} open, ${performance.completed} completed`}
-              />
-              <PerformanceRow
+<PerformanceRow
                 isLast
                 label="Resolution Target Compliance"
                 value={formatPercent(performance.targetCompliance)}
@@ -817,7 +813,7 @@ export default function LandlordFacilityManagerDetail() {
                   <span className="text-gray-900 font-medium">{performance.completed}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm py-1">
-                  <span className="text-gray-500">Open</span>
+                  <span className="text-gray-500">Pending</span>
                   <span className="text-gray-900 font-medium">{performance.open}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm py-1">
