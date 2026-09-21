@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { ChevronLeft, ChevronRight, Wrench, RotateCcw, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Wrench, CheckCircle2, XCircle } from "lucide-react";
 
 // Bank details are not part of the shared FacilityManager type — layer them on
 // locally, keyed by id, matching what the Facility list shows for each manager.
@@ -133,7 +133,7 @@ interface TargetComplianceRow extends BreakdownRequest {
   metTarget: boolean;
 }
 
-type MetricKey = "response" | "resolution" | "reopen" | "target";
+type MetricKey = "response" | "resolution" | "target";
 
 interface PerformanceData {
   total: number;
@@ -192,53 +192,46 @@ const MOCK_RESOLUTION_TIME_HOURS = 32;
 interface PerformanceRowProps {
   label: string;
   value: string;
-  description: string;
+  description?: string;
   isLast?: boolean;
   onClick?: () => void;
 }
 
 function PerformanceRow({ label, value, description, isLast, onClick }: PerformanceRowProps) {
-  const content = (
+  const rowClasses = `flex items-start justify-between gap-4 py-3.5${!isLast ? " border-b border-gray-100" : ""}`;
+
+  const inner = (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-gray-900">{label}</p>
-        {onClick && <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />}
+      <div className="min-w-0">
+        <p className="text-sm text-gray-600">{label}</p>
+        {description && (
+          <p className="text-xs text-gray-400 mt-0.5 leading-snug">{description}</p>
+        )}
       </div>
-      {value ? (
-        <>
-          <p className="text-xl font-semibold text-gray-900 mt-1">{value}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-        </>
-      ) : (
-        <>
-          <p className="text-sm font-medium text-gray-400 mt-1">Not enough data</p>
-          <p className="text-xs text-gray-400 mt-0.5">{description}</p>
-        </>
-      )}
+      <span className={`text-sm font-medium shrink-0 mt-0.5 ${value ? "text-gray-900" : "text-gray-400"}`}>
+        {value || "—"}
+      </span>
     </>
   );
-
-  const rowClass = isLast ? "py-4" : "py-4 border-b border-gray-100";
 
   if (onClick) {
     return (
       <button
         type="button"
         onClick={onClick}
-        className={`${rowClass} w-full text-left -mx-2 px-2 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1`}
+        className={`${rowClasses} w-full text-left -mx-1 px-1 rounded hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1`}
       >
-        {content}
+        {inner}
       </button>
     );
   }
 
-  return <div className={rowClass}>{content}</div>;
+  return <div className={rowClasses}>{inner}</div>;
 }
 
 const METRIC_LABEL: Record<MetricKey, string> = {
   response: "Response Time",
   resolution: "Resolution Time",
-  reopen: "Reopen Rate",
   target: "Resolution Target Compliance",
 };
 
@@ -274,9 +267,6 @@ function MetricBreakdownContent({
         ? formatDuration(performance.avgResolutionHours * 60)
         : "";
     requestCount = performance.resolutionRows.length;
-  } else if (metric === "reopen") {
-    value = performance.reopenRate !== null ? `${Math.round(performance.reopenRate)}%` : "";
-    requestCount = performance.reopenRows.length;
   } else {
     value = performance.targetCompliance !== null ? `${Math.round(performance.targetCompliance)}%` : "";
     requestCount = performance.targetRows.length;
@@ -352,35 +342,7 @@ function MetricBreakdownContent({
                 </li>
               ))}
 
-            {metric === "reopen" &&
-              performance.reopenRows.map((row) => (
-                <li key={row.id} className="py-4 first:pt-0">
-                  <BreakdownRequestHeader row={row} />
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
-                    <span className="text-gray-700">
-                      <span className="text-gray-400">Resolved:</span> {formatShortDate(row.resolvedAt)}
-                    </span>
-                    {row.reopenedAt && (
-                      <span className="text-gray-700">
-                        <span className="text-gray-400">Reopened:</span> {formatShortDate(row.reopenedAt)}
-                      </span>
-                    )}
-                    {row.wasReopened ? (
-                      <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 font-medium">
-                        <RotateCcw className="w-3 h-3" />
-                        Reopened
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 font-medium">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Not Reopened
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-
-            {metric === "target" &&
+{metric === "target" &&
               performance.targetRows.map((row) => (
                 <li key={row.id} className="py-4 first:pt-0">
                   <BreakdownRequestHeader row={row} />
@@ -799,11 +761,7 @@ export default function LandlordFacilityManagerDetail() {
               <PerformanceRow
                 label="Response Time"
                 value={formatResponseTime(performance.avgResponseMinutes)}
-                description={
-                  performance.avgResponseMinutes !== null
-                    ? "Average time taken to respond after a request is assigned."
-                    : "Requires at least one request with a recorded response."
-                }
+                description="Average time taken to respond after a request is assigned."
                 onClick={
                   performance.avgResponseMinutes !== null
                     ? () => setOpenMetric("response")
@@ -821,30 +779,22 @@ export default function LandlordFacilityManagerDetail() {
                 }
               />
               <PerformanceRow
-                label="Reopen Rate"
-                value={formatPercent(performance.reopenRate)}
-                description={
-                  performance.reopenRate !== null
-                    ? `${performance.reopened} of ${performance.resolvedCount} resolved requests were reopened by tenants.`
-                    : "Requires at least one resolved request."
-                }
-                onClick={
-                  performance.reopenRate !== null ? () => setOpenMetric("reopen") : undefined
-                }
+                label="Open vs Completed"
+                value={`${performance.open} open, ${performance.completed} completed`}
               />
               <PerformanceRow
                 isLast
                 label="Resolution Target Compliance"
                 value={formatPercent(performance.targetCompliance)}
+                description={
+                  performance.targetCompliance !== null
+                    ? `${performance.withinTargetCount} of ${performance.resolutionCount} requests resolved within category target.`
+                    : "Requires at least one completed request."
+                }
                 onClick={
                   performance.targetCompliance !== null
                     ? () => setOpenMetric("target")
                     : undefined
-                }
-                description={
-                  performance.targetCompliance !== null
-                    ? `${performance.withinTargetCount} of ${performance.resolutionCount} requests were resolved within their category target.`
-                    : "Requires at least one completed request."
                 }
               />
             </div>
