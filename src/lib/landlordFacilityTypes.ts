@@ -19,6 +19,7 @@ export interface ResolutionDetails {
   costAmount?: string;
   resolvedAt: string;
   resolvedBy: string;
+  tenantConfirmedAt?: string;
   artisanName?: string;
   artisanPhone?: string;
   rejectedByTenant?: boolean;
@@ -219,6 +220,7 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
         artisanPhone: "0809 887 6654",
         resolvedAt: "2026-04-24T16:30:00.000Z",
         resolvedBy: "Tunde Adeyemi",
+        tenantConfirmedAt: "2026-04-25T09:15:00.000Z",
       },
     ],
   },

@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { ChevronLeft, ChevronRight, Wrench, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Wrench } from "lucide-react";
 
 // Bank details are not part of the shared FacilityManager type — layer them on
 // locally, keyed by id, matching what the Facility list shows for each manager.
@@ -117,6 +117,7 @@ interface ResponseTimeRow extends BreakdownRequest {
 
 interface ResolutionTimeRow extends BreakdownRequest {
   assignedAt: string;
+  fmResolvedAt: string;
   tenantConfirmedAt: string;
   resolutionMinutes: number;
 }
@@ -127,18 +128,12 @@ interface ReopenRateRow extends BreakdownRequest {
   wasReopened: boolean;
 }
 
-interface TargetComplianceRow extends BreakdownRequest {
-  targetHours: number;
-  actualHours: number;
-  metTarget: boolean;
-}
-
 interface ReopenCountRow extends BreakdownRequest {
   count: number;
   lastReopenedAt: string | null;
 }
 
-type MetricKey = "reopen_count" | "resolution" | "target";
+type MetricKey = "reopen_count" | "resolution";
 
 interface PerformanceData {
   total: number;
@@ -146,16 +141,12 @@ interface PerformanceData {
   completed: number;
   reopened: number;
   resolvedCount: number;
-  resolutionCount: number;
-  withinTargetCount: number;
   avgResolutionHours: number | null;
   reopenRate: number | null;
-  targetCompliance: number | null;
   totalReopens: number;
   reopenCountRows: ReopenCountRow[];
   resolutionRows: ResolutionTimeRow[];
   reopenRows: ReopenRateRow[];
-  targetRows: TargetComplianceRow[];
   isResolutionMocked: boolean;
 }
 
@@ -175,18 +166,6 @@ function periodStartDate(period: PeriodOption, now: Date): Date | null {
   start.setDate(start.getDate() - days);
   return start;
 }
-
-// Mock target resolution windows per maintenance category, in hours — used to
-// compute "Resolution Target Compliance" against a request's actual time-to-resolution.
-const CATEGORY_TARGET_HOURS: Record<string, number> = {
-  Plumbing: 48,
-  Electrical: 24,
-  HVAC: 24,
-  "Common Area": 72,
-  Inspection: 96,
-  "Tiling & Flooring": 72,
-};
-const DEFAULT_TARGET_HOURS = 72;
 
 // Design placeholder: the mock request dataset has no tenant-confirmed
 // completions yet, so Resolution Time would otherwise always read "Not
@@ -237,7 +216,6 @@ function PerformanceRow({ label, value, description, isLast, onClick }: Performa
 const METRIC_LABEL: Record<MetricKey, string> = {
   reopen_count: "Times Reopened",
   resolution: "Resolution Time",
-  target: "Resolution Target Compliance",
 };
 
 function BreakdownRequestHeader({ row }: { row: BreakdownRequest }) {
@@ -266,15 +244,12 @@ function MetricBreakdownContent({
   if (metric === "reopen_count") {
     value = performance.totalReopens > 0 ? String(performance.totalReopens) : "";
     requestCount = performance.reopenCountRows.length;
-  } else if (metric === "resolution") {
+  } else {
     value =
       performance.avgResolutionHours !== null
         ? formatDuration(performance.avgResolutionHours * 60)
         : "";
     requestCount = performance.resolutionRows.length;
-  } else {
-    value = performance.targetCompliance !== null ? `${Math.round(performance.targetCompliance)}%` : "";
-    requestCount = performance.targetRows.length;
   }
 
   return (
@@ -328,47 +303,25 @@ function MetricBreakdownContent({
               performance.resolutionRows.map((row) => (
                 <li key={row.id} className="py-4 first:pt-0">
                   <BreakdownRequestHeader row={row} />
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 mt-2 text-xs">
                     <div>
                       <p className="text-gray-400">Assigned</p>
                       <p className="text-gray-700">{formatDateTime(row.assignedAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">FM marked resolved</p>
+                      <p className="text-gray-700">{formatDateTime(row.fmResolvedAt)}</p>
                     </div>
                     <div>
                       <p className="text-gray-400">Tenant confirmed</p>
                       <p className="text-gray-700">{formatDateTime(row.tenantConfirmedAt)}</p>
                     </div>
                     <div>
-                      <p className="text-gray-400">Resolution time</p>
+                      <p className="text-gray-400">Total time</p>
                       <p className="text-gray-900 font-medium">
                         {formatDurationPrecise(row.resolutionMinutes)}
                       </p>
                     </div>
-                  </div>
-                </li>
-              ))}
-
-{metric === "target" &&
-              performance.targetRows.map((row) => (
-                <li key={row.id} className="py-4 first:pt-0">
-                  <BreakdownRequestHeader row={row} />
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
-                    <span className="text-gray-700">
-                      <span className="text-gray-400">Target:</span> {formatDuration(row.targetHours * 60)}
-                    </span>
-                    <span className="text-gray-700">
-                      <span className="text-gray-400">Actual:</span> {formatDuration(row.actualHours * 60)}
-                    </span>
-                    {row.metTarget ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 font-medium">
-                        <CheckCircle2 className="w-3 h-3" />
-                        On Target
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 font-medium">
-                        <XCircle className="w-3 h-3" />
-                        Target Exceeded
-                      </span>
-                    )}
                   </div>
                 </li>
               ))}
@@ -449,7 +402,6 @@ export default function LandlordFacilityManagerDetail() {
 
     let resolutionHoursSum = 0;
     let resolutionCount = 0;
-    let withinTargetCount = 0;
 
     const resolutionRows: ResolutionTimeRow[] = [];
     const reopenRows: ReopenRateRow[] = [];
@@ -491,30 +443,22 @@ export default function LandlordFacilityManagerDetail() {
         wasReopened: !!r.reopened_at,
       });
 
-      // Resolution time: tenant confirmation, not the facility manager's own resolved
-      // mark — a request only truly counts as "resolved" here once no further
-      // rejectedByTenant/reopened cycle followed the final resolution attempt.
+      // Resolution time: from assignment to tenant confirmation. Uses the explicit
+      // tenantConfirmedAt timestamp when available, falling back to resolvedAt.
       const tenantConfirmed = !finalResolution.rejectedByTenant && !r.reopened_at;
       if (tenantConfirmed) {
-        const diffHours = (resolvedAt - reportedAt) / 3600000;
+        const confirmedAtStr = finalResolution.tenantConfirmedAt ?? finalResolution.resolvedAt;
+        const confirmedAtMs = new Date(confirmedAtStr).getTime();
+        const diffHours = (confirmedAtMs - reportedAt) / 3600000;
         if (diffHours > 0) {
           resolutionHoursSum += diffHours;
           resolutionCount += 1;
           resolutionRows.push({
             ...base,
             assignedAt: r.date_reported,
-            tenantConfirmedAt: finalResolution.resolvedAt,
+            fmResolvedAt: finalResolution.resolvedAt,
+            tenantConfirmedAt: confirmedAtStr,
             resolutionMinutes: diffHours * 60,
-          });
-
-          const targetHours = CATEGORY_TARGET_HOURS[r.issue_category] ?? DEFAULT_TARGET_HOURS;
-          const metTarget = diffHours <= targetHours;
-          if (metTarget) withinTargetCount += 1;
-          targetRows.push({
-            ...base,
-            targetHours,
-            actualHours: diffHours,
-            metTarget,
           });
         }
       }
@@ -527,38 +471,27 @@ export default function LandlordFacilityManagerDetail() {
     // something consistent with the MOCK_RESOLUTION_TIME_HOURS fallback used
     // in the summary, rather than leaving the modal empty.
     let mockResolutionRows: ResolutionTimeRow[] = [];
-    let mockTargetRows: TargetComplianceRow[] = [];
     if (resolutionCount === 0 && resolvedRequests.length > 0) {
       mockResolutionRows = resolvedRequests.slice(0, 3).map((r, i) => {
         const resolutions = r.resolutions ?? (r.resolution ? [r.resolution] : []);
         const finalResolution = resolutions[resolutions.length - 1];
         const assignedAt = new Date(r.date_reported);
-        // Spread mock completion times around the placeholder average (32 hrs)
-        // so the set of rows is varied but still averages close to it.
+        // Spread mock completion times around the placeholder average (32 hrs).
         const offsetHours = MOCK_RESOLUTION_TIME_HOURS + (i - 1) * 6;
-        const confirmedAt = new Date(assignedAt.getTime() + offsetHours * 3600000);
+        const fmResolvedAt = finalResolution?.resolvedAt
+          ?? new Date(assignedAt.getTime() + (offsetHours - 3) * 3600000).toISOString();
+        // Tenant confirms ~3 hrs after FM marks resolved.
+        const tenantConfirmedAt = finalResolution?.tenantConfirmedAt
+          ?? new Date(new Date(fmResolvedAt).getTime() + 3 * 3600000).toISOString();
         return {
           id: r.id,
           tenantName: r.tenant_name && r.tenant_name !== "—" ? r.tenant_name : r.reporter_name || "—",
           propertyName: r.property_name,
           description: r.description,
           assignedAt: r.date_reported,
-          tenantConfirmedAt: finalResolution?.resolvedAt ?? confirmedAt.toISOString(),
+          fmResolvedAt,
+          tenantConfirmedAt,
           resolutionMinutes: offsetHours * 60,
-        };
-      });
-      mockTargetRows = mockResolutionRows.map((row) => {
-        const req = resolvedRequests.find((r) => r.id === row.id)!;
-        const targetHours = CATEGORY_TARGET_HOURS[req.issue_category] ?? DEFAULT_TARGET_HOURS;
-        const actualHours = row.resolutionMinutes / 60;
-        return {
-          id: row.id,
-          tenantName: row.tenantName,
-          propertyName: row.propertyName,
-          description: row.description,
-          targetHours,
-          actualHours,
-          metTarget: actualHours <= targetHours,
         };
       });
     }
@@ -570,19 +503,6 @@ export default function LandlordFacilityManagerDetail() {
       resolutionCount > 0 ? (withinTargetCount / resolutionCount) * 100 : null;
 
     const effectiveResolutionRows = resolutionCount > 0 ? resolutionRows : mockResolutionRows;
-    const effectiveTargetRows = resolutionCount > 0 ? targetRows : mockTargetRows;
-    const effectiveWithinTargetCount =
-      resolutionCount > 0
-        ? withinTargetCount
-        : mockTargetRows.filter((r) => r.metTarget).length;
-    const effectiveResolutionCount =
-      resolutionCount > 0 ? resolutionCount : mockResolutionRows.length;
-    const effectiveTargetCompliance =
-      resolutionCount > 0
-        ? targetCompliance
-        : mockTargetRows.length > 0
-          ? (mockTargetRows.filter((r) => r.metTarget).length / mockTargetRows.length) * 100
-          : null;
 
     return {
       total,
@@ -590,16 +510,12 @@ export default function LandlordFacilityManagerDetail() {
       completed,
       reopened,
       resolvedCount: resolvedRequests.length,
-      resolutionCount: effectiveResolutionCount,
-      withinTargetCount: effectiveWithinTargetCount,
       avgResolutionHours: avgResolutionHours ?? (mockResolutionRows.length > 0 ? MOCK_RESOLUTION_TIME_HOURS : null),
       reopenRate,
-      targetCompliance: effectiveTargetCompliance,
       totalReopens,
       reopenCountRows,
       resolutionRows: effectiveResolutionRows,
       reopenRows,
-      targetRows: effectiveTargetRows,
       isResolutionMocked: resolutionCount === 0 && mockResolutionRows.length > 0,
     };
   }, [requestsInPeriod]);
@@ -607,11 +523,6 @@ export default function LandlordFacilityManagerDetail() {
   function formatResolutionTime(hours: number | null): string {
     if (hours === null) return "";
     return formatDuration(hours * 60);
-  }
-
-  function formatPercent(value: number | null): string {
-    if (value === null) return "";
-    return `${Math.round(value)}%`;
   }
 
   if (!manager) {
@@ -763,27 +674,13 @@ export default function LandlordFacilityManagerDetail() {
                 }
               />
               <PerformanceRow
+                isLast
                 label="Resolution Time"
                 value={formatResolutionTime(performance.avgResolutionHours)}
-                description="Average time until the tenant confirms resolution."
+                description="Average time from assignment to tenant confirmation."
                 onClick={
                   performance.avgResolutionHours !== null
                     ? () => setOpenMetric("resolution")
-                    : undefined
-                }
-              />
-<PerformanceRow
-                isLast
-                label="Resolution Target Compliance"
-                value={formatPercent(performance.targetCompliance)}
-                description={
-                  performance.targetCompliance !== null
-                    ? `${performance.withinTargetCount} of ${performance.resolutionCount} requests resolved within category target.`
-                    : "Requires at least one completed request."
-                }
-                onClick={
-                  performance.targetCompliance !== null
-                    ? () => setOpenMetric("target")
                     : undefined
                 }
               />
