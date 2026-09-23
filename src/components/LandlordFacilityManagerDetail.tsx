@@ -133,7 +133,12 @@ interface TargetComplianceRow extends BreakdownRequest {
   metTarget: boolean;
 }
 
-type MetricKey = "response" | "resolution" | "target";
+interface ReopenCountRow extends BreakdownRequest {
+  count: number;
+  lastReopenedAt: string | null;
+}
+
+type MetricKey = "reopen_count" | "resolution" | "target";
 
 interface PerformanceData {
   total: number;
@@ -143,11 +148,11 @@ interface PerformanceData {
   resolvedCount: number;
   resolutionCount: number;
   withinTargetCount: number;
-  avgResponseMinutes: number | null;
   avgResolutionHours: number | null;
   reopenRate: number | null;
   targetCompliance: number | null;
-  responseRows: ResponseTimeRow[];
+  totalReopens: number;
+  reopenCountRows: ReopenCountRow[];
   resolutionRows: ResolutionTimeRow[];
   reopenRows: ReopenRateRow[];
   targetRows: TargetComplianceRow[];
@@ -230,7 +235,7 @@ function PerformanceRow({ label, value, description, isLast, onClick }: Performa
 }
 
 const METRIC_LABEL: Record<MetricKey, string> = {
-  response: "Response Time",
+  reopen_count: "Times Reopened",
   resolution: "Resolution Time",
   target: "Resolution Target Compliance",
 };
@@ -258,9 +263,9 @@ function MetricBreakdownContent({
 }) {
   let value = "";
   let requestCount = 0;
-  if (metric === "response") {
-    value = performance.avgResponseMinutes !== null ? formatDuration(performance.avgResponseMinutes) : "";
-    requestCount = performance.responseRows.length;
+  if (metric === "reopen_count") {
+    value = performance.totalReopens > 0 ? String(performance.totalReopens) : "";
+    requestCount = performance.reopenCountRows.length;
   } else if (metric === "resolution") {
     value =
       performance.avgResolutionHours !== null
@@ -279,8 +284,11 @@ function MetricBreakdownContent({
           {METRIC_LABEL[metric]}
         </DialogTitle>
         <p className="text-sm text-gray-500 mt-1">
-          {periodLabel} · {value ? `${value} average` : "Not enough data"} ·{" "}
-          {requestCount} request{requestCount === 1 ? "" : "s"}
+          {periodLabel} ·{" "}
+          {metric === "reopen_count"
+            ? (value ? `${value} total reopen${Number(value) === 1 ? "" : "s"}` : "No reopened requests")
+            : (value ? `${value} average` : "Not enough data")}{" "}
+          · {requestCount} request{requestCount === 1 ? "" : "s"}
         </p>
         {metric === "resolution" && performance.isResolutionMocked && (
           <p className="text-xs text-amber-600 mt-1">
@@ -296,26 +304,23 @@ function MetricBreakdownContent({
           </p>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {metric === "response" &&
-              performance.responseRows.map((row) => (
+            {metric === "reopen_count" &&
+              performance.reopenCountRows.map((row) => (
                 <li key={row.id} className="py-4 first:pt-0">
-                  <BreakdownRequestHeader row={row} />
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs">
-                    <div>
-                      <p className="text-gray-400">Assigned</p>
-                      <p className="text-gray-700">{formatDateTime(row.assignedAt)}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 leading-snug">{row.description}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{row.propertyName} · {row.tenantName}</p>
                     </div>
-                    <div>
-                      <p className="text-gray-400">First response</p>
-                      <p className="text-gray-700">{formatDateTime(row.firstResponseAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400">Response time</p>
-                      <p className="text-gray-900 font-medium">
-                        {formatDurationPrecise(row.responseMinutes)}
-                      </p>
-                    </div>
+                    <span className="text-sm font-semibold text-gray-900 shrink-0 tabular-nums">
+                      ×{row.count}
+                    </span>
                   </div>
+                  {row.lastReopenedAt && (
+                    <p className="text-xs text-gray-400 mt-1.5">
+                      Last reopened {formatShortDate(row.lastReopenedAt)}
+                    </p>
+                  )}
                 </li>
               ))}
 
@@ -442,16 +447,27 @@ export default function LandlordFacilityManagerDetail() {
       (r) => (r.resolutions && r.resolutions.length > 0) || r.resolution,
     );
 
-    let responseMinutesSum = 0;
-    let responseCount = 0;
     let resolutionHoursSum = 0;
     let resolutionCount = 0;
     let withinTargetCount = 0;
 
-    const responseRows: ResponseTimeRow[] = [];
     const resolutionRows: ResolutionTimeRow[] = [];
     const reopenRows: ReopenRateRow[] = [];
     const targetRows: TargetComplianceRow[] = [];
+
+    // Times Reopened: driven by reopenCount on each request — the single source of truth.
+    const reopenCountRows: ReopenCountRow[] = requestsInPeriod
+      .filter((r) => (r.reopenCount ?? 0) > 0)
+      .map((r) => ({
+        id: r.id,
+        tenantName: r.tenant_name && r.tenant_name !== "—" ? r.tenant_name : r.reporter_name || "—",
+        propertyName: r.property_name,
+        description: r.description,
+        count: r.reopenCount!,
+        lastReopenedAt: r.reopened_at ?? null,
+      }))
+      .sort((a, b) => b.count - a.count);
+    const totalReopens = reopenCountRows.reduce((sum, r) => sum + r.count, 0);
 
     for (const r of resolvedRequests) {
       const resolutions = r.resolutions ?? (r.resolution ? [r.resolution] : []);
@@ -466,25 +482,6 @@ export default function LandlordFacilityManagerDetail() {
         propertyName: r.property_name,
         description: r.description,
       };
-
-      // Response time: first meaningful update from the facility manager — approximated
-      // here as the first resolution attempt's timestamp, since a dedicated
-      // "assigned → first update" timestamp isn't tracked in the mock data yet.
-      const firstResolution = resolutions[0];
-      if (firstResolution) {
-        const firstUpdateAt = new Date(firstResolution.resolvedAt).getTime();
-        const diffMinutes = (firstUpdateAt - reportedAt) / 60000;
-        if (diffMinutes > 0) {
-          responseMinutesSum += diffMinutes;
-          responseCount += 1;
-          responseRows.push({
-            ...base,
-            assignedAt: r.date_reported,
-            firstResponseAt: firstResolution.resolvedAt,
-            responseMinutes: diffMinutes,
-          });
-        }
-      }
 
       // Reopen rate breakdown — every resolved request, reopened or not.
       reopenRows.push({
@@ -566,7 +563,6 @@ export default function LandlordFacilityManagerDetail() {
       });
     }
 
-    const avgResponseMinutes = responseCount > 0 ? responseMinutesSum / responseCount : null;
     const avgResolutionHours = resolutionCount > 0 ? resolutionHoursSum / resolutionCount : null;
     const reopenRate =
       resolvedRequests.length > 0 ? (reopened / resolvedRequests.length) * 100 : null;
@@ -596,22 +592,17 @@ export default function LandlordFacilityManagerDetail() {
       resolvedCount: resolvedRequests.length,
       resolutionCount: effectiveResolutionCount,
       withinTargetCount: effectiveWithinTargetCount,
-      avgResponseMinutes,
       avgResolutionHours: avgResolutionHours ?? (mockResolutionRows.length > 0 ? MOCK_RESOLUTION_TIME_HOURS : null),
       reopenRate,
       targetCompliance: effectiveTargetCompliance,
-      responseRows,
+      totalReopens,
+      reopenCountRows,
       resolutionRows: effectiveResolutionRows,
       reopenRows,
       targetRows: effectiveTargetRows,
       isResolutionMocked: resolutionCount === 0 && mockResolutionRows.length > 0,
     };
   }, [requestsInPeriod]);
-
-  function formatResponseTime(minutes: number | null): string {
-    if (minutes === null) return "";
-    return formatDuration(minutes);
-  }
 
   function formatResolutionTime(hours: number | null): string {
     if (hours === null) return "";
@@ -725,7 +716,10 @@ export default function LandlordFacilityManagerDetail() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-gray-900 leading-snug mb-0.5">{r.description}</p>
                     <p className="text-xs text-gray-500">
-                      {r.property_name} · {formatStatusLabel(r.status)}
+                      {r.property_name} ·{" "}
+                      {r.status.toLowerCase() === "reopened" && (r.reopenCount ?? 0) > 0
+                        ? `Reopened ×${r.reopenCount}`
+                        : formatStatusLabel(r.status)}
                     </p>
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
@@ -759,12 +753,12 @@ export default function LandlordFacilityManagerDetail() {
             {/* Performance Metrics */}
             <div className="lg:flex-1">
               <PerformanceRow
-                label="Response Time"
-                value={formatResponseTime(performance.avgResponseMinutes)}
-                description="Average time taken to respond after a request is assigned."
+                label="Times Reopened"
+                value={performance.totalReopens > 0 ? String(performance.totalReopens) : ""}
+                description="Total number of times requests were reopened in this period."
                 onClick={
-                  performance.avgResponseMinutes !== null
-                    ? () => setOpenMetric("response")
+                  performance.totalReopens > 0
+                    ? () => setOpenMetric("reopen_count")
                     : undefined
                 }
               />

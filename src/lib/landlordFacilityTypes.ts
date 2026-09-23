@@ -50,6 +50,7 @@ export interface ServiceRequest {
   reporter_name?: string;
   resolution?: ResolutionDetails;
   resolutions?: ResolutionDetails[];
+  reopenCount?: number;
 }
 
 export type RequestSource = "tenant" | "facility_manager";
@@ -263,7 +264,7 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     property_name: "Lekki Phase 1 Duplex", issue_category: "Plumbing",
     description: "Kitchen sink still leaking after repair.",
     status: "reopened", date_reported: "2026-05-10T09:00:00.000Z", updated_at: "2026-05-27T10:15:00.000Z",
-    reopened_at: "2026-05-27T10:15:00.000Z",
+    reopened_at: "2026-05-27T10:15:00.000Z", reopenCount: 2,
     tenant_id: "t-001", property_id: "p-001",
     notes: "Tenant marked issue as not resolved.",
     attachments: [
@@ -292,7 +293,7 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     property_name: "Greenfield Towers", issue_category: "Electrical",
     description: "Generator still not powering common areas consistently.",
     status: "reopened", date_reported: "2026-05-08T11:30:00.000Z", updated_at: "2026-05-26T16:32:00.000Z",
-    reopened_at: "2026-05-26T16:32:00.000Z",
+    reopened_at: "2026-05-26T16:32:00.000Z", reopenCount: 1,
     tenant_id: "t-004", property_id: "p-004",
     notes: "Issue partially resolved. Problem still occurring.",
     attachments: [
@@ -319,7 +320,7 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     property_name: "Victoria Island Studio", issue_category: "Tiling & Flooring",
     description: "Bathroom tiles replaced but water still seeps through the wall.",
     status: "reopened", date_reported: "2026-05-05T08:00:00.000Z", updated_at: "2026-05-25T09:20:00.000Z",
-    reopened_at: "2026-05-25T09:20:00.000Z",
+    reopened_at: "2026-05-25T09:20:00.000Z", reopenCount: 1,
     tenant_id: "t-003", property_id: "p-003",
     notes: "Tenant reported the original issue still exists.",
     attachments: [
