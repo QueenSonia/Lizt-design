@@ -600,6 +600,7 @@ export default function LandlordFacilityManagerDetail() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* ── Active Maintenance Requests ── */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">
@@ -714,6 +715,7 @@ export default function LandlordFacilityManagerDetail() {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
