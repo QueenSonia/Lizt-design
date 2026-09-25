@@ -201,6 +201,21 @@ export const screenMap: ScreenMap = {
       () => import("@/components/facility-manager/FacilityManagerCommonAreas")
     ),
   },
+  "tenant-comms": {
+    tenancies: lazy(() =>
+      import("@/components/LandlordTenancies").then((module) => {
+        const Base = module.default;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ReadOnly = (props: any) => <Base {...props} readOnly />;
+        return { default: withLandlordMobileProps(ReadOnly) };
+      })
+    ),
+    communications: lazy(() =>
+      import("@/components/LandlordCommunications").then((module) => ({
+        default: withLandlordMobileProps(module.default),
+      }))
+    ),
+  },
   admin: {
     dashboard: lazy(() => import("@/components/admin/AdminDashboard")),
     properties: lazy(() => import("@/components/admin/AdminProperties")),

@@ -25,12 +25,14 @@ const ROLE_LABEL: Record<Exclude<UserRole, "">, string> = {
   landlord: "Landlord",
   "facility-manager": "Facility Manager",
   admin: "Admin",
+  "tenant-comms": "Tenant Communications",
 };
 
 const ROLE_DESCRIPTION: Record<Exclude<UserRole, "">, string> = {
   landlord: "Manage properties, tenants, rent, and applicants.",
   "facility-manager": "Triage maintenance issues and inspect common areas.",
   admin: "Oversee platform-wide activity, users, and operations.",
+  "tenant-comms": "View tenancies and send communications to tenants.",
 };
 
 export function SignIn({

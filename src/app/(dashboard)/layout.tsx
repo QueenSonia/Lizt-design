@@ -10,9 +10,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { FacilityManagerProvider } from "@/components/facility-manager/FacilityManagerProvider";
 import { FacilityManagerSidebar } from "@/components/facility-manager/FacilityManagerSidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { TenantCommsSidebar } from "@/components/tenant-comms/TenantCommsSidebar";
 import type { UserRole } from "@/types/user";
 
-const KNOWN_ROLES: UserRole[] = ["landlord", "facility-manager", "admin"];
+const KNOWN_ROLES: UserRole[] = ["landlord", "facility-manager", "admin", "tenant-comms"];
 
 function getRoleFromPath(pathname: string): UserRole | null {
   const segment = pathname.split("/")[1];
@@ -50,7 +51,7 @@ export default function DashboardLayout({
       return;
     }
     if (user.role !== pathRole) {
-      const initialScreen = user.role === "admin" ? "dashboard" : "dashboard";
+      const initialScreen = user.role === "tenant-comms" ? "tenancies" : "dashboard";
       router.replace(`/${user.role}/${initialScreen}`);
     }
   }, [isLoading, pathRole, user, pathname, router]);
@@ -113,6 +114,32 @@ export default function DashboardLayout({
           </main>
         </div>
       </FacilityManagerProvider>
+    );
+  }
+
+  if (user?.role === "tenant-comms") {
+    return (
+      <div
+        style={{
+          display: "flex",
+          height: "100vh",
+          overflow: "hidden",
+          background: "#F8F7F4",
+        }}
+      >
+        <TenantCommsSidebar />
+        <main
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+            overflow: "auto",
+          }}
+        >
+          <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+        </main>
+      </div>
     );
   }
 

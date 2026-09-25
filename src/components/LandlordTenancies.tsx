@@ -1110,11 +1110,13 @@ function TenancyDetailScreen({
   onBack,
   onOpenSettings,
   isMobile,
+  readOnly,
 }: {
   tenancy: Tenancy;
   onBack: () => void;
   onOpenSettings: (t: Tenancy) => void;
   isMobile?: boolean;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { user } = useAuth();
@@ -1255,6 +1257,7 @@ function TenancyDetailScreen({
                   </div>
                 )}
               </div>
+              {!readOnly && (
               <div className="flex items-start gap-4 shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -1279,6 +1282,7 @@ function TenancyDetailScreen({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              )}
             </div>
 
             {/* Tenancy info grid */}
@@ -1744,9 +1748,10 @@ function ActionButton({
 interface LandlordTenanciesProps {
   onMenuClick?: () => void;
   isMobile?: boolean;
+  readOnly?: boolean;
 }
 
-export default function LandlordTenancies({ onMenuClick, isMobile }: LandlordTenanciesProps) {
+export default function LandlordTenancies({ onMenuClick, isMobile, readOnly }: LandlordTenanciesProps) {
   const [selected, setSelected] = useState<Tenancy | null>(null);
   const [settingsTenancy, setSettingsTenancy] = useState<Tenancy | null>(null);
 
@@ -1788,6 +1793,7 @@ export default function LandlordTenancies({ onMenuClick, isMobile }: LandlordTen
         onBack={() => setSelected(null)}
         onOpenSettings={(t) => setSettingsTenancy(t)}
         isMobile={isMobile}
+        readOnly={readOnly}
       />
     );
   }

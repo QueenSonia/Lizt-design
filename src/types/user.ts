@@ -1,4 +1,4 @@
-export type UserRole = "landlord" | "facility-manager" | "admin" | "";
+export type UserRole = "landlord" | "facility-manager" | "admin" | "tenant-comms" | "";
 
 export interface User {
   id: string;

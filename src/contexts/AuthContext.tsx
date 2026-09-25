@@ -47,6 +47,13 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
     roles: ["admin"],
     name: "Super Admin",
   },
+  {
+    id: "tc-1",
+    email: "comms@lizt.co",
+    password: "password123",
+    roles: ["tenant-comms"],
+    name: "Comms Manager",
+  },
 ];
 
 export function authenticate(
