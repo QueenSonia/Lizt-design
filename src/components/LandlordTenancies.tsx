@@ -498,10 +498,12 @@ function TenancyListScreen({
   onSelect,
   onMenuClick,
   isMobile,
+  readOnly,
 }: {
   onSelect: (t: Tenancy) => void;
   onMenuClick?: () => void;
   isMobile?: boolean;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { user } = useAuth();
@@ -835,7 +837,7 @@ function TenancyListScreen({
           </div>
 
           {/* ── Late payments toolbar chip ── */}
-          {LATE_PAYMENTS_SUMMARY.count > 0 && (
+          {!readOnly && LATE_PAYMENTS_SUMMARY.count > 0 && (
             <button
               onClick={() => router.push(`/${userRole}/late-payments`)}
               className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 text-xs font-medium transition-colors shrink-0 ml-auto"
@@ -1324,13 +1326,15 @@ function TenancyDetailScreen({
             <div className="pt-8 border-t border-gray-100">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xl font-bold text-gray-900">Next Invoice</p>
-                <Button
-                  size="sm"
-                  className="bg-[#FF5000] hover:bg-[#e04600] text-white shrink-0"
-                  onClick={() => { resetInvoiceModal(); setShowInvoiceModal(true); }}
-                >
-                  <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
-                </Button>
+                {!readOnly && (
+                  <Button
+                    size="sm"
+                    className="bg-[#FF5000] hover:bg-[#e04600] text-white shrink-0"
+                    onClick={() => { resetInvoiceModal(); setShowInvoiceModal(true); }}
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-1.5" /> Generate Invoice
+                  </Button>
+                )}
               </div>
 
               <p className="text-sm text-gray-900 mb-2">
@@ -1345,21 +1349,23 @@ function TenancyDetailScreen({
                 {" "}by {fmtDate(tenancy.endDate)}.
               </p>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const params = new URLSearchParams({
-                    property: tenancy.propertyName,
-                    tenant: tenancy.tenantName,
-                    tab: "invoices",
-                  });
-                  router.push(`/landlord/invoices?${params.toString()}`);
-                }}
-                className="flex items-center gap-1 text-left group cursor-pointer mb-8"
-              >
-                <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">View All Invoices</span>
-                <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      property: tenancy.propertyName,
+                      tenant: tenancy.tenantName,
+                      tab: "invoices",
+                    });
+                    router.push(`/landlord/invoices?${params.toString()}`);
+                  }}
+                  className="flex items-center gap-1 text-left group cursor-pointer mb-8"
+                >
+                  <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">View All Invoices</span>
+                  <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
+              )}
             </div>
 
             {/* Payment Plans */}
@@ -1392,6 +1398,7 @@ function TenancyDetailScreen({
                   ) : (
                     <p className="text-sm text-gray-500 mb-3">No active payment plan has been created for this tenancy.</p>
                   )}
+                  {!readOnly && (
                   <button
                     type="button"
                     onClick={() => {
@@ -1412,6 +1419,7 @@ function TenancyDetailScreen({
                     <span className="text-sm font-medium text-[#FF5000] underline-offset-2 group-hover:underline transition-all">View Payment Plans</span>
                     <svg className="w-3.5 h-3.5 text-[#FF5000] opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                   </button>
+                  )}
                 </div>
               );
             })()}
@@ -1803,6 +1811,7 @@ export default function LandlordTenancies({ onMenuClick, isMobile, readOnly }: L
       onSelect={setSelected}
       onMenuClick={onMenuClick}
       isMobile={isMobile}
+      readOnly={readOnly}
     />
   );
 }
