@@ -397,7 +397,9 @@ export default function PayInstallmentDemo() {
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2 className="text-[15px] font-semibold text-[#1a1b23]">Pay installments</h2>
-                <p className="text-[11px] text-gray-400 mt-0.5">Select which installments to include</p>
+                <p className="text-[12px] text-gray-500 mt-1 leading-relaxed max-w-[300px]">
+                  You can pay for more than one installment at a time — including any overdue ones. Select all you'd like to clear in this payment.
+                </p>
               </div>
               <button
                 onClick={() => !isProcessing && setShowModal(false)}
