@@ -253,28 +253,6 @@ export default function PayInstallmentDemo() {
 
                 {dropdownOpen && (
                   <div className="border border-gray-200 rounded-md mt-1 bg-white shadow-md overflow-hidden">
-                    {/* Paid installments — disabled */}
-                    {paidInstallments.length > 0 && (
-                      <>
-                        <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
-                          <span className="text-[10px] text-gray-400 uppercase tracking-wide">Already paid</span>
-                        </div>
-                        {paidInstallments.map(inst => (
-                          <div key={inst.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-50 opacity-50 cursor-not-allowed">
-                            <div className="w-4 h-4 rounded border border-gray-300 bg-gray-100 flex items-center justify-center shrink-0">
-                              <Check className="w-2.5 h-2.5 text-gray-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-[11px] text-gray-500">
-                                Installment {inst.sequence}
-                              </span>
-                              <span className="text-[10px] text-gray-400 ml-2">· paid {formatDateShort(inst.paidOn!)}</span>
-                            </div>
-                            <span className="text-[11px] text-gray-400 tabular-nums shrink-0">{formatCurrency(inst.amount)}</span>
-                          </div>
-                        ))}
-                      </>
-                    )}
 
                     {/* Overdue installments */}
                     {overdueInstallments.length > 0 && (
