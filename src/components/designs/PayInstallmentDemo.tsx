@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/button";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
+const TODAY = new Date("2026-09-28");
+
+function isOverdue(dueDate: string) {
+  return new Date(`${dueDate}T00:00:00`) < TODAY;
+}
+
 type InstallmentStatus = "paid" | "pending";
 
 interface MockInstallment {
@@ -82,6 +88,8 @@ function formatDateShort(iso: string): string {
 export default function PayInstallmentDemo() {
   const { plan, property, tenant, landlordBranding } = MOCK;
 
+  const overdueInstallments = ALL_INSTALLMENTS.filter(i => i.status === "pending" && isOverdue(i.dueDate));
+  const upcomingInstallments = ALL_INSTALLMENTS.filter(i => i.status === "pending" && !isOverdue(i.dueDate));
   const pendingInstallments = ALL_INSTALLMENTS.filter(i => i.status === "pending");
   const paidInstallments = ALL_INSTALLMENTS.filter(i => i.status === "paid");
 
@@ -268,15 +276,50 @@ export default function PayInstallmentDemo() {
                       </>
                     )}
 
-                    {/* Pending installments — selectable */}
-                    {pendingInstallments.length > 0 && (
+                    {/* Overdue installments */}
+                    {overdueInstallments.length > 0 && (
                       <>
-                        <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
-                          <span className="text-[10px] text-gray-400 uppercase tracking-wide">Unpaid installments</span>
+                        <div className="px-3 py-1.5 bg-red-50 border-b border-red-100 flex items-center gap-1.5">
+                          <span className="text-[10px] text-red-500 uppercase tracking-wide font-semibold">Overdue</span>
                         </div>
-                        {pendingInstallments.map(inst => {
+                        {overdueInstallments.map(inst => {
                           const checked = selectedIds.has(inst.id);
                           const isCurrent = inst.id === CURRENT_INSTALLMENT_ID;
+                          return (
+                            <button
+                              key={inst.id}
+                              onClick={() => toggleInstallment(inst.id)}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 border-b border-gray-50 hover:bg-red-50 transition-colors text-left"
+                            >
+                              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                checked ? "bg-[#FF5000] border-[#FF5000]" : "border-gray-300 bg-white"
+                              }`}>
+                                {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-[11px] text-[#1a1b23] font-medium">
+                                  Installment {inst.sequence}
+                                </span>
+                                {isCurrent && (
+                                  <span className="ml-2 text-[9px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide">current</span>
+                                )}
+                                <span className="text-[10px] text-red-400 ml-2">· overdue {formatDateShort(inst.dueDate)}</span>
+                              </div>
+                              <span className="text-[11px] text-[#1a1b23] tabular-nums font-medium shrink-0">{formatCurrency(inst.amount)}</span>
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+
+                    {/* Upcoming installments */}
+                    {upcomingInstallments.length > 0 && (
+                      <>
+                        <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+                          <span className="text-[10px] text-gray-400 uppercase tracking-wide">Upcoming</span>
+                        </div>
+                        {upcomingInstallments.map(inst => {
+                          const checked = selectedIds.has(inst.id);
                           return (
                             <button
                               key={inst.id}
@@ -292,9 +335,6 @@ export default function PayInstallmentDemo() {
                                 <span className="text-[11px] text-[#1a1b23] font-medium">
                                   Installment {inst.sequence}
                                 </span>
-                                {isCurrent && (
-                                  <span className="ml-2 text-[9px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide">current</span>
-                                )}
                                 <span className="text-[10px] text-gray-400 ml-2">· due {formatDateShort(inst.dueDate)}</span>
                               </div>
                               <span className="text-[11px] text-[#1a1b23] tabular-nums font-medium shrink-0">{formatCurrency(inst.amount)}</span>
