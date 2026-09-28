@@ -37,8 +37,8 @@ const ALL_INSTALLMENTS: MockInstallment[] = [
   { id: "i10", sequence: 10, dueDate: "2026-11-15", amount: 450000, status: "pending" },
 ];
 
-// The installment this invoice was originally opened for
-const CURRENT_INSTALLMENT_ID = "i4";
+// The installment this invoice was originally opened for — this month's (Sept)
+const CURRENT_INSTALLMENT_ID = "i8";
 
 const MOCK = {
   plan: {
