@@ -355,7 +355,7 @@ export default function PayInstallmentDemo() {
                   onClick={openModal}
                   className="w-full sm:w-auto h-10 px-8 bg-[#FF5722] hover:bg-[#E64A19]"
                 >
-                  Pay {fmt(currentInstallment.amount)}
+                  Pay
                 </Button>
                 <p className="text-[11px] text-gray-500 mt-3">This is a demo — no real payment will be made.</p>
               </div>
