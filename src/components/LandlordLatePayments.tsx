@@ -210,11 +210,14 @@ function getInitials(name: string) {
 interface LandlordLatePaymentsProps {
   isMobile?: boolean;
   onMenuClick?: () => void;
+  /** When true: sticky header (not fixed), no back button, clickable tenant names → WhatsApp chat */
+  readOnly?: boolean;
 }
 
 export default function LandlordLatePayments({
   isMobile = false,
   onMenuClick,
+  readOnly = false,
 }: LandlordLatePaymentsProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -245,21 +248,25 @@ export default function LandlordLatePayments({
   if (LATE_PAYMENTS_MOCK.length === 0) {
     return (
       <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
-        <div className="lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white shadow-sm">
+        <div className={readOnly ? "sticky top-0 z-20 bg-white shadow-sm shrink-0" : "lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white shadow-sm"}>
           <div className="px-4 lg:px-8 py-4 flex items-center gap-3">
             <MenuButton />
-            <button
-              onClick={() => router.push(`/${userRole}/tenancies`)}
-              className="flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition-colors text-sm font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-            <span className="text-gray-300">|</span>
+            {!readOnly && (
+              <>
+                <button
+                  onClick={() => router.push(`/${userRole}/tenancies`)}
+                  className="flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition-colors text-sm font-medium"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </button>
+                <span className="text-gray-300">|</span>
+              </>
+            )}
             <h1 className="text-lg font-semibold text-slate-900">Late Payments</h1>
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center lg:pt-[72px] px-4">
+        <div className={`flex-1 flex items-center justify-center ${readOnly ? "" : "lg:pt-[72px]"} px-4`}>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 max-w-sm w-full text-center">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
@@ -280,17 +287,21 @@ export default function LandlordLatePayments({
     <div className="flex flex-col h-full bg-[#F8F7F4] overflow-hidden">
 
       {/* ── Sticky header ──────────────────────────────────────────────────── */}
-      <div className="lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white shadow-sm">
+      <div className={readOnly ? "sticky top-0 z-20 bg-white shadow-sm shrink-0" : "lg:fixed top-0 right-0 left-0 lg:left-72 z-20 bg-white shadow-sm"}>
         <div className="px-4 lg:px-8 py-4 flex items-center gap-3">
           <MenuButton />
-          <button
-            onClick={() => router.push(`/${userRole}/tenancies`)}
-            className="flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition-colors text-sm font-medium"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <span className="text-gray-300">|</span>
+          {!readOnly && (
+            <>
+              <button
+                onClick={() => router.push(`/${userRole}/tenancies`)}
+                className="flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition-colors text-sm font-medium"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </button>
+              <span className="text-gray-300">|</span>
+            </>
+          )}
           <h1 className="text-lg font-semibold text-slate-900">Late Payments</h1>
           <span className="ml-auto text-xs text-gray-500 font-medium">
             {LATE_PAYMENTS_MOCK.length} overdue · {fmtCurrency(totalOverdue)}
@@ -299,7 +310,7 @@ export default function LandlordLatePayments({
       </div>
 
       {/* ── Content ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto lg:pt-[72px]">
+      <div className={`flex-1 overflow-y-auto ${readOnly ? "" : "lg:pt-[72px]"}`}>
         <div className="px-4 sm:px-6 pt-6 pb-8">
 
           {/* ── Desktop table ─────────────────────────────────────────────── */}
@@ -328,7 +339,16 @@ export default function LandlordLatePayments({
                             <span className="text-xs font-semibold text-[#FF5000]">{getInitials(p.tenantName)}</span>
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900 leading-tight">{p.tenantName}</p>
+                            {readOnly ? (
+                              <button
+                                onClick={() => router.push(`/tenant-comms/kyc-application-detail/${p.tenantId}`)}
+                                className="font-medium text-gray-900 leading-tight underline decoration-[#FF5000] underline-offset-2 hover:decoration-2 transition-all text-left"
+                              >
+                                {p.tenantName}
+                              </button>
+                            ) : (
+                              <p className="font-medium text-gray-900 leading-tight">{p.tenantName}</p>
+                            )}
                             <p className="text-xs text-gray-400 mt-0.5">{p.tenantPhone}</p>
                           </div>
                         </div>
@@ -380,7 +400,16 @@ export default function LandlordLatePayments({
                         <span className="text-xs font-semibold text-[#FF5000]">{getInitials(p.tenantName)}</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium text-gray-900 text-sm leading-tight truncate">{p.tenantName}</p>
+                        {readOnly ? (
+                          <button
+                            onClick={() => router.push(`/tenant-comms/kyc-application-detail/${p.tenantId}`)}
+                            className="font-medium text-gray-900 text-sm leading-tight truncate underline decoration-[#FF5000] underline-offset-2 text-left"
+                          >
+                            {p.tenantName}
+                          </button>
+                        ) : (
+                          <p className="font-medium text-gray-900 text-sm leading-tight truncate">{p.tenantName}</p>
+                        )}
                         <p className="text-xs text-gray-400 mt-0.5">{p.tenantPhone}</p>
                       </div>
                     </div>

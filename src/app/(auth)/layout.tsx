@@ -18,7 +18,7 @@ export default function AuthLayout({
       const role = user?.role;
       const initialScreen =
         role === "admin" ? "reports" :
-        role === "tenant-comms" ? "tenancies" :
+        role === "tenant-comms" ? "late-payments" :
         "dashboard";
       router.push(role ? `/${role}/${initialScreen}` : "/");
     }

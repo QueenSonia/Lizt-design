@@ -202,8 +202,8 @@ export const screenMap: ScreenMap = {
     ),
   },
   "tenant-comms": {
-    tenancies: lazy(() =>
-      import("@/components/LandlordTenancies").then((module) => {
+    "late-payments": lazy(() =>
+      import("@/components/LandlordLatePayments").then((module) => {
         const Base = module.default;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ReadOnly = (props: any) => <Base {...props} readOnly />;
@@ -212,6 +212,11 @@ export const screenMap: ScreenMap = {
     ),
     tenants: lazy(() =>
       import("@/components/tenant-comms/TenantCommsTenantsScreen").then((module) => ({
+        default: withLandlordMobileProps(module.default),
+      }))
+    ),
+    communications: lazy(() =>
+      import("@/components/LandlordCommunications").then((module) => ({
         default: withLandlordMobileProps(module.default),
       }))
     ),

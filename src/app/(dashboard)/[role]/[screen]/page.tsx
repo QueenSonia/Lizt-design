@@ -1,5 +1,6 @@
 "use client";
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { screenMap } from '@/components/screenMapping';
 import { Suspense } from 'react';
 import { LoadingFallback } from '@/components/LoadingFallback';
@@ -8,6 +9,19 @@ import { LoadingFallback } from '@/components/LoadingFallback';
 
 export default function ScreenPage() {
   const { role, screen } = useParams();
+  const router = useRouter();
+
+  // Redirect tenant-comms away from removed screens
+  const isTenantCommsBlockedScreen =
+    role === "tenant-comms" && (screen === "tenancies" || screen === "tenancy-detail");
+
+  useEffect(() => {
+    if (isTenantCommsBlockedScreen) {
+      router.replace("/tenant-comms/late-payments");
+    }
+  }, [isTenantCommsBlockedScreen, router]);
+
+  if (isTenantCommsBlockedScreen) return <LoadingFallback />;
 
   const Component = screenMap[role as string]?.[screen as string];
 
