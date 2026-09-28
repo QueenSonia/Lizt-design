@@ -78,6 +78,7 @@ interface LandlordKYCApplicationDetailProps {
   propertyAddress?: string;
   propertyStatus: "Occupied" | "Vacant" | "Inactive";
   showTenancyInfo?: boolean;
+  whatsAppOnly?: boolean;
   outstandingBalance?: number;
   creditBalance?: number;
   outstandingBalanceBreakdown?: OutstandingBalanceBreakdown[];
@@ -93,6 +94,7 @@ export function LandlordKYCApplicationDetail({
   propertyName,
   propertyAddress = "",
   showTenancyInfo = false,
+  whatsAppOnly = false,
   outstandingBalance = 0,
   creditBalance = 0,
   outstandingBalanceBreakdown = [],
@@ -114,7 +116,7 @@ export function LandlordKYCApplicationDetail({
 
   const [activeTab, setActiveTab] = useState<
     "overview" | "documents" | "whatsapp" | "history"
-  >("overview");
+  >(whatsAppOnly ? "whatsapp" : "overview");
 
   // Balance breakdown modal
   const [showBreakdownModal, setShowBreakdownModal] = useState(false);
@@ -780,6 +782,7 @@ export function LandlordKYCApplicationDetail({
         </div>
 
         {/* Row 2: Outstanding pill, Offer Status Badge, Download PDF, Attach Tenant */}
+        {!whatsAppOnly && (
         <div className="px-4 sm:px-6 py-2 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
             <OutstandingBalanceBreakdownCard
@@ -835,8 +838,10 @@ export function LandlordKYCApplicationDetail({
             </Button>
           </div>
         </div>
+        )}
 
         {/* Row 3: Tab Navigation */}
+        {!whatsAppOnly && (
         <div className="px-4 sm:px-6 flex gap-8 overflow-x-auto scrollbar-hide border-b border-gray-200">
           {(
             [
@@ -859,6 +864,7 @@ export function LandlordKYCApplicationDetail({
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {/* ==================== SCROLLABLE CONTENT ==================== */}

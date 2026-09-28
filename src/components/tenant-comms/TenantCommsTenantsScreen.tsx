@@ -1,6 +1,7 @@
 /* eslint-disable */
 "use client";
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MOCK_TENANCIES } from "@/components/LandlordTenancies";
@@ -30,6 +31,7 @@ interface Props {
 
 export default function TenantCommsTenantsScreen({ onMenuClick, isMobile }: Props) {
   const [search, setSearch] = useState("");
+  const router = useRouter();
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -106,8 +108,12 @@ export default function TenantCommsTenantsScreen({ onMenuClick, isMobile }: Prop
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {rows.map((t) => (
-                    <tr key={t.id} className="bg-white hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{t.name}</td>
+                    <tr
+                      key={t.id}
+                      onClick={() => router.push(`/tenant-comms/kyc-application-detail/${t.id}`)}
+                      className="bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-900 underline decoration-[#FF5000] underline-offset-2">{t.name}</td>
                       <td className="px-4 py-4 text-gray-600 tabular-nums whitespace-nowrap">{t.phone}</td>
                       <td className="px-4 py-4 pr-6 text-gray-600">{t.address}</td>
                     </tr>
@@ -119,8 +125,12 @@ export default function TenantCommsTenantsScreen({ onMenuClick, isMobile }: Prop
             {/* ── Mobile stacked cards ── */}
             <div className="sm:hidden bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
               {rows.map((t) => (
-                <div key={t.id} className="px-4 py-4">
-                  <p className="font-medium text-gray-900 mb-1">{t.name}</p>
+                <div
+                  key={t.id}
+                  onClick={() => router.push(`/tenant-comms/kyc-application-detail/${t.id}`)}
+                  className="px-4 py-4 hover:bg-gray-50 transition-colors cursor-pointer active:bg-gray-100"
+                >
+                  <p className="font-medium text-gray-900 mb-1 underline decoration-[#FF5000] underline-offset-2">{t.name}</p>
                   <p className="text-sm text-gray-500">{t.phone}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{t.address}</p>
                 </div>

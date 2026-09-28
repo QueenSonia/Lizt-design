@@ -135,9 +135,11 @@ interface KYCApplicationAPIResponse {
 }
 
 function KYCApplicationDetailContent() {
-  const { id } = useParams();
+  const { id, role } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const userRole = Array.isArray(role) ? role[0] : role;
+  const whatsAppOnly = userRole === "tenant-comms";
 
   const [showAttachTenantModal, setShowAttachTenantModal] = useState(false);
   const [showOfferLetterPreview, setShowOfferLetterPreview] = useState(false);
@@ -515,6 +517,7 @@ function KYCApplicationDetailContent() {
         propertyAddress={propertyAddress}
         propertyStatus={propertyStatus}
         showTenancyInfo={showTenancyInfo}
+        whatsAppOnly={whatsAppOnly}
         outstandingBalance={appData.outstandingBalance ?? 0}
         creditBalance={appData.creditBalance ?? 0}
         outstandingBalanceBreakdown={appData.outstandingBalanceBreakdown as unknown[]}
