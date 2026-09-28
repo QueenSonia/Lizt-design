@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Users } from "lucide-react";
 import { useMobile } from "@/contexts/MobileContext";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +41,7 @@ const LOGO_FULL = (
 
 const NAV_ITEMS = [
   { id: "tenancies", label: "Tenancies", Icon: KeyRound },
+  { id: "tenants", label: "Tenants", Icon: Users },
 ] as const;
 
 function SidebarInner({

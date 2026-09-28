@@ -210,6 +210,11 @@ export const screenMap: ScreenMap = {
         return { default: withLandlordMobileProps(ReadOnly) };
       })
     ),
+    tenants: lazy(() =>
+      import("@/components/tenant-comms/TenantCommsTenantsScreen").then((module) => ({
+        default: withLandlordMobileProps(module.default),
+      }))
+    ),
   },
   admin: {
     dashboard: lazy(() => import("@/components/admin/AdminDashboard")),

@@ -90,7 +90,7 @@ interface Invoice {
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 
-const MOCK_TENANCIES: Tenancy[] = [
+export const MOCK_TENANCIES: Tenancy[] = [
   {
     id: "tn-001",
     tenantName: "James Okafor",
