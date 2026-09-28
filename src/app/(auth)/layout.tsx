@@ -16,7 +16,10 @@ export default function AuthLayout({
     // Wait until loading is finished before checking authentication
     if (!isLoading && isAuthenticated) {
       const role = user?.role;
-      const initialScreen = role === "admin" ? "reports" : "dashboard";
+      const initialScreen =
+        role === "admin" ? "reports" :
+        role === "tenant-comms" ? "tenancies" :
+        "dashboard";
       router.push(role ? `/${role}/${initialScreen}` : "/");
     }
   }, [isAuthenticated, user, isLoading, router]);
