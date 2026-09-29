@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { CreditCard, Users } from "lucide-react";
+import { CreditCard, Users, Activity } from "lucide-react";
 import { useMobile } from "@/contexts/MobileContext";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantCommsActivity } from "@/contexts/TenantCommsActivityContext";
 import { LogoutConfirmationModal } from "@/components/modals/LogoutConfirmationModal";
 
 const LOGO_FULL = (
@@ -42,6 +43,7 @@ const LOGO_FULL = (
 const NAV_ITEMS = [
   { id: "late-payments", label: "Late Payments", Icon: CreditCard },
   { id: "tenants", label: "Tenants", Icon: Users },
+  { id: "bot-activity", label: "Bot Activity", Icon: Activity },
 ] as const;
 
 function SidebarInner({
@@ -52,6 +54,7 @@ function SidebarInner({
   mobile,
   user,
   onLogout,
+  hasNewMessage,
 }: {
   active: string;
   onNav: (id: string) => void;
@@ -60,6 +63,7 @@ function SidebarInner({
   mobile: boolean;
   user: { name: string; initials: string } | null;
   onLogout: () => void;
+  hasNewMessage: boolean;
 }) {
   const showLabel = !collapsed;
 
@@ -123,6 +127,7 @@ function SidebarInner({
       <nav style={{ flex: 1, padding: "10px 7px", overflowY: "auto" }}>
         {NAV_ITEMS.map(({ id, label, Icon }) => {
           const isActive = active === id;
+          const showDot = id === "bot-activity" && hasNewMessage && !isActive;
           return (
             <div
               key={id}
@@ -141,8 +146,20 @@ function SidebarInner({
                 background: isActive ? "#FFF3EB" : "transparent",
               }}
             >
-              <span style={{ color: isActive ? "#FF5000" : "#C0BDB8", display: "flex", flexShrink: 0 }}>
+              <span style={{ color: isActive ? "#FF5000" : "#C0BDB8", display: "flex", flexShrink: 0, position: "relative" }}>
                 <Icon size={15} strokeWidth={1.8} />
+                {showDot && (
+                  <span style={{
+                    position: "absolute",
+                    top: -3,
+                    right: -3,
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "#FF5000",
+                    border: "1.5px solid #FFFFFF",
+                  }} />
+                )}
               </span>
               {showLabel && (
                 <span
@@ -150,10 +167,20 @@ function SidebarInner({
                     fontSize: 14,
                     fontWeight: isActive ? 500 : 400,
                     color: isActive ? "#FF5000" : "#6B7280",
+                    flex: 1,
                   }}
                 >
                   {label}
                 </span>
+              )}
+              {showLabel && showDot && (
+                <span style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#FF5000",
+                  flexShrink: 0,
+                }} />
               )}
             </div>
           );
@@ -241,6 +268,7 @@ export function TenantCommsSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { hasNewMessage } = useTenantCommsActivity();
   const [collapsed, setCollapsed] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -309,6 +337,7 @@ export function TenantCommsSidebar() {
             mobile
             user={tcUser}
             onLogout={requestLogout}
+            hasNewMessage={hasNewMessage}
           />
         </div>
         {logoutModal}
@@ -326,6 +355,7 @@ export function TenantCommsSidebar() {
         mobile={false}
         user={tcUser}
         onLogout={requestLogout}
+        hasNewMessage={hasNewMessage}
       />
       {logoutModal}
     </>

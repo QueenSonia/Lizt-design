@@ -11,6 +11,7 @@ import { FacilityManagerProvider } from "@/components/facility-manager/FacilityM
 import { FacilityManagerSidebar } from "@/components/facility-manager/FacilityManagerSidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { TenantCommsSidebar } from "@/components/tenant-comms/TenantCommsSidebar";
+import { TenantCommsActivityProvider } from "@/contexts/TenantCommsActivityContext";
 import type { UserRole } from "@/types/user";
 
 const KNOWN_ROLES: UserRole[] = ["landlord", "facility-manager", "admin", "tenant-comms"];
@@ -119,27 +120,29 @@ export default function DashboardLayout({
 
   if (user?.role === "tenant-comms") {
     return (
-      <div
-        style={{
-          display: "flex",
-          height: "100vh",
-          overflow: "hidden",
-          background: "#F8F7F4",
-        }}
-      >
-        <TenantCommsSidebar />
-        <main
+      <TenantCommsActivityProvider>
+        <div
           style={{
-            flex: 1,
             display: "flex",
-            flexDirection: "column",
-            minWidth: 0,
-            overflow: "auto",
+            height: "100vh",
+            overflow: "hidden",
+            background: "#F8F7F4",
           }}
         >
-          <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
-        </main>
-      </div>
+          <TenantCommsSidebar />
+          <main
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              overflow: "auto",
+            }}
+          >
+            <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+          </main>
+        </div>
+      </TenantCommsActivityProvider>
     );
   }
 

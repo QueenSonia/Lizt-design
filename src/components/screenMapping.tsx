@@ -215,6 +215,11 @@ export const screenMap: ScreenMap = {
         default: withLandlordMobileProps(module.default),
       }))
     ),
+    "bot-activity": lazy(() =>
+      import("@/components/tenant-comms/TenantCommsBotActivityScreen").then((module) => ({
+        default: withLandlordMobileProps(module.default),
+      }))
+    ),
   },
   admin: {
     dashboard: lazy(() => import("@/components/admin/AdminDashboard")),
