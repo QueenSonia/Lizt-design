@@ -52,7 +52,7 @@ export default function DashboardLayout({
       return;
     }
     if (user.role !== pathRole) {
-      const initialScreen = user.role === "tenant-comms" ? "late-payments" : "dashboard";
+      const initialScreen = user.role === "tenant-comms" ? "bot-activity" : "dashboard";
       router.replace(`/${user.role}/${initialScreen}`);
     }
   }, [isLoading, pathRole, user, pathname, router]);

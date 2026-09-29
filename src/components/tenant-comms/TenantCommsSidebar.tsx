@@ -273,7 +273,7 @@ export function TenantCommsSidebar() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const segments = pathname.split("/").filter(Boolean);
-  const active = segments[1] || "tenancies";
+  const active = segments[1] || "bot-activity";
 
   const handleNav = (id: string) => {
     if (isMobile) setIsMobileSidebarOpen(false);

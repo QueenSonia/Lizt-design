@@ -17,7 +17,7 @@ export default function ScreenPage() {
 
   useEffect(() => {
     if (isTenantCommsBlockedScreen) {
-      router.replace("/tenant-comms/late-payments");
+      router.replace("/tenant-comms/bot-activity");
     }
   }, [isTenantCommsBlockedScreen, router]);
 

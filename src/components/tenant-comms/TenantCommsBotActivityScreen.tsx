@@ -55,16 +55,11 @@ function EntryRow({ entry, onClick }: { entry: ActivityEntry; onClick: () => voi
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="text-[13px] font-medium text-gray-900 truncate">{entry.tenantName}</span>
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${
-              isIncoming ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-500"
-            }`}
-          >
-            {isIncoming ? "Tenant" : "Bot"}
-          </span>
-        </div>
+        <p className="text-[13px] font-medium text-gray-900 truncate mb-0.5">
+          {isIncoming
+            ? `Message from ${entry.tenantName} to the Bot`
+            : `Message from the Bot to ${entry.tenantName}`}
+        </p>
         <p className="text-[12px] text-gray-400 truncate leading-snug">{entry.preview}</p>
       </div>
 

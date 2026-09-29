@@ -27,7 +27,7 @@ export default function SignInPage() {
     });
 
     // Instead of going to home page, redirect directly to dashboard
-    const landingScreen = user.role === "tenant-comms" ? "late-payments" : "dashboard";
+    const landingScreen = user.role === "tenant-comms" ? "bot-activity" : "dashboard";
     const dashboardUrl = `/${user.role}/${landingScreen}`;
 
     // Check if returnUrl is just root or sign-in page, if so ignore it
