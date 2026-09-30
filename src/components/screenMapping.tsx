@@ -226,6 +226,7 @@ export const screenMap: ScreenMap = {
     properties: lazy(() => import("@/components/admin/AdminProperties")),
     landlords: lazy(() => import("@/components/admin/AdminLandlords")),
     tenants: lazy(() => import("@/components/admin/AdminTenants")),
+    residents: lazy(() => import("@/components/admin/AdminResidents")),
     "facility-managers": lazy(
       () => import("@/components/admin/AdminFacilityManagers")
     ),
