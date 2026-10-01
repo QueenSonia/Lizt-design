@@ -121,6 +121,11 @@ export const screenMap: ScreenMap = {
         default: withLandlordMobileProps(module.default),
       })),
     ),
+    residents: lazy(() =>
+      import("@/components/LandlordResidents").then((module) => ({
+        default: withLandlordMobileProps(module.default),
+      })),
+    ),
     "late-payments": lazy(() =>
       import("@/components/LandlordLatePayments").then((module) => ({
         default: withLandlordMobileProps(module.default),
@@ -226,7 +231,6 @@ export const screenMap: ScreenMap = {
     properties: lazy(() => import("@/components/admin/AdminProperties")),
     landlords: lazy(() => import("@/components/admin/AdminLandlords")),
     tenants: lazy(() => import("@/components/admin/AdminTenants")),
-    residents: lazy(() => import("@/components/admin/AdminResidents")),
     "facility-managers": lazy(
       () => import("@/components/admin/AdminFacilityManagers")
     ),

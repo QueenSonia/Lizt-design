@@ -273,51 +273,6 @@ export const TENANTS = [
   },
 ];
 
-export const RESIDENTS = [
-  {
-    id: "RES-001",
-    name: "Chibuike Okonkwo",
-    phone: "+234 803 441 2211",
-    building: "Palm Grove Estate",
-    dateAdded: "2026-01-15",
-  },
-  {
-    id: "RES-002",
-    name: "Funmilola Adeyemi",
-    phone: "+234 806 887 3344",
-    building: "Palm Grove Estate",
-    dateAdded: "2026-02-03",
-  },
-  {
-    id: "RES-003",
-    name: "Aminu Suleiman",
-    phone: "+234 812 223 9900",
-    building: "Maple Court",
-    dateAdded: "2026-01-28",
-  },
-  {
-    id: "RES-004",
-    name: "Adaeze Nwosu",
-    phone: "+234 809 551 7762",
-    building: "Maple Court",
-    dateAdded: "2026-03-10",
-  },
-  {
-    id: "RES-005",
-    name: "Babatunde Fashola",
-    phone: "+234 702 334 8810",
-    building: "Sapphire Heights",
-    dateAdded: "2026-03-22",
-  },
-  {
-    id: "RES-006",
-    name: "Chiamaka Igwe",
-    phone: "+234 815 662 5531",
-    building: "Sapphire Heights",
-    dateAdded: "2026-04-01",
-  },
-];
-
 export const FACILITY_MANAGERS = [
   {
     id: "FM-001",
