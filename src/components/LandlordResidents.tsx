@@ -180,7 +180,6 @@ export default function LandlordResidents({ onMenuClick, isMobile }: LandlordRes
                         >
                           <td className="px-6 py-4">
                             <p className="font-medium text-gray-900">{r.name}</p>
-                            <p className="text-xs text-gray-400 font-mono mt-0.5">{r.id}</p>
                           </td>
                           <td className="px-4 py-4 text-gray-600">{r.phone}</td>
                           <td className="px-4 py-4 text-gray-700">{r.building}</td>
@@ -203,7 +202,6 @@ export default function LandlordResidents({ onMenuClick, isMobile }: LandlordRes
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="min-w-0">
                         <p className="font-medium text-gray-900">{r.name}</p>
-                        <p className="text-xs text-gray-400 font-mono mt-0.5">{r.id}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" />
                     </div>
