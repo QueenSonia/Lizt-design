@@ -10,98 +10,12 @@ import { Input } from "./ui/input";
 import { stickyHeadClass } from "./TableControls";
 import { useTableScrollShadow } from "@/hooks/useTableScrollShadow";
 import { toast } from "sonner";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface Building {
-  id: string;
-  name: string;
-  address: string;
-  commonAreas: string[];
-}
-
-interface Resident {
-  id: string;
-  name: string;
-  phone: string;
-  unit: string;
-  building: string;
-  dateAdded: string;
-}
-
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-
-const INITIAL_BUILDINGS: Building[] = [
-  {
-    id: "b-1",
-    name: "Palm Grove Estate",
-    address: "Ajah, Lagos",
-    commonAreas: ["Main Lobby", "Generator Room", "Parking Lot"],
-  },
-  {
-    id: "b-2",
-    name: "Maple Court",
-    address: "Lekki Phase 1, Lagos",
-    commonAreas: ["Lobby", "Rooftop Garden", "Laundry Room"],
-  },
-  {
-    id: "b-3",
-    name: "Sapphire Heights",
-    address: "Victoria Island, Lagos",
-    commonAreas: ["Reception", "Swimming Pool", "Gym"],
-  },
-];
-
-const INITIAL_RESIDENTS: Resident[] = [
-  {
-    id: "RES-001",
-    name: "Chibuike Okonkwo",
-    phone: "+234 803 441 2211",
-    unit: "Flat 1A",
-    building: "Palm Grove Estate",
-    dateAdded: "2026-01-15",
-  },
-  {
-    id: "RES-002",
-    name: "Funmilola Adeyemi",
-    phone: "+234 806 887 3344",
-    unit: "Flat 2B",
-    building: "Palm Grove Estate",
-    dateAdded: "2026-02-03",
-  },
-  {
-    id: "RES-003",
-    name: "Aminu Suleiman",
-    phone: "+234 812 223 9900",
-    unit: "Flat 3C",
-    building: "Maple Court",
-    dateAdded: "2026-01-28",
-  },
-  {
-    id: "RES-004",
-    name: "Adaeze Nwosu",
-    phone: "+234 809 551 7762",
-    unit: "Flat 1B",
-    building: "Maple Court",
-    dateAdded: "2026-03-10",
-  },
-  {
-    id: "RES-005",
-    name: "Babatunde Fashola",
-    phone: "+234 702 334 8810",
-    unit: "Penthouse",
-    building: "Sapphire Heights",
-    dateAdded: "2026-03-22",
-  },
-  {
-    id: "RES-006",
-    name: "Chiamaka Igwe",
-    phone: "+234 815 662 5531",
-    unit: "Flat 4D",
-    building: "Sapphire Heights",
-    dateAdded: "2026-04-01",
-  },
-];
+import {
+  Building,
+  Resident,
+  MOCK_BUILDINGS,
+  MOCK_RESIDENTS,
+} from "@/lib/residentMockData";
 
 // ── Building Select ───────────────────────────────────────────────────────────
 
@@ -250,8 +164,8 @@ export default function LandlordResidents({ onMenuClick, isMobile }: LandlordRes
   const userRole = user?.role ?? "landlord";
 
   // ── List state ──────────────────────────────────────────────────────────────
-  const [residents, setResidents] = useState<Resident[]>(INITIAL_RESIDENTS);
-  const [buildings, setBuildings] = useState<Building[]>(INITIAL_BUILDINGS);
+  const [residents, setResidents] = useState<Resident[]>(MOCK_RESIDENTS);
+  const [buildings, setBuildings] = useState<Building[]>(MOCK_BUILDINGS);
   const [search, setSearch] = useState("");
 
   const { ref: tableScrollRef, scrolled: tableScrolled, onScroll: handleTableScroll } =
