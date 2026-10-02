@@ -79,6 +79,7 @@ interface LandlordKYCApplicationDetailProps {
   propertyStatus: "Occupied" | "Vacant" | "Inactive";
   showTenancyInfo?: boolean;
   whatsAppOnly?: boolean;
+  allowHistory?: boolean;
   outstandingBalance?: number;
   creditBalance?: number;
   outstandingBalanceBreakdown?: OutstandingBalanceBreakdown[];
@@ -95,6 +96,7 @@ export function LandlordKYCApplicationDetail({
   propertyAddress = "",
   showTenancyInfo = false,
   whatsAppOnly = false,
+  allowHistory = false,
   outstandingBalance = 0,
   creditBalance = 0,
   outstandingBalanceBreakdown = [],
@@ -841,7 +843,7 @@ export function LandlordKYCApplicationDetail({
         )}
 
         {/* Row 3: Tab Navigation */}
-        {!whatsAppOnly && (
+        {(!whatsAppOnly || allowHistory) && (
         <div className="px-4 sm:px-6 flex gap-8 overflow-x-auto scrollbar-hide border-b border-gray-200">
           {(
             [
@@ -850,7 +852,14 @@ export function LandlordKYCApplicationDetail({
               { key: "whatsapp", label: "WhatsApp" },
               { key: "history", label: "History" },
             ] as const
-          ).map((tab) => (
+          )
+            .filter(
+              (tab) =>
+                !whatsAppOnly ||
+                tab.key === "whatsapp" ||
+                tab.key === "history",
+            )
+            .map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -1258,6 +1267,7 @@ export function LandlordKYCApplicationDetail({
                   <SelectItem value="custom_notes">Custom Notes</SelectItem>
                 </SelectContent>
               </Select>
+              {!whatsAppOnly && (
               <button
                 onClick={() => setShowAddHistoryModal(true)}
                 className="flex items-center gap-1.5 bg-[#FF5000] text-white text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-[#e04500] transition-colors"
@@ -1265,6 +1275,7 @@ export function LandlordKYCApplicationDetail({
                 <Plus className="w-4 h-4" />
                 Add History
               </button>
+              )}
             </div>
             <LandlordKYCApplicationDetailHistory
               application={application}

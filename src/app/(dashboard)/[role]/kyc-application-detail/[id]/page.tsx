@@ -518,6 +518,7 @@ function KYCApplicationDetailContent() {
         propertyStatus={propertyStatus}
         showTenancyInfo={showTenancyInfo}
         whatsAppOnly={whatsAppOnly}
+        allowHistory={whatsAppOnly}
         outstandingBalance={appData.outstandingBalance ?? 0}
         creditBalance={appData.creditBalance ?? 0}
         outstandingBalanceBreakdown={appData.outstandingBalanceBreakdown as unknown[]}
