@@ -24,14 +24,6 @@ export interface ResidentRequest {
   date: string;
 }
 
-export interface ResidentPayment {
-  id: string;
-  date: string;
-  category: "Diesel" | "Service Charge";
-  amount: number;
-  status: "Paid" | "Pending" | "Overdue";
-}
-
 export interface ResidentInvoice {
   id: string;
   dateGenerated: string;
@@ -190,106 +182,37 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
   ],
 };
 
-export const MOCK_RESIDENT_PAYMENTS: Record<string, ResidentPayment[]> = {
-  "RES-001": [
-    { id: "rp-001-1", date: "2026-09-01", category: "Service Charge", amount: 120_000, status: "Paid" },
-    { id: "rp-001-2", date: "2026-09-01", category: "Diesel", amount: 45_000, status: "Paid" },
-    { id: "rp-001-3", date: "2026-08-01", category: "Service Charge", amount: 120_000, status: "Paid" },
-    { id: "rp-001-4", date: "2026-08-01", category: "Diesel", amount: 45_000, status: "Paid" },
-    { id: "rp-001-5", date: "2026-10-01", category: "Diesel", amount: 45_000, status: "Pending" },
-    { id: "rp-001-6", date: "2026-10-01", category: "Service Charge", amount: 120_000, status: "Overdue" },
-  ],
-  "RES-002": [
-    { id: "rp-002-1", date: "2026-09-01", category: "Service Charge", amount: 120_000, status: "Paid" },
-    { id: "rp-002-2", date: "2026-09-01", category: "Diesel", amount: 45_000, status: "Paid" },
-    { id: "rp-002-3", date: "2026-10-01", category: "Service Charge", amount: 120_000, status: "Pending" },
-  ],
-  "RES-003": [
-    { id: "rp-003-1", date: "2026-09-01", category: "Service Charge", amount: 80_000, status: "Paid" },
-    { id: "rp-003-2", date: "2026-09-01", category: "Diesel", amount: 38_000, status: "Overdue" },
-    { id: "rp-003-3", date: "2026-10-01", category: "Diesel", amount: 38_000, status: "Pending" },
-  ],
-  "RES-004": [
-    { id: "rp-004-1", date: "2026-09-01", category: "Service Charge", amount: 80_000, status: "Paid" },
-    { id: "rp-004-2", date: "2026-10-01", category: "Service Charge", amount: 80_000, status: "Pending" },
-  ],
-  "RES-005": [
-    { id: "rp-005-1", date: "2026-09-01", category: "Service Charge", amount: 200_000, status: "Paid" },
-    { id: "rp-005-2", date: "2026-09-01", category: "Diesel", amount: 60_000, status: "Paid" },
-    { id: "rp-005-3", date: "2026-10-01", category: "Diesel", amount: 60_000, status: "Pending" },
-  ],
-  "RES-006": [
-    { id: "rp-006-1", date: "2026-09-01", category: "Service Charge", amount: 200_000, status: "Paid" },
-    { id: "rp-006-2", date: "2026-09-01", category: "Diesel", amount: 60_000, status: "Overdue" },
-  ],
-};
-
+// Unified invoice records — each entry covers the full lifecycle from generation to settlement.
 export const MOCK_RESIDENT_INVOICES: Record<string, ResidentInvoice[]> = {
   "RES-001": [
-    {
-      id: "inv-001-1",
-      dateGenerated: "2026-09-01",
-      dueDate: "2026-09-15",
-      category: "Service Charge",
-      amount: 120_000,
-      status: "Paid",
-    },
-    {
-      id: "inv-001-2",
-      dateGenerated: "2026-09-01",
-      dueDate: "2026-09-10",
-      category: "Diesel",
-      amount: 45_000,
-      status: "Paid",
-    },
+    { id: "inv-001-1", dateGenerated: "2026-10-01", dueDate: "2026-10-15", category: "Service Charge", amount: 120_000, status: "Overdue" },
+    { id: "inv-001-2", dateGenerated: "2026-10-01", dueDate: "2026-10-10", category: "Diesel",         amount:  45_000, status: "Pending" },
+    { id: "inv-001-3", dateGenerated: "2026-09-01", dueDate: "2026-09-15", category: "Service Charge", amount: 120_000, status: "Paid" },
+    { id: "inv-001-4", dateGenerated: "2026-09-01", dueDate: "2026-09-10", category: "Diesel",         amount:  45_000, status: "Paid" },
+    { id: "inv-001-5", dateGenerated: "2026-08-01", dueDate: "2026-08-15", category: "Service Charge", amount: 120_000, status: "Paid" },
+    { id: "inv-001-6", dateGenerated: "2026-08-01", dueDate: "2026-08-10", category: "Diesel",         amount:  45_000, status: "Paid" },
   ],
   "RES-002": [
-    {
-      id: "inv-002-1",
-      dateGenerated: "2026-09-01",
-      dueDate: "2026-09-15",
-      category: "Service Charge",
-      amount: 120_000,
-      status: "Paid",
-    },
+    { id: "inv-002-1", dateGenerated: "2026-10-01", dueDate: "2026-10-15", category: "Service Charge", amount: 120_000, status: "Pending" },
+    { id: "inv-002-2", dateGenerated: "2026-09-01", dueDate: "2026-09-15", category: "Service Charge", amount: 120_000, status: "Paid" },
+    { id: "inv-002-3", dateGenerated: "2026-09-01", dueDate: "2026-09-10", category: "Diesel",         amount:  45_000, status: "Paid" },
   ],
   "RES-003": [
-    {
-      id: "inv-003-1",
-      dateGenerated: "2026-09-01",
-      dueDate: "2026-09-10",
-      category: "Diesel",
-      amount: 38_000,
-      status: "Overdue",
-    },
+    { id: "inv-003-1", dateGenerated: "2026-10-01", dueDate: "2026-10-10", category: "Diesel",         amount:  38_000, status: "Pending" },
+    { id: "inv-003-2", dateGenerated: "2026-09-01", dueDate: "2026-09-15", category: "Service Charge", amount:  80_000, status: "Paid" },
+    { id: "inv-003-3", dateGenerated: "2026-09-01", dueDate: "2026-09-10", category: "Diesel",         amount:  38_000, status: "Overdue" },
   ],
-  "RES-004": [],
+  "RES-004": [
+    { id: "inv-004-1", dateGenerated: "2026-10-01", dueDate: "2026-10-15", category: "Service Charge", amount:  80_000, status: "Pending" },
+    { id: "inv-004-2", dateGenerated: "2026-09-01", dueDate: "2026-09-15", category: "Service Charge", amount:  80_000, status: "Paid" },
+  ],
   "RES-005": [
-    {
-      id: "inv-005-1",
-      dateGenerated: "2026-09-01",
-      dueDate: "2026-09-15",
-      category: "Service Charge",
-      amount: 200_000,
-      status: "Paid",
-    },
-    {
-      id: "inv-005-2",
-      dateGenerated: "2026-09-01",
-      dueDate: "2026-09-10",
-      category: "Diesel",
-      amount: 60_000,
-      status: "Paid",
-    },
+    { id: "inv-005-1", dateGenerated: "2026-10-01", dueDate: "2026-10-10", category: "Diesel",         amount:  60_000, status: "Pending" },
+    { id: "inv-005-2", dateGenerated: "2026-09-01", dueDate: "2026-09-15", category: "Service Charge", amount: 200_000, status: "Paid" },
+    { id: "inv-005-3", dateGenerated: "2026-09-01", dueDate: "2026-09-10", category: "Diesel",         amount:  60_000, status: "Paid" },
   ],
   "RES-006": [
-    {
-      id: "inv-006-1",
-      dateGenerated: "2026-09-01",
-      dueDate: "2026-09-10",
-      category: "Diesel",
-      amount: 60_000,
-      status: "Overdue",
-    },
+    { id: "inv-006-1", dateGenerated: "2026-09-01", dueDate: "2026-09-15", category: "Service Charge", amount: 200_000, status: "Paid" },
+    { id: "inv-006-2", dateGenerated: "2026-09-01", dueDate: "2026-09-10", category: "Diesel",         amount:  60_000, status: "Overdue" },
   ],
 };

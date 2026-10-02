@@ -6,8 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Wrench,
-  CreditCard,
-  FileText,
   Plus,
   X,
   Download,
@@ -15,7 +13,6 @@ import {
 import {
   MOCK_RESIDENTS,
   MOCK_RESIDENT_REQUESTS,
-  MOCK_RESIDENT_PAYMENTS,
   MOCK_RESIDENT_INVOICES,
   Resident,
   ResidentInvoice,
@@ -50,7 +47,7 @@ const REQUEST_STATUS_STYLE: Record<string, string> = {
   Resolved: "bg-emerald-50 text-emerald-700",
 };
 
-const PAYMENT_STATUS_STYLE: Record<string, string> = {
+const INVOICE_STATUS_STYLE: Record<string, string> = {
   Paid: "bg-emerald-50 text-emerald-700",
   Pending: "bg-amber-50 text-amber-700",
   Overdue: "bg-red-50 text-red-700",
@@ -66,11 +63,9 @@ interface ContentProps {
 
 function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
   const seedRequests = MOCK_RESIDENT_REQUESTS[residentId] ?? [];
-  const payments = MOCK_RESIDENT_PAYMENTS[residentId] ?? [];
   const [invoices, setInvoices] = useState<ResidentInvoice[]>(
     MOCK_RESIDENT_INVOICES[residentId] ?? []
   );
-
   const [invOpen, setInvOpen] = useState(false);
   const [invForm, setInvForm] = useState({ category: "", amount: "", dueDate: "" });
   const [invErrors, setInvErrors] = useState({ category: "", amount: "", dueDate: "" });
@@ -107,6 +102,10 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
     toast.success("Invoice generated successfully.");
   };
 
+  const outstanding = invoices
+    .filter((i) => i.status !== "Paid")
+    .reduce((sum, i) => sum + i.amount, 0);
+
   const initials = resident.name
     .split(" ")
     .map((n) => n[0])
@@ -130,154 +129,134 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
           </button>
         </div>
         <div className="border-t border-gray-100" />
-        <div className="px-6 sm:px-8 py-5 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+        <div className="px-6 sm:px-8 py-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
             <span className="text-[#FF5000] font-semibold text-sm">{initials}</span>
           </div>
           <div className="min-w-0">
             <h1 className="text-xl font-semibold text-slate-900 leading-snug">{resident.name}</h1>
-            <p className="text-sm text-slate-500">{resident.phone}</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {resident.building} &middot; {resident.unit} &middot; Added {fmtDate(resident.dateAdded)}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-1">
+              <span className="text-sm text-slate-500">{resident.phone}</span>
+              <span className="text-gray-300 hidden sm:inline">&middot;</span>
+              <span className="text-sm text-slate-500">{resident.building}</span>
+              <span className="text-gray-300 hidden sm:inline">&middot;</span>
+              <span className="text-sm text-slate-500">{resident.unit}</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">Added {fmtDate(resident.dateAdded)}</p>
           </div>
         </div>
       </div>
 
       {/* ── Content ── */}
-      <div className="max-w-6xl space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6 items-start">
+      <div className="max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-6 items-start">
 
           {/* ── Maintenance Requests ── */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide flex-1">
-                Maintenance Requests
-              </p>
-              <span className="text-xs text-gray-400">{seedRequests.length}</span>
-            </div>
-
-            {seedRequests.length === 0 ? (
-              <p className="text-sm text-gray-400">No maintenance requests logged.</p>
-            ) : (
-              <ul className="space-y-2">
-                {seedRequests.map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex items-start gap-2 px-3 py-2.5 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 transition-colors cursor-default"
-                  >
-                    <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-900 leading-snug mb-1">{r.title}</p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-gray-500">{r.location}</span>
-                        <span className="text-gray-300">·</span>
-                        <span
-                          className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                            REQUEST_STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* ── Right column ── */}
-          <div className="space-y-6">
-
-            {/* ── Payments ── */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <CreditCard className="w-4 h-4 text-gray-400" />
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide flex-1">
-                  Payments
-                </p>
-              </div>
-
-              {payments.length === 0 ? (
-                <p className="text-sm text-gray-400">No payment records.</p>
-              ) : (
-                <div className="space-y-0 divide-y divide-gray-100">
-                  {payments.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{p.category}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{fmtDate(p.date)}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtCurrency(p.amount)}</p>
-                        <span
-                          className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full mt-0.5 ${
-                            PAYMENT_STATUS_STYLE[p.status] ?? "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {p.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-6 py-5 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-900">Maintenance Requests</h2>
+              {seedRequests.length > 0 && (
+                <span className="text-xs tabular-nums text-gray-400">{seedRequests.length}</span>
               )}
             </div>
-
-            {/* ── Invoices ── */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FileText className="w-4 h-4 text-gray-400" />
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide flex-1">
-                  Invoices
-                </p>
-                <button
-                  onClick={openInvModal}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-[#FF5000] hover:bg-[#e04600] text-white rounded-lg transition-colors shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Generate Invoice
-                </button>
-              </div>
-
-              {invoices.length === 0 ? (
-                <p className="text-sm text-gray-400">No invoices generated yet.</p>
+            <div className="h-px bg-gray-100" />
+            <div className="px-6 py-5">
+              {seedRequests.length === 0 ? (
+                <p className="text-sm text-gray-400">No maintenance requests logged.</p>
               ) : (
-                <div className="space-y-0 divide-y divide-gray-100">
-                  {invoices.map((inv) => (
-                    <div key={inv.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <ul className="space-y-2">
+                  {seedRequests.map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-start gap-2.5 px-3 py-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-default"
+                    >
+                      <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900">{inv.category}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Generated {fmtDate(inv.dateGenerated)} &middot; Due {fmtDate(inv.dueDate)}
-                        </p>
+                        <p className="text-sm text-gray-900 leading-snug">{r.title}</p>
+                        <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                          <span className="text-xs text-gray-500">{r.location}</span>
+                          <span className="text-gray-300">·</span>
+                          <span
+                            className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                              REQUEST_STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {r.status}
+                          </span>
+                        </div>
                       </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtCurrency(inv.amount)}</p>
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* ── Invoices ── */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-6 py-5 flex items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold text-gray-900">Invoices</h2>
+                {outstanding > 0 && (
+                  <p className="text-xs text-gray-400 mt-0.5">{fmtCurrency(outstanding)} outstanding</p>
+                )}
+              </div>
+              <button
+                onClick={openInvModal}
+                className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-[#FF5000] hover:bg-[#e04600] text-white rounded-lg transition-colors shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Generate Invoice
+              </button>
+            </div>
+            <div className="h-px bg-gray-100" />
+
+            {invoices.length === 0 ? (
+              <div className="px-6 py-5">
+                <p className="text-sm text-gray-400">No invoices generated yet.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {invoices.map((inv) => (
+                  <div key={inv.id} className="px-6 py-4 flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{inv.category}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Generated {fmtDate(inv.dateGenerated)}&ensp;&middot;&ensp;Due {fmtDate(inv.dueDate)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-1.5">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-gray-900 tabular-nums">
+                          {fmtCurrency(inv.amount)}
+                        </p>
                         <span
-                          className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full mt-0.5 ${
-                            PAYMENT_STATUS_STYLE[inv.status] ?? "bg-gray-100 text-gray-600"
+                          className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full mt-1 ${
+                            INVOICE_STATUS_STYLE[inv.status] ?? "bg-gray-100 text-gray-600"
                           }`}
                         >
                           {inv.status}
                         </span>
                       </div>
-                      <button
-                        onClick={() => toast.info("Download not yet connected to a backend.")}
-                        className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                        title="Download invoice"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </button>
+                      {inv.status === "Paid" ? (
+                        <button
+                          onClick={() => toast.info("Download not yet connected to a backend.")}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                          title="Download invoice"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <div className="w-7 shrink-0" />
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          </div>{/* end right column */}
         </div>
       </div>
 
@@ -291,7 +270,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
             className="bg-white w-full sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
               <h2 className="text-base font-semibold text-gray-900">Generate Invoice</h2>
               <button
@@ -302,10 +280,7 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
               </button>
             </div>
 
-            {/* Body */}
             <div className="px-5 py-5 space-y-4">
-
-              {/* Category */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700">
                   Category <span className="text-red-500">*</span>
@@ -330,7 +305,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                 )}
               </div>
 
-              {/* Amount */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700">
                   Amount <span className="text-red-500">*</span>
@@ -355,7 +329,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                 )}
               </div>
 
-              {/* Due Date */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700">
                   Due Date <span className="text-red-500">*</span>
@@ -373,10 +346,8 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                   <p className="text-xs text-red-500">{invErrors.dueDate}</p>
                 )}
               </div>
-
             </div>
 
-            {/* Footer */}
             <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0">
               <button
                 onClick={() => setInvOpen(false)}
