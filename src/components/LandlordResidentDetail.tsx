@@ -17,6 +17,7 @@ import {
   MOCK_RESIDENT_REQUESTS,
   MOCK_RESIDENT_PAYMENTS,
   MOCK_RESIDENT_INVOICES,
+  Resident,
   ResidentInvoice,
 } from "@/lib/residentMockData";
 import {
@@ -55,26 +56,21 @@ const PAYMENT_STATUS_STYLE: Record<string, string> = {
   Overdue: "bg-red-50 text-red-700",
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Content (only renders when resident is found) ─────────────────────────────
 
-interface Props {
+interface ContentProps {
+  resident: Resident;
   residentId: string;
+  onBack: () => void;
 }
 
-export default function LandlordResidentDetail({ residentId }: Props) {
-  const router = useRouter();
-  const { user } = useAuth();
-  const userRole = user?.role ?? "landlord";
-
-  const resident = MOCK_RESIDENTS.find((r) => r.id === residentId);
-
+function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
   const seedRequests = MOCK_RESIDENT_REQUESTS[residentId] ?? [];
-  const [payments] = useState(MOCK_RESIDENT_PAYMENTS[residentId] ?? []);
+  const payments = MOCK_RESIDENT_PAYMENTS[residentId] ?? [];
   const [invoices, setInvoices] = useState<ResidentInvoice[]>(
     MOCK_RESIDENT_INVOICES[residentId] ?? []
   );
 
-  // ── Invoice modal ──────────────────────────────────────────────────────────
   const [invOpen, setInvOpen] = useState(false);
   const [invForm, setInvForm] = useState({ category: "", amount: "", dueDate: "" });
   const [invErrors, setInvErrors] = useState({ category: "", amount: "", dueDate: "" });
@@ -111,25 +107,6 @@ export default function LandlordResidentDetail({ residentId }: Props) {
     toast.success("Invoice generated successfully.");
   };
 
-  // ── Not found ──────────────────────────────────────────────────────────────
-  if (!resident) {
-    return (
-      <div className="page-container">
-        <div className="bg-white border border-gray-200 rounded-xl p-10 text-center max-w-md mx-auto mt-12">
-          <p className="text-sm font-medium text-gray-700 mb-1">Resident not found</p>
-          <p className="text-xs text-gray-400 mb-5">No resident matched ID &ldquo;{residentId}&rdquo;.</p>
-          <button
-            onClick={() => router.push(`/${userRole}/residents`)}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#FF5000] hover:underline"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to Residents
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const initials = resident.name
     .split(" ")
     .map((n) => n[0])
@@ -145,7 +122,7 @@ export default function LandlordResidentDetail({ residentId }: Props) {
         <div className="px-6 sm:px-8 py-4">
           <button
             type="button"
-            onClick={() => router.push(`/${userRole}/residents`)}
+            onClick={onBack}
             className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -419,5 +396,45 @@ export default function LandlordResidentDetail({ residentId }: Props) {
       )}
 
     </div>
+  );
+}
+
+// ── Guard / Shell ─────────────────────────────────────────────────────────────
+
+interface Props {
+  residentId: string;
+}
+
+export default function LandlordResidentDetail({ residentId }: Props) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const userRole = user?.role ?? "landlord";
+
+  const resident = MOCK_RESIDENTS.find((r) => r.id === residentId);
+
+  if (!resident) {
+    return (
+      <div className="page-container">
+        <div className="bg-white border border-gray-200 rounded-xl p-10 text-center max-w-md mx-auto mt-12">
+          <p className="text-sm font-medium text-gray-700 mb-1">Resident not found</p>
+          <p className="text-xs text-gray-400 mb-5">No resident matched ID &ldquo;{residentId}&rdquo;.</p>
+          <button
+            onClick={() => router.push(`/${userRole}/residents`)}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#FF5000] hover:underline"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to Residents
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ResidentDetailContent
+      resident={resident}
+      residentId={residentId}
+      onBack={() => router.push(`/${userRole}/residents`)}
+    />
   );
 }
