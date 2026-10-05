@@ -203,7 +203,7 @@ export const MOCK_RESIDENT_INVOICES: Record<string, ResidentInvoice[]> = {
     { id: "inv-003-3", dateGenerated: "2026-09-01", dueDate: "2026-09-10", category: "Diesel",         amount:  38_000, status: "Overdue" },
   ],
   "RES-004": [
-    { id: "inv-004-1", dateGenerated: "2026-10-01", dueDate: "2026-10-15", category: "Service Charge", amount:  80_000, status: "Pending" },
+    { id: "inv-004-1", dateGenerated: "2026-10-01", dueDate: "2026-10-15", category: "Service Charge", amount:  80_000, status: "Paid" },
     { id: "inv-004-2", dateGenerated: "2026-09-01", dueDate: "2026-09-15", category: "Service Charge", amount:  80_000, status: "Paid" },
   ],
   "RES-005": [

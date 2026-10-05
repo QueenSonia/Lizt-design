@@ -103,6 +103,7 @@ interface ContentProps {
 
 function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
   const seedRequests = MOCK_RESIDENT_REQUESTS[residentId] ?? [];
+  const pendingRequests = seedRequests.filter((r) => r.status !== "Resolved");
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
@@ -148,9 +149,11 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
     toast.success("Invoice generated successfully.");
   };
 
-  const outstanding = invoices
-    .filter((i) => i.status !== "Paid")
-    .reduce((sum, i) => sum + i.amount, 0);
+  const pendingInvoices = useMemo(
+    () => invoices.filter((i) => i.status !== "Paid"),
+    [invoices]
+  );
+  const outstanding = pendingInvoices.reduce((sum, i) => sum + i.amount, 0);
 
   const initials = resident.name
     .split(" ")
@@ -348,21 +351,21 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
         {activeTab === "overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-6 items-start">
 
-            {/* Maintenance Requests */}
+            {/* Pending Maintenance Requests */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-6 py-5 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-900">Maintenance Requests</h2>
-                {seedRequests.length > 0 && (
-                  <span className="text-xs tabular-nums text-gray-400">{seedRequests.length}</span>
+                <h2 className="text-sm font-semibold text-gray-900">Pending Maintenance Requests</h2>
+                {pendingRequests.length > 0 && (
+                  <span className="text-xs tabular-nums text-gray-400">{pendingRequests.length}</span>
                 )}
               </div>
               <div className="h-px bg-gray-100" />
               <div className="px-6 py-5">
-                {seedRequests.length === 0 ? (
-                  <p className="text-sm text-gray-400">No maintenance requests logged.</p>
+                {pendingRequests.length === 0 ? (
+                  <p className="text-sm text-gray-400">No pending maintenance requests.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {seedRequests.map((r) => (
+                    {pendingRequests.map((r) => (
                       <li
                         key={r.id}
                         className="flex items-start gap-2.5 px-3 py-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-default"
@@ -388,13 +391,21 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                   </ul>
                 )}
               </div>
+              <div className="px-6 py-3 border-t border-gray-100">
+                <button
+                  onClick={() => setActiveTab("history")}
+                  className="text-xs text-gray-400 hover:text-[#FF5000] transition-colors"
+                >
+                  View all
+                </button>
+              </div>
             </div>
 
-            {/* Invoices */}
+            {/* Pending Payments */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-6 py-5 flex items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-sm font-semibold text-gray-900">Invoices</h2>
+                  <h2 className="text-sm font-semibold text-gray-900">Pending Payments</h2>
                   {outstanding > 0 && (
                     <p className="text-xs text-gray-400 mt-0.5">{fmtCurrency(outstanding)} outstanding</p>
                   )}
@@ -409,13 +420,13 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
               </div>
               <div className="h-px bg-gray-100" />
 
-              {invoices.length === 0 ? (
+              {pendingInvoices.length === 0 ? (
                 <div className="px-6 py-5">
-                  <p className="text-sm text-gray-400">No invoices generated yet.</p>
+                  <p className="text-sm text-gray-400">No pending payments.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {invoices.map((inv) => (
+                  {pendingInvoices.map((inv) => (
                     <div key={inv.id} className="px-6 py-4 flex items-start gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-900">{inv.category}</p>
@@ -423,35 +434,31 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                           Generated {fmtDate(inv.dateGenerated)}&ensp;&middot;&ensp;Due {fmtDate(inv.dueDate)}
                         </p>
                       </div>
-                      <div className="shrink-0 flex items-center gap-1.5">
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-gray-900 tabular-nums">
-                            {fmtCurrency(inv.amount)}
-                          </p>
-                          <span
-                            className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full mt-1 ${
-                              INVOICE_STATUS_STYLE[inv.status] ?? "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {inv.status}
-                          </span>
-                        </div>
-                        {inv.status === "Paid" ? (
-                          <button
-                            onClick={() => toast.info("Download not yet connected to a backend.")}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                            title="Download invoice"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-                        ) : (
-                          <div className="w-7 shrink-0" />
-                        )}
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-semibold text-gray-900 tabular-nums">
+                          {fmtCurrency(inv.amount)}
+                        </p>
+                        <span
+                          className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full mt-1 ${
+                            INVOICE_STATUS_STYLE[inv.status] ?? "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {inv.status}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+
+              <div className="px-6 py-3 border-t border-gray-100">
+                <button
+                  onClick={() => setActiveTab("docs")}
+                  className="text-xs text-gray-400 hover:text-[#FF5000] transition-colors"
+                >
+                  View all
+                </button>
+              </div>
             </div>
 
           </div>
