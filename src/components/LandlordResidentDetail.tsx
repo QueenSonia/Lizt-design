@@ -313,7 +313,7 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
           <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
             <span className="text-[#FF5000] font-semibold text-sm">{initials}</span>
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold text-slate-900 leading-snug">{resident.name}</h1>
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-1">
               <span className="text-sm text-slate-500">{resident.phone}</span>
@@ -324,23 +324,41 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
             </div>
             <p className="text-xs text-slate-400 mt-0.5">Added {fmtDate(resident.dateAdded)}</p>
           </div>
+          <button
+            onClick={openInvModal}
+            className="sm:hidden shrink-0 w-9 h-9 rounded-lg bg-[#FF5000] hover:bg-[#e04600] text-white flex items-center justify-center transition-colors"
+            aria-label="Generate Invoice"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Tab nav */}
-        <div className="px-6 sm:px-8 flex gap-6 sm:gap-8 border-t border-gray-100 overflow-x-auto scrollbar-hide">
-          {TABS.map((tab) => (
+        <div className="border-t border-gray-100 flex items-center">
+          <div className="px-6 sm:px-8 flex-1 flex gap-6 sm:gap-8 overflow-x-auto scrollbar-hide min-w-0">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === tab.key
+                    ? "border-[#FF5000] text-[#FF5000]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="hidden sm:flex items-center pr-8 shrink-0 pl-4">
             <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.key
-                  ? "border-[#FF5000] text-[#FF5000]"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+              onClick={openInvModal}
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-[#FF5000] hover:bg-[#e04600] text-white rounded-lg transition-colors"
             >
-              {tab.label}
+              <Plus className="w-3.5 h-3.5" />
+              Generate Invoice
             </button>
-          ))}
+          </div>
         </div>
       </div>
 
@@ -403,20 +421,11 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
 
             {/* Pending Payments */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="px-6 py-5 flex items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-sm font-semibold text-gray-900">Pending Payments</h2>
-                  {outstanding > 0 && (
-                    <p className="text-xs text-gray-400 mt-0.5">{fmtCurrency(outstanding)} outstanding</p>
-                  )}
-                </div>
-                <button
-                  onClick={openInvModal}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-[#FF5000] hover:bg-[#e04600] text-white rounded-lg transition-colors shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Generate Invoice
-                </button>
+              <div className="px-6 py-5">
+                <h2 className="text-sm font-semibold text-gray-900">Pending Payments</h2>
+                {outstanding > 0 && (
+                  <p className="text-xs text-gray-400 mt-0.5">{fmtCurrency(outstanding)} outstanding</p>
+                )}
               </div>
               <div className="h-px bg-gray-100" />
 
