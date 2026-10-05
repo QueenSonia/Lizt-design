@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -9,14 +9,19 @@ import {
   Plus,
   X,
   Download,
+  Clock,
+  Upload,
 } from "lucide-react";
 import {
   MOCK_RESIDENTS,
   MOCK_RESIDENT_REQUESTS,
   MOCK_RESIDENT_INVOICES,
+  MOCK_RESIDENT_CHATS,
+  MOCK_RESIDENT_OTHER_DOCS,
   Resident,
   ResidentInvoice,
 } from "@/lib/residentMockData";
+import { TenantChatHistory } from "./TenantChatHistory";
 import {
   Select,
   SelectContent,
@@ -41,6 +46,13 @@ function fmtCurrency(n: number) {
   return "₦" + n.toLocaleString("en-NG");
 }
 
+function fmtMonthYear(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-GB", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
 const REQUEST_STATUS_STYLE: Record<string, string> = {
   Open: "bg-blue-50 text-blue-700",
   "In Progress": "bg-amber-50 text-amber-700",
@@ -53,6 +65,34 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
   Overdue: "bg-red-50 text-red-700",
 };
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type TabKey = "overview" | "whatsapp" | "history" | "docs";
+type HistoryCategory = "all" | "invoices" | "maintenance" | "messages";
+type DocFilter = "all" | "Invoice" | "Receipt" | "Other";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "overview", label: "Overview" },
+  { key: "whatsapp", label: "WhatsApp" },
+  { key: "history", label: "History" },
+  { key: "docs", label: "Docs" },
+];
+
+interface ResidentHistoryEvent {
+  id: string;
+  title: string;
+  context?: string;
+  date: Date;
+  category: "invoices" | "maintenance" | "messages";
+}
+
+interface ResidentDoc {
+  id: string;
+  type: "Invoice" | "Receipt" | "Other";
+  name: string;
+  date: string;
+}
+
 // ── Content (only renders when resident is found) ─────────────────────────────
 
 interface ContentProps {
@@ -63,13 +103,19 @@ interface ContentProps {
 
 function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
   const seedRequests = MOCK_RESIDENT_REQUESTS[residentId] ?? [];
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [invoices, setInvoices] = useState<ResidentInvoice[]>(
     MOCK_RESIDENT_INVOICES[residentId] ?? []
   );
   const [invOpen, setInvOpen] = useState(false);
   const [invForm, setInvForm] = useState({ category: "", amount: "", dueDate: "" });
   const [invErrors, setInvErrors] = useState({ category: "", amount: "", dueDate: "" });
+  const [docFilter, setDocFilter] = useState<DocFilter>("all");
+  const [historyFilter, setHistoryFilter] = useState<HistoryCategory>("all");
 
+  // ── Invoice modal helpers ──────────────────────────────────────────────────
   const openInvModal = () => {
     setInvForm({ category: "", amount: "", dueDate: "" });
     setInvErrors({ category: "", amount: "", dueDate: "" });
@@ -113,6 +159,137 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
     .slice(0, 2)
     .toUpperCase();
 
+  // ── History events ─────────────────────────────────────────────────────────
+  const historyEvents = useMemo<ResidentHistoryEvent[]>(() => {
+    const events: ResidentHistoryEvent[] = [];
+
+    // From invoices
+    invoices.forEach((inv) => {
+      events.push({
+        id: `hist-inv-gen-${inv.id}`,
+        title: "Invoice generated",
+        context: `${inv.category} · ${fmtCurrency(inv.amount)}`,
+        date: new Date(`${inv.dateGenerated}T09:00:00`),
+        category: "invoices",
+      });
+      if (inv.status === "Paid") {
+        events.push({
+          id: `hist-inv-paid-${inv.id}`,
+          title: "Payment received",
+          context: `${inv.category} · ${fmtCurrency(inv.amount)}`,
+          date: new Date(`${inv.dueDate}T14:30:00`),
+          category: "invoices",
+        });
+      }
+    });
+
+    // From maintenance requests
+    seedRequests.forEach((r) => {
+      events.push({
+        id: `hist-req-raised-${r.id}`,
+        title: "Maintenance request raised",
+        context: r.title,
+        date: new Date(`${r.date}T10:00:00`),
+        category: "maintenance",
+      });
+      if (r.status === "Resolved") {
+        const resolvedDate = new Date(`${r.date}T10:00:00`);
+        resolvedDate.setDate(resolvedDate.getDate() + 3);
+        events.push({
+          id: `hist-req-resolved-${r.id}`,
+          title: "Maintenance request resolved",
+          context: r.title,
+          date: resolvedDate,
+          category: "maintenance",
+        });
+      }
+    });
+
+    // From chat messages (first 3 messages)
+    const chats = MOCK_RESIDENT_CHATS[residentId] ?? [];
+    chats.slice(0, 3).forEach((msg) => {
+      const preview =
+        msg.content.length > 55
+          ? msg.content.slice(0, 55) + "…"
+          : msg.content;
+      events.push({
+        id: `hist-msg-${msg.id}`,
+        title: msg.direction === "INBOUND" ? "Message received" : "Message sent",
+        context: preview,
+        date: new Date(msg.created_at),
+        category: "messages",
+      });
+    });
+
+    // Sort newest-first
+    return events.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [invoices, seedRequests, residentId]);
+
+  const filteredHistoryEvents = useMemo(() => {
+    if (historyFilter === "all") return historyEvents;
+    return historyEvents.filter((e) => e.category === historyFilter);
+  }, [historyEvents, historyFilter]);
+
+  // Group by month label
+  const historyGroups = useMemo(() => {
+    const groups: { month: string; events: ResidentHistoryEvent[] }[] = [];
+    const seen = new Map<string, ResidentHistoryEvent[]>();
+    filteredHistoryEvents.forEach((e) => {
+      const label = e.date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+      if (!seen.has(label)) {
+        seen.set(label, []);
+        groups.push({ month: label, events: seen.get(label)! });
+      }
+      seen.get(label)!.push(e);
+    });
+    return groups;
+  }, [filteredHistoryEvents]);
+
+  // ── Docs ───────────────────────────────────────────────────────────────────
+  const allDocs = useMemo<ResidentDoc[]>(() => {
+    const docs: ResidentDoc[] = [];
+
+    invoices.forEach((inv) => {
+      docs.push({
+        id: `doc-inv-${inv.id}`,
+        type: "Invoice",
+        name: `${inv.category} Invoice, ${fmtMonthYear(inv.dateGenerated)}`,
+        date: inv.dateGenerated,
+      });
+      if (inv.status === "Paid") {
+        docs.push({
+          id: `doc-rec-${inv.id}`,
+          type: "Receipt",
+          name: `${inv.category} Receipt, ${fmtMonthYear(inv.dueDate)}`,
+          date: inv.dueDate,
+        });
+      }
+    });
+
+    const otherDocs = MOCK_RESIDENT_OTHER_DOCS[residentId] ?? [];
+    otherDocs.forEach((od) => {
+      docs.push({
+        id: `doc-other-${od.id}`,
+        type: "Other",
+        name: od.name,
+        date: od.date,
+      });
+    });
+
+    // Sort newest-first by date
+    return docs.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [invoices, residentId]);
+
+  const filteredDocs = useMemo(() => {
+    if (docFilter === "all") return allDocs;
+    return allDocs.filter((d) => d.type === docFilter);
+  }, [allDocs, docFilter]);
+
   return (
     <div className="page-container">
 
@@ -145,119 +322,316 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
             <p className="text-xs text-slate-400 mt-0.5">Added {fmtDate(resident.dateAdded)}</p>
           </div>
         </div>
+
+        {/* Tab nav */}
+        <div className="px-6 sm:px-8 flex gap-6 sm:gap-8 border-t border-gray-100 overflow-x-auto scrollbar-hide">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === tab.key
+                  ? "border-[#FF5000] text-[#FF5000]"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── Content ── */}
+      {/* ── Tab content ── */}
       <div className="max-w-6xl">
-        <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-6 items-start">
 
-          {/* ── Maintenance Requests ── */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-6 py-5 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-900">Maintenance Requests</h2>
-              {seedRequests.length > 0 && (
-                <span className="text-xs tabular-nums text-gray-400">{seedRequests.length}</span>
-              )}
-            </div>
-            <div className="h-px bg-gray-100" />
-            <div className="px-6 py-5">
-              {seedRequests.length === 0 ? (
-                <p className="text-sm text-gray-400">No maintenance requests logged.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {seedRequests.map((r) => (
-                    <li
-                      key={r.id}
-                      className="flex items-start gap-2.5 px-3 py-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-default"
-                    >
-                      <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-gray-900 leading-snug">{r.title}</p>
-                        <div className="flex items-center gap-2 flex-wrap mt-1.5">
-                          <span className="text-xs text-gray-500">{r.location}</span>
-                          <span className="text-gray-300">·</span>
-                          <span
-                            className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                              REQUEST_STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {r.status}
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+        {/* ── Overview ── */}
+        {activeTab === "overview" && (
+          <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-6 items-start">
 
-          {/* ── Invoices ── */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-6 py-5 flex items-start gap-4">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-sm font-semibold text-gray-900">Invoices</h2>
-                {outstanding > 0 && (
-                  <p className="text-xs text-gray-400 mt-0.5">{fmtCurrency(outstanding)} outstanding</p>
+            {/* Maintenance Requests */}
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-6 py-5 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-900">Maintenance Requests</h2>
+                {seedRequests.length > 0 && (
+                  <span className="text-xs tabular-nums text-gray-400">{seedRequests.length}</span>
                 )}
               </div>
-              <button
-                onClick={openInvModal}
-                className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-[#FF5000] hover:bg-[#e04600] text-white rounded-lg transition-colors shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Generate Invoice
-              </button>
-            </div>
-            <div className="h-px bg-gray-100" />
-
-            {invoices.length === 0 ? (
+              <div className="h-px bg-gray-100" />
               <div className="px-6 py-5">
-                <p className="text-sm text-gray-400">No invoices generated yet.</p>
+                {seedRequests.length === 0 ? (
+                  <p className="text-sm text-gray-400">No maintenance requests logged.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {seedRequests.map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex items-start gap-2.5 px-3 py-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-default"
+                      >
+                        <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-gray-900 leading-snug">{r.title}</p>
+                          <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                            <span className="text-xs text-gray-500">{r.location}</span>
+                            <span className="text-gray-300">·</span>
+                            <span
+                              className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                                REQUEST_STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {r.status}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {invoices.map((inv) => (
-                  <div key={inv.id} className="px-6 py-4 flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900">{inv.category}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Generated {fmtDate(inv.dateGenerated)}&ensp;&middot;&ensp;Due {fmtDate(inv.dueDate)}
-                      </p>
-                    </div>
-                    <div className="shrink-0 flex items-center gap-1.5">
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-900 tabular-nums">
-                          {fmtCurrency(inv.amount)}
-                        </p>
-                        <span
-                          className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full mt-1 ${
-                            INVOICE_STATUS_STYLE[inv.status] ?? "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {inv.status}
-                        </span>
-                      </div>
-                      {inv.status === "Paid" ? (
-                        <button
-                          onClick={() => toast.info("Download not yet connected to a backend.")}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                          title="Download invoice"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <div className="w-7 shrink-0" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
 
-        </div>
+            {/* Invoices */}
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-6 py-5 flex items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-sm font-semibold text-gray-900">Invoices</h2>
+                  {outstanding > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">{fmtCurrency(outstanding)} outstanding</p>
+                  )}
+                </div>
+                <button
+                  onClick={openInvModal}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold bg-[#FF5000] hover:bg-[#e04600] text-white rounded-lg transition-colors shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Generate Invoice
+                </button>
+              </div>
+              <div className="h-px bg-gray-100" />
+
+              {invoices.length === 0 ? (
+                <div className="px-6 py-5">
+                  <p className="text-sm text-gray-400">No invoices generated yet.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {invoices.map((inv) => (
+                    <div key={inv.id} className="px-6 py-4 flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900">{inv.category}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Generated {fmtDate(inv.dateGenerated)}&ensp;&middot;&ensp;Due {fmtDate(inv.dueDate)}
+                        </p>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-1.5">
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-gray-900 tabular-nums">
+                            {fmtCurrency(inv.amount)}
+                          </p>
+                          <span
+                            className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full mt-1 ${
+                              INVOICE_STATUS_STYLE[inv.status] ?? "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {inv.status}
+                          </span>
+                        </div>
+                        {inv.status === "Paid" ? (
+                          <button
+                            onClick={() => toast.info("Download not yet connected to a backend.")}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                            title="Download invoice"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <div className="w-7 shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ── WhatsApp ── */}
+        {activeTab === "whatsapp" && (
+          <div className="max-w-2xl">
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-900">WhatsApp</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{resident.phone}</p>
+              </div>
+              <div className="p-4">
+                <TenantChatHistory logs={MOCK_RESIDENT_CHATS[residentId] ?? []} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── History ── */}
+        {activeTab === "history" && (
+          <div className="max-w-3xl">
+            {/* Filter row */}
+            <div className="flex items-center gap-3 mb-4">
+              <Select
+                value={historyFilter}
+                onValueChange={(v) => setHistoryFilter(v as HistoryCategory)}
+              >
+                <SelectTrigger className="w-48 h-8 text-sm">
+                  <SelectValue placeholder="Filter activity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Activity</SelectItem>
+                  <SelectItem value="invoices">Invoices &amp; Payments</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="messages">Messages</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Timeline card */}
+            <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
+              {historyGroups.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-8 text-center">
+                  <Clock className="w-8 h-8 text-gray-300" />
+                  <p className="text-sm text-gray-400">No activity recorded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {historyGroups.map((group) => (
+                    <div key={group.month}>
+                      {/* Month header */}
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                        {group.month}
+                      </p>
+                      <div className="border-t border-gray-200 mt-2" />
+
+                      {/* Events */}
+                      <div className="relative pl-8 mt-4">
+                        {group.events.length > 1 && (
+                          <div className="absolute left-[7px] top-[20px] bottom-[20px] w-[1px] bg-neutral-200" />
+                        )}
+                        {group.events.map((event) => (
+                          <div key={event.id} className="relative pb-6 last:pb-0">
+                            <div className="absolute left-[-24px] top-[16px] w-[6px] h-[6px] rounded-full bg-neutral-400" />
+                            <div className="relative inline-flex items-start gap-1.5 max-w-xl text-left group cursor-default hover:bg-neutral-50 rounded-lg p-3 -m-3">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {event.title}
+                                  {event.context && (
+                                    <span className="text-gray-500 font-normal">
+                                      {" "}— {event.context}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {event.date.toLocaleDateString("en-GB", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Docs ── */}
+        {activeTab === "docs" && (
+          <div className="max-w-3xl">
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              {/* Header */}
+              <div className="px-6 py-5 flex items-center gap-4 border-b border-gray-100">
+                <div className="flex-1">
+                  <h2 className="text-sm font-semibold text-gray-900">Documents</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {filteredDocs.length} file{filteredDocs.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                {/* Pill filter buttons */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {(["all", "Invoice", "Receipt", "Other"] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setDocFilter(f)}
+                      className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                        docFilter === f
+                          ? "bg-gray-900 text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {f === "all"
+                        ? "All"
+                        : f === "Invoice"
+                        ? "Invoices"
+                        : f === "Receipt"
+                        ? "Receipts"
+                        : "Other"}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => toast.info("Upload not yet connected to a backend.")}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors shrink-0"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Upload
+                </button>
+              </div>
+
+              {/* Document rows */}
+              {filteredDocs.length === 0 ? (
+                <div className="px-6 py-8 text-center">
+                  <p className="text-sm text-gray-400">No documents match this filter.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {filteredDocs.map((doc) => (
+                    <div key={doc.id} className="px-6 py-4 flex items-center gap-3">
+                      <span
+                        className={`shrink-0 inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                          doc.type === "Invoice"
+                            ? "bg-blue-50 text-blue-700"
+                            : doc.type === "Receipt"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {doc.type}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900">{doc.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{fmtDate(doc.date)}</p>
+                      </div>
+                      <button
+                        onClick={() => toast.info("Download not yet connected to a backend.")}
+                        className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        title="Download"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ── Generate Invoice Modal ── */}
