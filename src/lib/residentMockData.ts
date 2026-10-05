@@ -22,6 +22,9 @@ export interface ResidentRequest {
   location: string;
   status: "Open" | "In Progress" | "Resolved";
   date: string;
+  raisedAt?: string;    // ISO datetime e.g. "2026-09-10T09:30:00"
+  images?: string[];    // paths served from /public, e.g. ["/1.jpeg"]
+  assignedTo?: string;  // facility manager name
 }
 
 export interface ResidentInvoice {
@@ -113,6 +116,9 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Generator Room",
       status: "Open",
       date: "2026-09-10",
+      raisedAt: "2026-09-10T09:30:00",
+      images: ["/1.jpeg"],
+      assignedTo: "Jide Akinola",
     },
     {
       id: "rr-001-2",
@@ -120,6 +126,8 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Main Lobby",
       status: "In Progress",
       date: "2026-09-14",
+      raisedAt: "2026-09-14T11:05:00",
+      assignedTo: "Sarah Okonkwo",
     },
     {
       id: "rr-001-3",
@@ -127,6 +135,8 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Parking Lot",
       status: "Resolved",
       date: "2026-08-28",
+      raisedAt: "2026-08-28T08:15:00",
+      assignedTo: "Jide Akinola",
     },
   ],
   "RES-002": [
@@ -136,6 +146,8 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Generator Room",
       status: "Open",
       date: "2026-09-18",
+      raisedAt: "2026-09-18T14:45:00",
+      assignedTo: "Taiwo Adesanya",
     },
     {
       id: "rr-002-2",
@@ -143,6 +155,8 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Main Lobby",
       status: "Resolved",
       date: "2026-09-02",
+      raisedAt: "2026-09-02T10:00:00",
+      assignedTo: "Sarah Okonkwo",
     },
   ],
   "RES-003": [
@@ -152,6 +166,9 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Rooftop Garden",
       status: "Open",
       date: "2026-09-15",
+      raisedAt: "2026-09-15T08:00:00",
+      images: ["/2.jpeg", "/3.jpeg"],
+      assignedTo: "Jide Akinola",
     },
     {
       id: "rr-003-2",
@@ -159,6 +176,7 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Laundry Room",
       status: "In Progress",
       date: "2026-09-20",
+      raisedAt: "2026-09-20T16:20:00",
     },
   ],
   "RES-004": [],
@@ -169,6 +187,9 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Swimming Pool",
       status: "In Progress",
       date: "2026-09-22",
+      raisedAt: "2026-09-22T09:00:00",
+      images: ["/5.jpeg"],
+      assignedTo: "Sarah Okonkwo",
     },
   ],
   "RES-006": [
@@ -178,6 +199,7 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
       location: "Reception",
       status: "Open",
       date: "2026-09-25",
+      raisedAt: "2026-09-25T07:30:00",
     },
   ],
 };

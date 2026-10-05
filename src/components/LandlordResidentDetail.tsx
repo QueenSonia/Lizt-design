@@ -46,18 +46,22 @@ function fmtCurrency(n: number) {
   return "₦" + n.toLocaleString("en-NG");
 }
 
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function fmtMonthYear(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-GB", {
     month: "short",
     year: "numeric",
   });
 }
-
-const REQUEST_STATUS_STYLE: Record<string, string> = {
-  Open: "bg-blue-50 text-blue-700",
-  "In Progress": "bg-amber-50 text-amber-700",
-  Resolved: "bg-emerald-50 text-emerald-700",
-};
 
 const INVOICE_STATUS_STYLE: Record<string, string> = {
   Paid: "bg-emerald-50 text-emerald-700",
@@ -115,6 +119,7 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
   const [invErrors, setInvErrors] = useState({ category: "", amount: "", dueDate: "" });
   const [docFilter, setDocFilter] = useState<DocFilter>("all");
   const [historyFilter, setHistoryFilter] = useState<HistoryCategory>("all");
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // ── Invoice modal helpers ──────────────────────────────────────────────────
   const openInvModal = () => {
@@ -391,18 +396,38 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                         <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm text-gray-900 leading-snug">{r.title}</p>
-                          <div className="flex items-center gap-2 flex-wrap mt-1.5">
-                            <span className="text-xs text-gray-500">{r.location}</span>
-                            <span className="text-gray-300">·</span>
-                            <span
-                              className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                                REQUEST_STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {r.status}
-                            </span>
-                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {fmtDateTime(r.raisedAt ?? `${r.date}T10:00:00`)}
+                          </p>
+                          {r.assignedTo && (
+                            <p className="text-xs mt-1">
+                              <span className="text-gray-400">Assigned to </span>
+                              <span className="text-gray-600">{r.assignedTo}</span>
+                            </p>
+                          )}
                         </div>
+                        {r.images && r.images.length > 0 && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setLightboxSrc(r.images![0]); }}
+                            className="shrink-0 relative w-10 h-10 rounded-md overflow-hidden bg-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF5000]"
+                            aria-label="View image"
+                          >
+                            <img
+                              src={r.images[0]}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                            {r.images.length > 1 && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <span className="text-white text-[10px] font-semibold leading-none">
+                                  +{r.images.length - 1}
+                                </span>
+                              </div>
+                            )}
+                          </button>
+                        )}
                         <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
                       </li>
                     ))}
@@ -649,6 +674,33 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
         )}
 
       </div>
+
+      {/* ── Image Lightbox ── */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <div
+            className="relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxSrc}
+              alt=""
+              className="max-w-[90vw] max-h-[80vh] rounded-lg object-contain shadow-2xl"
+            />
+            <button
+              onClick={() => setLightboxSrc(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg text-gray-500 hover:text-gray-900 transition-colors"
+              aria-label="Close image preview"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Generate Invoice Modal ── */}
       {invOpen && (
