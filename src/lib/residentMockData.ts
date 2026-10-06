@@ -209,7 +209,7 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
 // Unified invoice records — each entry covers the full lifecycle from generation to settlement.
 export const MOCK_RESIDENT_INVOICES: Record<string, ResidentInvoice[]> = {
   "RES-001": [
-    { id: "inv-001-1", dateGenerated: "2026-10-01", dueDate: "2026-10-15", category: "Service Charge", amount: 120_000, status: "Overdue" },
+    { id: "inv-001-1", dateGenerated: "2026-10-01", dueDate: "2026-10-03", category: "Service Charge", amount: 120_000, status: "Overdue" },
     { id: "inv-001-2", dateGenerated: "2026-10-01", dueDate: "2026-10-10", category: "Diesel",         amount:  45_000, status: "Pending" },
     { id: "inv-001-3", dateGenerated: "2026-09-01", dueDate: "2026-09-15", category: "Service Charge", amount: 120_000, status: "Paid" },
     { id: "inv-001-4", dateGenerated: "2026-09-01", dueDate: "2026-09-10", category: "Diesel",         amount:  45_000, status: "Paid" },

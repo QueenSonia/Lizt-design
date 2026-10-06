@@ -163,6 +163,22 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
   );
   const outstanding = pendingInvoices.reduce((sum, i) => sum + i.amount, 0);
 
+  const sortedPendingInvoices = useMemo(() => {
+    return [...pendingInvoices].sort((a, b) => {
+      if (a.status !== b.status) return a.status === "Overdue" ? -1 : 1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+  }, [pendingInvoices]);
+
+  const overdueTotal = useMemo(
+    () => pendingInvoices.filter((i) => i.status === "Overdue").reduce((s, i) => s + i.amount, 0),
+    [pendingInvoices]
+  );
+  const pendingOnlyTotal = useMemo(
+    () => pendingInvoices.filter((i) => i.status === "Pending").reduce((s, i) => s + i.amount, 0),
+    [pendingInvoices]
+  );
+
   const initials = resident.name
     .split(" ")
     .map((n) => n[0])
@@ -458,40 +474,66 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
 
             {/* Pending Payments */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="px-6 py-5">
-                <h2 className="text-sm font-semibold text-gray-900">Pending Payments</h2>
-                {outstanding > 0 && (
-                  <p className="text-xs text-gray-400 mt-0.5">{fmtCurrency(outstanding)} outstanding</p>
+              {/* Card header — outstanding amount is the headline */}
+              <div className="px-6 py-5 border-b border-gray-100">
+                <p className="text-xs font-medium text-gray-400 mb-2">Pending Payments</p>
+                {outstanding > 0 ? (
+                  <>
+                    <p className="text-2xl font-bold text-gray-900 tabular-nums leading-tight">{fmtCurrency(outstanding)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Outstanding</p>
+                    {(overdueTotal > 0 || pendingOnlyTotal > 0) && (
+                      <p className="text-xs text-gray-400 mt-2">
+                        {[
+                          overdueTotal > 0 ? `${fmtCurrency(overdueTotal)} overdue` : null,
+                          pendingOnlyTotal > 0 ? `${fmtCurrency(pendingOnlyTotal)} pending` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm font-semibold text-gray-900">All paid up</p>
                 )}
               </div>
-              <div className="h-px bg-gray-100" />
 
-              {pendingInvoices.length === 0 ? (
+              {sortedPendingInvoices.length === 0 ? (
                 <div className="px-6 py-5">
                   <p className="text-sm text-gray-400">No pending payments.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {pendingInvoices.map((inv) => (
-                    <div key={inv.id} className="px-6 py-4 flex items-start gap-3">
+                  {sortedPendingInvoices.map((inv) => (
+                    <div
+                      key={inv.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/${userRole}/residents/${residentId}/invoices/${inv.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/${userRole}/residents/${residentId}/invoices/${inv.id}`);
+                        }
+                      }}
+                      className="px-6 py-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#FF5000] transition-colors"
+                    >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-900">{inv.category}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Generated {fmtDate(inv.dateGenerated)}&ensp;&middot;&ensp;Due {fmtDate(inv.dueDate)}
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Due {fmtDate(inv.dueDate)}
                         </p>
                       </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-sm font-semibold text-gray-900 tabular-nums">
-                          {fmtCurrency(inv.amount)}
-                        </p>
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        <p className="text-sm font-bold text-gray-900 tabular-nums">{fmtCurrency(inv.amount)}</p>
                         <span
-                          className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full mt-1 ${
+                          className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
                             INVOICE_STATUS_STYLE[inv.status] ?? "bg-gray-100 text-gray-600"
                           }`}
                         >
                           {inv.status}
                         </span>
                       </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                     </div>
                   ))}
                 </div>
@@ -500,7 +542,7 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
               <div className="px-6 py-3 border-t border-gray-100">
                 <button
                   onClick={() => setActiveTab("docs")}
-                  className="text-xs text-gray-400 hover:text-[#FF5000] transition-colors"
+                  className="text-xs text-gray-500 hover:text-gray-800 hover:underline transition-colors"
                 >
                   View all
                 </button>
@@ -653,32 +695,59 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {filteredDocs.map((doc) => (
-                    <div key={doc.id} className="px-6 py-4 flex items-center gap-3">
-                      <span
-                        className={`shrink-0 inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                          doc.type === "Invoice"
-                            ? "bg-blue-50 text-blue-700"
-                            : doc.type === "Receipt"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
+                  {filteredDocs.map((doc) => {
+                    const isInvoice = doc.type === "Invoice";
+                    const invoiceId = isInvoice ? doc.id.slice("doc-inv-".length) : null;
+                    return (
+                      <div
+                        key={doc.id}
+                        role={invoiceId ? "button" : undefined}
+                        tabIndex={invoiceId ? 0 : undefined}
+                        onClick={
+                          invoiceId
+                            ? () => router.push(`/${userRole}/residents/${residentId}/invoices/${invoiceId}`)
+                            : undefined
+                        }
+                        onKeyDown={
+                          invoiceId
+                            ? (e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  router.push(`/${userRole}/residents/${residentId}/invoices/${invoiceId}`);
+                                }
+                              }
+                            : undefined
+                        }
+                        className={`px-6 py-4 flex items-center gap-3 ${invoiceId ? "cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#FF5000]" : ""} transition-colors`}
                       >
-                        {doc.type}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900">{doc.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{fmtDate(doc.date)}</p>
+                        <span
+                          className={`shrink-0 inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                            doc.type === "Invoice"
+                              ? "bg-blue-50 text-blue-700"
+                              : doc.type === "Receipt"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {doc.type}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900">{doc.name}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{fmtDate(doc.date)}</p>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            if (invoiceId) e.stopPropagation();
+                            toast.info("Download not yet connected to a backend.");
+                          }}
+                          className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                          title="Download"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => toast.info("Download not yet connected to a backend.")}
-                        className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                        title="Download"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
