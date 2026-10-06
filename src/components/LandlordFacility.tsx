@@ -494,6 +494,24 @@ const MOCK_COMMON_AREAS: CommonArea[] = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+function matchesQuery(fields: (string | undefined | null)[], words: string[]): boolean {
+  return words.every((w) => fields.some((f) => (f ?? "").toLowerCase().includes(w)));
+}
+
+function Highlight({ text, words }: { text: string; words: string[] }) {
+  if (!words.length || !text) return <>{text}</>;
+  const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(`(${escaped.join("|")})`, "gi");
+  const parts = text.split(pattern);
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? <strong key={i}>{part}</strong> : <>{part}</>
+      )}
+    </>
+  );
+}
+
 export function LandlordFacility({
   onBack,
   onMenuClick,
@@ -505,6 +523,15 @@ export function LandlordFacility({
   const userRole = user?.role || pathname.split("/")[1] || "landlord";
 
   const [activeTab, setActiveTab] = useState<"service_requests" | "payments" | "common_areas" | "facility_managers">("service_requests");
+  const [globalSearchInput, setGlobalSearchInput] = useState(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") ?? "" : ""
+  );
+  const [debouncedQuery, setDebouncedQuery] = useState(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") ?? "" : ""
+  );
+  const [preSearchTab, setPreSearchTab] = useState<"service_requests" | "payments" | "common_areas" | "facility_managers">("service_requests");
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [, fmStoreTick] = useState(0);
   const [threadStoreVersion, setThreadStoreVersion] = useState(0);
@@ -514,6 +541,34 @@ export function LandlordFacility({
     const unsubThread = subscribeToThreadStore(() => setThreadStoreVersion((n) => n + 1));
     return () => { unsubFM(); unsubThread(); };
   }, []);
+
+  // Debounce global search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(globalSearchInput);
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        if (globalSearchInput) url.searchParams.set("q", globalSearchInput);
+        else url.searchParams.delete("q");
+        window.history.replaceState({}, "", url.pathname + url.search);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [globalSearchInput]);
+
+  // Escape key clears search
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && globalSearchInput) {
+        setGlobalSearchInput("");
+        setDebouncedQuery("");
+        setActiveTab(preSearchTab);
+        searchInputRef.current?.blur();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [globalSearchInput, preSearchTab]);
 
   // ── Facility Managers ──────────────────────────────────────────────────────
   const [managers, setManagers] = useState<FacilityManager[]>([]);
@@ -612,7 +667,6 @@ export function LandlordFacility({
   };
 
   // ── Maintenance Requests ───────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [statusGroupFilter, setStatusGroupFilter] = useState<"in_progress" | "resolved" | "closed" | "reopened">("in_progress");
@@ -636,26 +690,15 @@ export function LandlordFacility({
   // ── Payments ───────────────────────────────────────────────────────────────
   // Read-only view derived from each maintenance request's Updates & Activity
   // thread — approving/declining happens on the Maintenance Request Detail page.
-  const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<"all" | PaymentRequestStatus>("all");
 
   const allPayments = useMemo(() => collectPaymentRequests(requests), [requests, threadStoreVersion]);
 
   const filteredPayments = useMemo(() => {
-    const q = paymentSearchQuery.toLowerCase().trim();
-    return allPayments.filter((p) => {
-      const matchesStatus = paymentStatusFilter === "all" || p.status === paymentStatusFilter;
-      const matchesSearch =
-        q === "" ||
-        p.propertyName.toLowerCase().includes(q) ||
-        p.requestedBy.toLowerCase().includes(q) ||
-        p.maintenanceRequestTitle.toLowerCase().includes(q);
-      return matchesStatus && matchesSearch;
-    });
-  }, [allPayments, paymentSearchQuery, paymentStatusFilter]);
+    return allPayments.filter((p) => paymentStatusFilter === "all" || p.status === paymentStatusFilter);
+  }, [allPayments, paymentStatusFilter]);
 
   // ── Common Areas ───────────────────────────────────────────────────────────
-  const [caSearchQuery, setCaSearchQuery] = useState("");
   const [commonAreas, setCommonAreas] = useState<CommonArea[]>(MOCK_COMMON_AREAS);
   const [showAddAreaModal, setShowAddAreaModal] = useState(false);
   const [newAreaName, setNewAreaName] = useState("");
@@ -663,15 +706,7 @@ export function LandlordFacility({
   const [areaNameError, setAreaNameError] = useState("");
   const [areaAddressError, setAreaAddressError] = useState("");
 
-  const filteredAreas = useMemo(
-    () =>
-      commonAreas.filter(
-        (ca) =>
-          ca.name.toLowerCase().includes(caSearchQuery.toLowerCase()) ||
-          ca.address.toLowerCase().includes(caSearchQuery.toLowerCase()),
-      ),
-    [commonAreas, caSearchQuery],
-  );
+  const filteredAreas = commonAreas;
 
   const handleAddArea = () => {
     let valid = true;
@@ -779,20 +814,58 @@ export function LandlordFacility({
       const effectiveStatus = (statusOverrides[request.id] ?? request.status ?? "").toLowerCase();
       const matchesStatusGroup = STATUS_GROUP_MAP[statusGroupFilter].includes(effectiveStatus);
       const matchesStatus = statusFilter === "all" || effectiveStatus === statusFilter.toLowerCase();
-      const matchesSearch =
-        searchQuery === "" ||
-        (request.issue_category ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (request.property_name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        reporterName(request).toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (request.description ?? "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesProperty = propertyFilter === "all" || request.property_name === propertyFilter;
-      return matchesStatusGroup && matchesStatus && matchesSearch && matchesProperty;
+      return matchesStatusGroup && matchesStatus && matchesProperty;
     })
     .sort((a, b) => {
       const aPriority = isTaskPriority(a.id) ? 0 : 1;
       const bPriority = isTaskPriority(b.id) ? 0 : 1;
       return aPriority - bPriority;
     });
+
+  // ── Global search ──────────────────────────────────────────────────────────
+  const isSearching = debouncedQuery.trim().length > 0;
+  const searchWords = debouncedQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
+
+  const searchedRequests = useMemo(() => {
+    if (!isSearching) return [];
+    return [...localRequests, ...MOCK_SERVICE_REQUESTS].filter((req) => {
+      const assignee = getRequestAssignee(req.id);
+      return matchesQuery(
+        [req.description, req.property_name, reporterName(req), assignee?.name ?? "", req.status, req.issue_category],
+        searchWords,
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, localRequests]);
+
+  const searchedPayments = useMemo(() => {
+    if (!isSearching) return [];
+    return allPayments.filter((p) =>
+      matchesQuery([p.propertyName, p.requestedBy, p.maintenanceRequestTitle, p.status, p.amount], searchWords),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, allPayments]);
+
+  const searchedAreas = useMemo(() => {
+    if (!isSearching) return [];
+    return commonAreas.filter((ca) => matchesQuery([ca.name, ca.address], searchWords));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, commonAreas]);
+
+  const searchedManagers = useMemo(() => {
+    if (!isSearching) return [];
+    return managers.filter((m) => matchesQuery([m.name, m.phone_number], searchWords));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, managers]);
+
+  const totalResults = searchedRequests.length + searchedPayments.length + searchedAreas.length + searchedManagers.length;
+
+  const clearSearch = () => {
+    setGlobalSearchInput("");
+    setDebouncedQuery("");
+    setActiveTab(preSearchTab);
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -815,54 +888,345 @@ export function LandlordFacility({
         secondaryButtonText={activeTab === "service_requests" ? "Report Maintenance Request" : undefined}
       />
 
-      {/* Tab bar */}
-      <div className="fixed top-[73px] lg:top-[81px] right-0 left-0 lg:left-72 z-10 bg-white border-b border-gray-200">
-        <div className="px-6 flex gap-6">
-          {(["service_requests", "payments", "common_areas", "facility_managers"] as const).map((tab) => (
+      {/* Global search bar — between nav and tab bar */}
+      <div className="fixed top-[73px] lg:top-[81px] right-0 left-0 lg:left-72 z-10 bg-white border-b border-gray-200 px-6 py-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Input
+            ref={searchInputRef}
+            value={globalSearchInput}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (!globalSearchInput && val) setPreSearchTab(activeTab);
+              setGlobalSearchInput(val);
+            }}
+            placeholder="Search facility"
+            className="pl-10 pr-8"
+          />
+          {globalSearchInput && (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab
-                  ? "border-[#FF5000] text-[#FF5000] font-medium"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Clear search"
             >
-              {tab === "service_requests"
-                ? "Maintenance Requests"
-                : tab === "payments"
-                  ? "Payments"
-                  : tab === "common_areas"
-                    ? "Common Areas"
-                    : "Facility Managers"}
+              <X className="w-3.5 h-3.5" />
             </button>
-          ))}
+          )}
         </div>
       </div>
 
-      {/* Content — offset for nav + tab bar (~121px / ~129px) */}
-      <div className="pt-[121px] lg:pt-[129px] px-6 py-6 space-y-8">
+      {/* Tab bar — hidden during search */}
+      {!isSearching && (
+        <div className="fixed top-[133px] lg:top-[141px] right-0 left-0 lg:left-72 z-10 bg-white border-b border-gray-200">
+          <div className="px-6 flex gap-6">
+            {(["service_requests", "payments", "common_areas", "facility_managers"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === tab
+                    ? "border-[#FF5000] text-[#FF5000] font-medium"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {tab === "service_requests"
+                  ? "Maintenance Requests"
+                  : tab === "payments"
+                    ? "Payments"
+                    : tab === "common_areas"
+                      ? "Common Areas"
+                      : "Facility Managers"}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Content — offset for nav + search bar + tab bar */}
+      <div className={`px-6 py-6 space-y-8 ${isSearching ? "pt-[133px] lg:pt-[141px]" : "pt-[181px] lg:pt-[189px]"}`}>
+
+        {/* ── Search results ── */}
+        {isSearching && (
+          <div className="space-y-6">
+            {/* Summary line */}
+            <p className="text-sm text-gray-500">
+              {totalResults} result{totalResults !== 1 ? "s" : ""} for &ldquo;{debouncedQuery}&rdquo;
+            </p>
+
+            {/* Empty state */}
+            {totalResults === 0 && (
+              <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+                <p className="text-sm font-medium text-gray-800 mb-1">No results for &ldquo;{debouncedQuery}&rdquo;</p>
+                <p className="text-xs text-gray-400 mb-4">Try a property, facility manager or request keyword</p>
+                <button onClick={clearSearch} className="text-sm text-[#FF5000] hover:underline">Clear search</button>
+              </div>
+            )}
+
+            {/* Maintenance Requests group */}
+            {searchedRequests.length > 0 && (() => {
+              const shown = expandedGroups["requests"] ? searchedRequests : searchedRequests.slice(0, 5);
+              return (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">Maintenance Requests</h3>
+                    <span className="text-xs text-gray-400">{searchedRequests.length}</span>
+                  </div>
+                  <div className="space-y-4">
+                    {shown.map((request) => {
+                      const assignee = getRequestAssignee(request.id);
+                      const isPriority = isTaskPriority(request.id);
+                      return (
+                        <div
+                          key={request.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => router.push(`/${userRole}/maintenance-request-detail?id=${request.id}`)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/${userRole}/maintenance-request-detail?id=${request.id}`); } }}
+                          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <h3 className="text-base font-medium text-gray-900 leading-snug">
+                              <Highlight text={request.description} words={searchWords} />
+                            </h3>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isPriority && (
+                                <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">Priority</span>
+                              )}
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
+                                ({ open: "bg-yellow-50 text-yellow-700 border-yellow-200", in_progress: "bg-blue-50 text-blue-700 border-blue-200", resolved: "bg-green-50 text-green-700 border-green-200", reopened: "bg-red-50 text-red-700 border-red-200", urgent: "bg-red-50 text-red-700 border-red-200", closed: "bg-gray-100 text-gray-600 border-gray-200", pending: "bg-yellow-50 text-yellow-700 border-yellow-200" } as Record<string, string>)[(statusOverrides[request.id] ?? request.status)?.toLowerCase()] ?? "bg-gray-100 text-gray-600 border-gray-200"
+                              }`}>
+                                {formatStatusLabel(statusOverrides[request.id] ?? request.status)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">Property:</span>
+                              <span className="text-sm text-gray-900"><Highlight text={request.property_name} words={searchWords} /></span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">Reported by:</span>
+                              <span className="text-sm text-gray-900">
+                                {SOURCE_LABEL[resolveSource(request)]} – <Highlight text={reporterName(request)} words={searchWords} />
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">Assigned to:</span>
+                              {assignee ? (
+                                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                                  <Users className="w-3 h-3" />
+                                  <Highlight text={assignee.name} words={searchWords} />
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">Unassigned</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
+                            <div><span className="text-gray-600">Date Reported: </span><span>{formatDateTime(request.date_reported)}</span></div>
+                            <div className="text-xs">Last Updated: {getRelativeTime(request.updated_at || request.updatedAt)}</div>
+                          </div>
+                          {request.attachments && request.attachments.length > 0 && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Paperclip className="w-3.5 h-3.5 text-gray-400" />
+                              <span className="text-xs text-gray-500">{request.attachments.length} attachment{request.attachments.length !== 1 ? "s" : ""}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {searchedRequests.length > 5 && (
+                    <button
+                      onClick={() => setExpandedGroups((prev) => ({ ...prev, requests: !prev.requests }))}
+                      className="mt-3 text-sm text-[#FF5000] hover:underline"
+                    >
+                      {expandedGroups["requests"] ? "Show less" : `Show all ${searchedRequests.length}`}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Payments group */}
+            {searchedPayments.length > 0 && (() => {
+              const shown = expandedGroups["payments"] ? searchedPayments : searchedPayments.slice(0, 5);
+              return (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">Payments</h3>
+                    <span className="text-xs text-gray-400">{searchedPayments.length}</span>
+                  </div>
+                  <div className="space-y-4">
+                    {shown.map((payment) => (
+                      <div
+                        key={payment.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => router.push(`/${userRole}/maintenance-request-detail?id=${payment.maintenanceRequestId}`)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/${userRole}/maintenance-request-detail?id=${payment.maintenanceRequestId}`); } }}
+                        className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-4">
+                          <span className="text-xl font-semibold text-gray-900">{fmtNaira(payment.requestedAmount)}</span>
+                          <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${PAYMENT_STATUS_BADGE_CLASS[payment.status]}`}>
+                            {PAYMENT_STATUS_LABEL[payment.status]}
+                          </span>
+                        </div>
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Property:</span>
+                            <span className="text-sm text-gray-900"><Highlight text={payment.propertyName} words={searchWords} /></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Maintenance Request:</span>
+                            <span className="text-sm text-[#FF5000]"><Highlight text={payment.maintenanceRequestTitle} words={searchWords} /></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Requested By:</span>
+                            <span className="text-sm text-gray-900"><Highlight text={payment.requestedBy} words={searchWords} /></span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {searchedPayments.length > 5 && (
+                    <button
+                      onClick={() => setExpandedGroups((prev) => ({ ...prev, payments: !prev.payments }))}
+                      className="mt-3 text-sm text-[#FF5000] hover:underline"
+                    >
+                      {expandedGroups["payments"] ? "Show less" : `Show all ${searchedPayments.length}`}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Common Areas group */}
+            {searchedAreas.length > 0 && (() => {
+              const shown = expandedGroups["areas"] ? searchedAreas : searchedAreas.slice(0, 5);
+              return (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">Common Areas</h3>
+                    <span className="text-xs text-gray-400">{searchedAreas.length}</span>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-sm divide-y divide-gray-100 overflow-hidden">
+                    {shown.map((ca) => (
+                      <button
+                        key={ca.id}
+                        onClick={() => router.push(`/${userRole}/common-area-detail?id=${ca.id}`)}
+                        className="w-full text-left px-5 py-4 hover:bg-gray-50 transition-colors flex items-center gap-4 group"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                          <LayoutGrid className="w-4 h-4 text-[#FF5000]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate"><Highlight text={ca.name} words={searchWords} /></p>
+                          <p className="text-xs text-gray-500 truncate mt-0.5"><Highlight text={ca.address} words={searchWords} /></p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {ca.openRequests > 0 && (
+                            <span className="text-xs bg-orange-100 text-orange-700 font-medium px-2 py-0.5 rounded-full">{ca.openRequests} open</span>
+                          )}
+                          <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {searchedAreas.length > 5 && (
+                    <button
+                      onClick={() => setExpandedGroups((prev) => ({ ...prev, areas: !prev.areas }))}
+                      className="mt-3 text-sm text-[#FF5000] hover:underline"
+                    >
+                      {expandedGroups["areas"] ? "Show less" : `Show all ${searchedAreas.length}`}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Facility Managers group */}
+            {searchedManagers.length > 0 && (() => {
+              const shown = expandedGroups["managers"] ? searchedManagers : searchedManagers.slice(0, 5);
+              return (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">Facility Managers</h3>
+                    <span className="text-xs text-gray-400">{searchedManagers.length}</span>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-sm divide-y divide-gray-100 overflow-hidden">
+                    {shown.map((manager) => (
+                      <div
+                        key={manager.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => router.push(`/${userRole}/facility-manager-detail?id=${manager.id}`)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/${userRole}/facility-manager-detail?id=${manager.id}`); } }}
+                        className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                          <span className="text-[#FF5000] font-semibold text-xs">
+                            {manager.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900"><Highlight text={manager.name} words={searchWords} /></p>
+                          <p className="text-xs text-gray-500 mt-0.5"><Highlight text={manager.phone_number} words={searchWords} /></p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                  {searchedManagers.length > 5 && (
+                    <button
+                      onClick={() => setExpandedGroups((prev) => ({ ...prev, managers: !prev.managers }))}
+                      className="mt-3 text-sm text-[#FF5000] hover:underline"
+                    >
+                      {expandedGroups["managers"] ? "Show less" : `Show all ${searchedManagers.length}`}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
 
         {/* ── Maintenance Requests tab ── */}
-        {activeTab === "service_requests" && (
+        {!isSearching && activeTab === "service_requests" && (
           <>
             {/* Maintenance Requests */}
             <div>
-              <div className="bg-white rounded-xl p-4 shadow-sm mb-6 max-w-xl">
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search requests..."
-                      className="pl-10"
-                    />
-                  </div>
+              {/* Status group filter + filter button */}
+              <div className="mb-2.5 flex items-center gap-1.5 flex-wrap">
+                {([
+                  { value: "in_progress", label: "In Progress" },
+                  { value: "resolved", label: "Resolved" },
+                  { value: "closed", label: "Closed" },
+                  { value: "reopened", label: "Reopened" },
+                ] as const).map((opt) => {
+                  const active = statusGroupFilter === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setStatusGroupFilter(opt.value)}
+                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                        active
+                          ? "bg-gray-900 text-white border-gray-900"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+                <div className="ml-auto">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="icon" className="shrink-0">
-                        <Filter className="w-4 h-4" />
+                      <Button variant="outline" size="icon" className="shrink-0 h-7 w-7">
+                        <Filter className="w-3.5 h-3.5" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80" align="end">
@@ -899,32 +1263,6 @@ export function LandlordFacility({
                     </PopoverContent>
                   </Popover>
                 </div>
-              </div>
-
-              {/* Status group filter */}
-              <div className="mb-2.5 flex items-center gap-1.5 flex-wrap">
-                {([
-                  { value: "in_progress", label: "In Progress" },
-                  { value: "resolved", label: "Resolved" },
-                  { value: "closed", label: "Closed" },
-                  { value: "reopened", label: "Reopened" },
-                ] as const).map((opt) => {
-                  const active = statusGroupFilter === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setStatusGroupFilter(opt.value)}
-                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                        active
-                          ? "bg-gray-900 text-white border-gray-900"
-                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
               </div>
 
               {loadingRequests && (
@@ -1031,20 +1369,8 @@ export function LandlordFacility({
         )}
 
         {/* ── Payments tab ── */}
-        {activeTab === "payments" && (
+        {!isSearching && activeTab === "payments" && (
           <div>
-            <div className="bg-white rounded-xl p-4 shadow-sm mb-6 max-w-xl">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  value={paymentSearchQuery}
-                  onChange={(e) => setPaymentSearchQuery(e.target.value)}
-                  placeholder="Search by property, facility manager, maintenance request..."
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
             {/* Status filter */}
             <div className="mb-5 flex items-center gap-1.5 flex-wrap">
               {([
@@ -1188,33 +1514,16 @@ export function LandlordFacility({
         )}
 
         {/* ── Common Areas tab ── */}
-        {activeTab === "common_areas" && (
+        {!isSearching && activeTab === "common_areas" && (
           <div>
-            {/* Tab header row */}
-            <div className="mb-5 sm:max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search common areas…"
-                  value={caSearchQuery}
-                  onChange={(e) => setCaSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
             {/* Empty state */}
             {filteredAreas.length === 0 && (
               <div className="bg-white rounded-xl p-12 shadow-sm text-center">
                 <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                   <LayoutGrid className="w-7 h-7 text-gray-400" />
                 </div>
-                <h3 className="text-base font-medium text-gray-900 mb-1">
-                  {caSearchQuery ? "No results found" : "No common areas yet"}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {caSearchQuery ? "Try a different search term." : "Add your first common area to get started."}
-                </p>
+                <h3 className="text-base font-medium text-gray-900 mb-1">No common areas yet</h3>
+                <p className="text-sm text-gray-500">Add your first common area to get started.</p>
               </div>
             )}
 
@@ -1249,14 +1558,13 @@ export function LandlordFacility({
             )}
 
             <p className="text-xs text-gray-400 mt-4">
-              {filteredAreas.length} {filteredAreas.length === 1 ? "area" : "areas"}
-              {caSearchQuery ? " found" : " total"}
+              {filteredAreas.length} {filteredAreas.length === 1 ? "area" : "areas"} total
             </p>
           </div>
         )}
 
         {/* ── Facility Managers tab ── */}
-        {activeTab === "facility_managers" && (
+        {!isSearching && activeTab === "facility_managers" && (
           <div>
 
             {loadingManagers ? (
