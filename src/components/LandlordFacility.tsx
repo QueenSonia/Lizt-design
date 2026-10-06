@@ -506,7 +506,7 @@ function Highlight({ text, words }: { text: string; words: string[] }) {
   return (
     <>
       {parts.map((part, i) =>
-        i % 2 === 1 ? <strong key={i}>{part}</strong> : <>{part}</>
+        i % 2 === 1 ? <strong key={i}>{part}</strong> : <span key={i}>{part}</span>
       )}
     </>
   );
