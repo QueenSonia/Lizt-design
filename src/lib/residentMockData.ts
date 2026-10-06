@@ -1,5 +1,7 @@
 // Shared mock data for Residents list and detail pages.
 
+import { ServiceRequest } from "@/lib/landlordFacilityTypes";
+
 export interface Building {
   id: string;
   name: string;
@@ -594,4 +596,76 @@ export const MOCK_RESIDENT_OTHER_DOCS: Record<string, ResidentOtherDoc[]> = {
     { id: "odoc-006-1", name: "Tenancy Agreement", date: "2026-04-01" },
     { id: "odoc-006-2", name: "Move-In Inspection Report", date: "2026-04-01" },
   ],
+};
+
+export const MOCK_RESIDENT_SERVICE_REQUESTS: Record<string, ServiceRequest> = {
+  "rr-001-1": {
+    id: "rr-001-1", request_id: "RR-001-1",
+    tenant_name: "Chibuike Okonkwo", reporter_name: "Chibuike Okonkwo",
+    property_name: "Palm Grove Estate", issue_category: "Electrical",
+    description: "Generator in Generator Room not starting — no backup power on upper floors since fault was first reported on 10 September",
+    status: "open", date_reported: "2026-09-10T09:30:00.000Z",
+    tenant_id: "RES-001", property_id: "b-1",
+    source: "resident",
+    attachments: [{ url: "/1.jpeg", type: "image", group: "original" }],
+  },
+  "rr-001-2": {
+    id: "rr-001-2", request_id: "RR-001-2",
+    tenant_name: "Chibuike Okonkwo", reporter_name: "Chibuike Okonkwo",
+    property_name: "Palm Grove Estate", issue_category: "Electrical",
+    description: "Main Lobby lights flickering",
+    status: "in_progress", date_reported: "2026-09-14T11:05:00.000Z",
+    tenant_id: "RES-001", property_id: "b-1",
+    source: "resident",
+  },
+  "rr-002-1": {
+    id: "rr-002-1", request_id: "RR-002-1",
+    tenant_name: "Funmilola Adeyemi", reporter_name: "Funmilola Adeyemi",
+    property_name: "Palm Grove Estate", issue_category: "Electrical",
+    description: "Generator not supplying power to Flat 2B",
+    status: "open", date_reported: "2026-09-18T14:45:00.000Z",
+    tenant_id: "RES-002", property_id: "b-1",
+    source: "resident",
+  },
+  "rr-003-1": {
+    id: "rr-003-1", request_id: "RR-003-1",
+    tenant_name: "Aminu Suleiman", reporter_name: "Aminu Suleiman",
+    property_name: "Maple Court", issue_category: "Plumbing",
+    description: "Rooftop Garden drain blocked after rain",
+    status: "open", date_reported: "2026-09-15T08:00:00.000Z",
+    tenant_id: "RES-003", property_id: "b-2",
+    source: "resident",
+    attachments: [
+      { url: "/2.jpeg", type: "image", group: "original" },
+      { url: "/3.jpeg", type: "image", group: "original" },
+    ],
+  },
+  "rr-003-2": {
+    id: "rr-003-2", request_id: "RR-003-2",
+    tenant_name: "Aminu Suleiman", reporter_name: "Aminu Suleiman",
+    property_name: "Maple Court", issue_category: "General",
+    description: "Laundry Room door handle broken",
+    status: "in_progress", date_reported: "2026-09-20T16:20:00.000Z",
+    tenant_id: "RES-003", property_id: "b-2",
+    source: "resident",
+  },
+  "rr-005-1": {
+    id: "rr-005-1", request_id: "RR-005-1",
+    tenant_name: "Babatunde Fashola", reporter_name: "Babatunde Fashola",
+    property_name: "Sapphire Heights", issue_category: "Plumbing",
+    description: "Swimming Pool pump making grinding noise",
+    status: "in_progress", date_reported: "2026-09-22T09:00:00.000Z",
+    tenant_id: "RES-005", property_id: "b-3",
+    source: "resident",
+    attachments: [{ url: "/5.jpeg", type: "image", group: "original" }],
+  },
+  "rr-006-1": {
+    id: "rr-006-1", request_id: "RR-006-1",
+    tenant_name: "Chiamaka Igwe", reporter_name: "Chiamaka Igwe",
+    property_name: "Sapphire Heights", issue_category: "General",
+    description: "Reception entrance door closer faulty",
+    status: "open", date_reported: "2026-09-25T07:30:00.000Z",
+    tenant_id: "RES-006", property_id: "b-3",
+    source: "resident",
+  },
 };

@@ -60,13 +60,20 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 
-export default function LandlordMaintenanceRequestDetail() {
+interface Props {
+  requestOverride?: ServiceRequest;
+  backTo?: string;
+  backLabel?: string;
+}
+
+export default function LandlordMaintenanceRequestDetail({ requestOverride, backTo, backLabel }: Props = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
   const userRole = user?.role || "property-manager";
 
-  const requestId = searchParams.get("id") ?? "";
+  const searchParamId = searchParams.get("id") ?? "";
+  const requestId = requestOverride?.id ?? searchParamId;
 
   // State
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
@@ -99,15 +106,15 @@ export default function LandlordMaintenanceRequestDetail() {
     return () => { unsubFM(); unsubThread(); };
   }, []);
 
-  const req: ServiceRequest | undefined = MOCK_SERVICE_REQUESTS.find((r) => r.id === requestId);
+  const req: ServiceRequest | undefined = requestOverride ?? MOCK_SERVICE_REQUESTS.find((r) => r.id === requestId);
 
   if (!req) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-500 text-sm mb-4">Maintenance request not found.</p>
-          <Button variant="outline" onClick={() => router.push(`/${userRole}/facility`)}>
-            Back to Facility
+          <Button variant="outline" onClick={() => router.push(backTo ?? `/${userRole}/facility`)}>
+            {backLabel ? `Back to ${backLabel}` : "Back to Facility"}
           </Button>
         </div>
       </div>
@@ -252,11 +259,11 @@ export default function LandlordMaintenanceRequestDetail() {
         <div className="px-6 sm:px-8 py-4">
           <button
             type="button"
-            onClick={() => router.push(`/${userRole}/facility`)}
+            onClick={() => router.push(backTo ?? `/${userRole}/facility`)}
             className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            Maintenance Request
+            {backLabel ?? "Maintenance Request"}
           </button>
         </div>
 

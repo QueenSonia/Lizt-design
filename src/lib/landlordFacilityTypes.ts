@@ -47,14 +47,14 @@ export interface ServiceRequest {
   created_at?: string;
   updated_at?: string;
   statusHistory?: StatusHistoryEvent[];
-  source?: "tenant" | "facility_manager";
+  source?: RequestSource;
   reporter_name?: string;
   resolution?: ResolutionDetails;
   resolutions?: ResolutionDetails[];
   reopenCount?: number;
 }
 
-export type RequestSource = "tenant" | "facility_manager";
+export type RequestSource = "tenant" | "facility_manager" | "resident";
 
 export function resolveSource(req: ServiceRequest): RequestSource {
   if (req.source) return req.source;
@@ -69,6 +69,7 @@ export function reporterName(req: ServiceRequest): string {
 export const SOURCE_LABEL: Record<RequestSource, string> = {
   tenant: "Tenant",
   facility_manager: "Facility Manager",
+  resident: "Resident",
 };
 
 export function formatDateTime(dateString: string): string {
@@ -158,6 +159,30 @@ export const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
     email: "b.okafor@facilitypro.ng",
     role: "facility_manager",
     date: "2026-03-22T00:00:00Z",
+  },
+  {
+    id: "fm-007",
+    name: "Jide Akinola",
+    phone_number: "+234 803 556 1122",
+    email: "j.akinola@facilitypro.ng",
+    role: "facility_manager",
+    date: "2026-04-01T00:00:00Z",
+  },
+  {
+    id: "fm-008",
+    name: "Sarah Okonkwo",
+    phone_number: "+234 806 778 4433",
+    email: "s.okonkwo@facilitypro.ng",
+    role: "facility_manager",
+    date: "2026-04-15T00:00:00Z",
+  },
+  {
+    id: "fm-009",
+    name: "Taiwo Adesanya",
+    phone_number: "+234 812 990 6655",
+    email: "t.adesanya@facilitypro.ng",
+    role: "facility_manager",
+    date: "2026-05-01T00:00:00Z",
   },
 ];
 

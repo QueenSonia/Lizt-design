@@ -287,6 +287,66 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "r10-m003", type: "message", author: "facility_manager", authorName: "Tunde Adeyemi", body: "Understood. I'll bring a waterproofing specialist this time.", timestamp: "2026-05-25T10:30:00.000Z" },
     ],
   ],
+  // ── Resident-raised requests ──────────────────────────────────────────────────
+  [
+    "rr-001-1",
+    [
+      { id: "rr1-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-09-10T09:30:00.000Z" },
+      { id: "rr1-e002", type: "event", body: "Assigned to Jide Akinola", timestamp: "2026-09-10T10:00:00.000Z" },
+      { id: "rr1-m001", type: "message", author: "landlord", authorName: "You", body: "Jide, please attend to this urgently. Upper floors have had no backup power for over a week.", timestamp: "2026-09-11T08:15:00.000Z" },
+      { id: "rr1-m002", type: "message", author: "facility_manager", authorName: "Jide Akinola", body: "Understood. I'll inspect the generator this afternoon and source a replacement part if needed.", timestamp: "2026-09-11T09:45:00.000Z" },
+    ],
+  ],
+  [
+    "rr-001-2",
+    [
+      { id: "rr2-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-09-14T11:05:00.000Z" },
+      { id: "rr2-e002", type: "event", body: "Assigned to Sarah Okonkwo", timestamp: "2026-09-14T11:30:00.000Z" },
+      { id: "rr2-e003", type: "event", body: "Request approved", timestamp: "2026-09-14T12:00:00.000Z" },
+      { id: "rr2-m001", type: "message", author: "facility_manager", authorName: "Sarah Okonkwo", body: "Inspected the lobby — two fluorescent drivers are failing. I'll replace them by end of day tomorrow.", timestamp: "2026-09-15T09:00:00.000Z" },
+    ],
+  ],
+  [
+    "rr-002-1",
+    [
+      { id: "rr3-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-09-18T14:45:00.000Z" },
+      { id: "rr3-e002", type: "event", body: "Assigned to Taiwo Adesanya", timestamp: "2026-09-18T15:10:00.000Z" },
+      { id: "rr3-m001", type: "message", author: "facility_manager", authorName: "Taiwo Adesanya", body: "On site. The distribution board breaker for Flat 2B has tripped and won't hold. I'll need a replacement breaker — sourcing now.", timestamp: "2026-09-19T10:30:00.000Z" },
+    ],
+  ],
+  [
+    "rr-003-1",
+    [
+      { id: "rr4-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-09-15T08:00:00.000Z" },
+      { id: "rr4-e002", type: "event", body: "Assigned to Jide Akinola", timestamp: "2026-09-15T08:30:00.000Z" },
+      { id: "rr4-m001", type: "message", author: "landlord", authorName: "You", body: "Jide, please clear this before the next rain. Rooftop flooding can damage the structure.", timestamp: "2026-09-15T09:00:00.000Z" },
+      { id: "rr4-m002", type: "message", author: "facility_manager", authorName: "Jide Akinola", body: "Visited the rooftop. The drain grate is clogged with debris from recent construction. Clearing it today.", timestamp: "2026-09-16T11:15:00.000Z" },
+    ],
+  ],
+  [
+    "rr-003-2",
+    [
+      { id: "rr5-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-09-20T16:20:00.000Z" },
+      { id: "rr5-m001", type: "message", author: "landlord", authorName: "You", body: "Please get this fixed — residents can't access the laundry room properly.", timestamp: "2026-09-21T09:00:00.000Z" },
+    ],
+  ],
+  [
+    "rr-005-1",
+    [
+      { id: "rr6-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-09-22T09:00:00.000Z" },
+      { id: "rr6-e002", type: "event", body: "Assigned to Sarah Okonkwo", timestamp: "2026-09-22T09:30:00.000Z" },
+      { id: "rr6-e003", type: "event", body: "Request approved", timestamp: "2026-09-22T10:00:00.000Z" },
+      { id: "rr6-m001", type: "message", author: "facility_manager", authorName: "Sarah Okonkwo", body: "Pool pump inspected — bearing is worn. Sourcing a replacement. Pool should be back to normal within 3 days.", timestamp: "2026-09-23T08:45:00.000Z" },
+      { id: "rr6-m002", type: "message", author: "landlord", authorName: "You", body: "Thanks Sarah. Please keep me posted on the timeline.", timestamp: "2026-09-23T10:00:00.000Z" },
+      { id: "rr6-m003", type: "message", author: "facility_manager", authorName: "Sarah Okonkwo", body: "Part arrived. Installing tomorrow morning — pool will be operational by afternoon.", timestamp: "2026-09-24T15:30:00.000Z" },
+    ],
+  ],
+  [
+    "rr-006-1",
+    [
+      { id: "rr7-e001", type: "event", body: "Maintenance request submitted", timestamp: "2026-09-25T07:30:00.000Z" },
+    ],
+  ],
   // FM-side issues (seeded conversations for is01, is02)
   [
     "is01",

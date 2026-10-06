@@ -20,6 +20,9 @@ export const MOCK_FM_LIST: MockFacilityManager[] = [
   { id: "fm-004", name: "Ngozi Eze" },
   { id: "fm-005", name: "Femi Olawale" },
   { id: "fm-006", name: "Blessing Okafor" },
+  { id: "fm-007", name: "Jide Akinola" },
+  { id: "fm-008", name: "Sarah Okonkwo" },
+  { id: "fm-009", name: "Taiwo Adesanya" },
 ];
 
 // requestId → managerId
@@ -31,6 +34,12 @@ const _requestAssignments = new Map<string, string>([
   ["sr-008", "fm-001"],  // Chukwuemeka Obi — kitchen sink reopened
   ["sr-009", "fm-001"],  // Chukwuemeka Obi — generator common areas reopened (Jide Akinola = fm-002 in spec but using fm-001 for demo)
   ["sr-010", "fm-003"],  // Tunde Adeyemi — bathroom tiles reopened
+  ["rr-001-1", "fm-007"],  // Jide Akinola — generator, Palm Grove
+  ["rr-001-2", "fm-008"],  // Sarah Okonkwo — lobby lights, Palm Grove
+  ["rr-002-1", "fm-009"],  // Taiwo Adesanya — generator Flat 2B
+  ["rr-002-2", "fm-008"],  // Sarah Okonkwo — water pressure (resolved)
+  ["rr-003-1", "fm-007"],  // Jide Akinola — rooftop drain, Maple Court
+  ["rr-005-1", "fm-008"],  // Sarah Okonkwo — pool pump, Sapphire Heights
 ]);
 
 type Listener = () => void;
