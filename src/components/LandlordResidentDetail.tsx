@@ -74,11 +74,12 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type TabKey = "overview" | "whatsapp" | "history" | "docs";
+type TabKey = "overview" | "maintenance" | "whatsapp" | "history" | "docs";
 type HistoryCategory = "all" | "invoices" | "maintenance" | "messages";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
+  { key: "maintenance", label: "Maintenance" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "history", label: "History" },
   { key: "docs", label: "Docs" },
@@ -534,6 +535,70 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* ── Maintenance Requests ── */}
+        {activeTab === "maintenance" && (
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-900">Maintenance Requests</h2>
+              {seedRequests.length > 0 && (
+                <span className="text-xs tabular-nums text-gray-400">{seedRequests.length}</span>
+              )}
+            </div>
+
+            {seedRequests.length === 0 ? (
+              <div className="px-6 py-10 text-center">
+                <p className="text-sm text-gray-400">No maintenance requests.</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {[...seedRequests]
+                  .sort((a, b) => new Date(b.raisedAt ?? b.date).getTime() - new Date(a.raisedAt ?? a.date).getTime())
+                  .map((r) => (
+                    <li
+                      key={r.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/${userRole}/residents/${residentId}/maintenance/${r.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/${userRole}/residents/${residentId}/maintenance/${r.id}`);
+                        }
+                      }}
+                      className="px-6 py-4 flex items-start gap-3 cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#FF5000] transition-colors"
+                    >
+                      <Wrench className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-gray-900 leading-snug">{r.title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {r.location} · {fmtDate(r.date)}
+                        </p>
+                        {r.assignedTo && (
+                          <p className="text-xs mt-1">
+                            <span className="text-gray-400">Assigned to </span>
+                            <span className="text-gray-600">{r.assignedTo}</span>
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                          r.status === "Open"
+                            ? "bg-yellow-50 text-yellow-700"
+                            : r.status === "In Progress"
+                            ? "bg-blue-50 text-blue-700"
+                            : "bg-green-50 text-green-700"
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
+                    </li>
+                  ))}
+              </ul>
+            )}
           </div>
         )}
 
