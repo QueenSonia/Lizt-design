@@ -74,12 +74,13 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type TabKey = "overview" | "maintenance" | "whatsapp" | "history" | "docs";
+type TabKey = "overview" | "maintenance" | "payments" | "whatsapp" | "history" | "docs";
 type HistoryCategory = "all" | "invoices" | "maintenance" | "messages";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "maintenance", label: "Maintenance" },
+  { key: "payments", label: "Payments" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "history", label: "History" },
   { key: "docs", label: "Docs" },
@@ -598,6 +599,62 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                     </li>
                   ))}
               </ul>
+            )}
+          </div>
+        )}
+
+        {/* ── Payments ── */}
+        {activeTab === "payments" && (
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-900">Payments</h2>
+              {invoices.length > 0 && (
+                <span className="text-xs tabular-nums text-gray-400">{invoices.length}</span>
+              )}
+            </div>
+
+            {invoices.length === 0 ? (
+              <div className="px-6 py-10 text-center">
+                <p className="text-sm text-gray-400">No payments yet.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {[...invoices]
+                  .sort((a, b) => new Date(b.dateGenerated).getTime() - new Date(a.dateGenerated).getTime())
+                  .map((inv) => (
+                    <div
+                      key={inv.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/${userRole}/residents/${residentId}/invoices/${inv.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/${userRole}/residents/${residentId}/invoices/${inv.id}`);
+                        }
+                      }}
+                      className="px-6 py-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#FF5000] transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900">{inv.category}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Generated {fmtDate(inv.dateGenerated)} · Due {fmtDate(inv.dueDate)}
+                        </p>
+                      </div>
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        <p className="text-sm font-bold text-gray-900 tabular-nums">{fmtCurrency(inv.amount)}</p>
+                        <span
+                          className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                            INVOICE_STATUS_STYLE[inv.status] ?? "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {inv.status}
+                        </span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    </div>
+                  ))}
+              </div>
             )}
           </div>
         )}
