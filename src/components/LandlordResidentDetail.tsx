@@ -76,7 +76,6 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
 
 type TabKey = "overview" | "whatsapp" | "history" | "docs";
 type HistoryCategory = "all" | "invoices" | "maintenance" | "messages";
-type DocFilter = "all" | "Invoice" | "Receipt" | "Other";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -129,7 +128,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
   }>({ items: [{ feeName: "", amount: "" }], dueDate: undefined, frequency: "one_time" });
   const [invoiceItemErrors, setInvoiceItemErrors] = useState<{ feeName: string; amount: string }[]>([{ feeName: "", amount: "" }]);
   const [invoiceDueDateError, setInvoiceDueDateError] = useState("");
-  const [docFilter, setDocFilter] = useState<DocFilter>("all");
   const [historyFilter, setHistoryFilter] = useState<HistoryCategory>("all");
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
@@ -313,10 +311,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
     );
   }, [invoices, residentId]);
 
-  const filteredDocs = useMemo(() => {
-    if (docFilter === "all") return allDocs;
-    return allDocs.filter((d) => d.type === docFilter);
-  }, [allDocs, docFilter]);
 
   return (
     <div className="page-container">
@@ -641,45 +635,21 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
           <div className="max-w-3xl">
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               {/* Header */}
-              <div className="px-6 py-5 flex items-center gap-4 border-b border-gray-100">
-                <div className="flex-1">
-                  <h2 className="text-sm font-semibold text-gray-900">Documents</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {filteredDocs.length} file{filteredDocs.length !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                {/* Pill filter buttons */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {(["all", "Invoice", "Receipt", "Other"] as const).map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setDocFilter(f)}
-                      className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                        docFilter === f
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      {f === "all"
-                        ? "All"
-                        : f === "Invoice"
-                        ? "Invoices"
-                        : f === "Receipt"
-                        ? "Receipts"
-                        : "Other"}
-                    </button>
-                  ))}
-                </div>
+              <div className="px-6 py-5 border-b border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-900">Documents</h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {allDocs.length} file{allDocs.length !== 1 ? "s" : ""}
+                </p>
               </div>
 
               {/* Document rows */}
-              {filteredDocs.length === 0 ? (
+              {allDocs.length === 0 ? (
                 <div className="px-6 py-8 text-center">
-                  <p className="text-sm text-gray-400">No documents match this filter.</p>
+                  <p className="text-sm text-gray-400">No documents yet.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {filteredDocs.map((doc) => {
+                  {allDocs.map((doc) => {
                     const isInvoice = doc.type === "Invoice";
                     const invoiceId = isInvoice ? doc.id.slice("doc-inv-".length) : null;
                     return (
