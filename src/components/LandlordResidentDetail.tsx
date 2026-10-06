@@ -546,7 +546,7 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
 
         {/* ── WhatsApp ── */}
         {activeTab === "whatsapp" && (
-          <div className="max-w-2xl">
+          <div>
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-6 py-5 border-b border-gray-100">
                 <h2 className="text-sm font-semibold text-gray-900">WhatsApp</h2>
