@@ -170,15 +170,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
     });
   }, [pendingInvoices]);
 
-  const overdueTotal = useMemo(
-    () => pendingInvoices.filter((i) => i.status === "Overdue").reduce((s, i) => s + i.amount, 0),
-    [pendingInvoices]
-  );
-  const pendingOnlyTotal = useMemo(
-    () => pendingInvoices.filter((i) => i.status === "Pending").reduce((s, i) => s + i.amount, 0),
-    [pendingInvoices]
-  );
-
   const initials = resident.name
     .split(" ")
     .map((n) => n[0])
@@ -481,16 +472,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                   <>
                     <p className="text-2xl font-bold text-gray-900 tabular-nums leading-tight">{fmtCurrency(outstanding)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">Outstanding</p>
-                    {(overdueTotal > 0 || pendingOnlyTotal > 0) && (
-                      <p className="text-xs text-gray-400 mt-2">
-                        {[
-                          overdueTotal > 0 ? `${fmtCurrency(overdueTotal)} overdue` : null,
-                          pendingOnlyTotal > 0 ? `${fmtCurrency(pendingOnlyTotal)} pending` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    )}
                   </>
                 ) : (
                   <p className="text-sm font-semibold text-gray-900">All paid up</p>
