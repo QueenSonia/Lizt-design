@@ -460,7 +460,7 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
               </div>
               <div className="px-6 py-3 border-t border-gray-100">
                 <button
-                  onClick={() => setActiveTab("history")}
+                  onClick={() => setActiveTab("maintenance")}
                   className="text-xs text-gray-400 hover:text-[#FF5000] transition-colors"
                 >
                   View all
