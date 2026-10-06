@@ -10,7 +10,6 @@ import {
   X,
   Download,
   Clock,
-  Upload,
   Trash2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -671,13 +670,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                     </button>
                   ))}
                 </div>
-                <button
-                  onClick={() => toast.info("Upload not yet connected to a backend.")}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors shrink-0"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  Upload
-                </button>
               </div>
 
               {/* Document rows */}
@@ -712,17 +704,6 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
                         }
                         className={`px-6 py-4 flex items-center gap-3 ${invoiceId ? "cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-inset focus:ring-2 focus:ring-[#FF5000]" : ""} transition-colors`}
                       >
-                        <span
-                          className={`shrink-0 inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                            doc.type === "Invoice"
-                              ? "bg-blue-50 text-blue-700"
-                              : doc.type === "Receipt"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {doc.type}
-                        </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-gray-900">{doc.name}</p>
                           <p className="text-xs text-gray-400 mt-0.5">{fmtDate(doc.date)}</p>
