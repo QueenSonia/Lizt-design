@@ -57,7 +57,7 @@ export default function ResidentInvoiceDetail({ invoice, resident, backTo, backL
 
       {/* Invoice document */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-4xl mx-auto">
-        <InvoiceDocument data={invoiceData} />
+        <InvoiceDocument data={invoiceData} compact />
       </div>
     </div>
   );

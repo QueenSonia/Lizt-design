@@ -48,9 +48,10 @@ export interface InvoiceData {
 
 interface InvoiceDocumentProps {
   data: InvoiceData;
+  compact?: boolean;
 }
 
-export function InvoiceDocument({ data }: InvoiceDocumentProps) {
+export function InvoiceDocument({ data, compact = false }: InvoiceDocumentProps) {
   const [brandingData, setBrandingData] = useState<BrandingInfo | null>(null);
 
   // Load branding data from props or use defaults
@@ -137,9 +138,9 @@ export function InvoiceDocument({ data }: InvoiceDocumentProps) {
   const companyLogo = isValidImageSrc(rawLogo) ? rawLogo : undefined;
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white p-8 md:p-12 pt-16 md:pt-32 relative">
+    <div className={`w-full max-w-4xl mx-auto bg-white relative ${compact ? "p-8" : "p-8 md:p-12 pt-16 md:pt-32"}`}>
       {/* Header Section - Logo on left, Invoice details on right */}
-      <div className="flex items-start justify-between mb-8 pb-6 border-b-2 border-gray-200 mt-2 md:mt-20">
+      <div className={`flex items-start justify-between mb-8 pb-6 border-b-2 border-gray-200 ${compact ? "mt-0" : "mt-2 md:mt-20"}`}>
         {/* Logo and Company Info */}
         <div>
           {companyLogo ? (
