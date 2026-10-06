@@ -112,7 +112,7 @@ export const MOCK_RESIDENT_REQUESTS: Record<string, ResidentRequest[]> = {
   "RES-001": [
     {
       id: "rr-001-1",
-      title: "Generator in Generator Room not starting",
+      title: "Generator in Generator Room not starting — no backup power on upper floors since fault was first reported on 10 September",
       location: "Generator Room",
       status: "Open",
       date: "2026-09-10",

@@ -368,11 +368,11 @@ function ResidentDetailContent({ resident, residentId, onBack }: ContentProps) {
       </div>
 
       {/* ── Tab content ── */}
-      <div className="max-w-6xl">
+      <div>
 
         {/* ── Overview ── */}
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 items-start">
 
             {/* Pending Maintenance Requests */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
