@@ -520,15 +520,11 @@ export default function PayInstallmentDemo() {
               <>
                 <div className="flex-1 overflow-y-auto px-5 py-6">
                   {/* Installment card */}
-                  <div className="bg-gray-50 rounded-xl px-4 py-4 flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[13px] font-semibold text-[#1a1b23]">Installment {currentInstallment.sequence}</span>
-                        <span className="text-[9px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide">this invoice</span>
-                      </div>
-                      <p className="text-[12px] text-gray-400">Due {fmtShort(currentInstallment.dueDate)}</p>
-                    </div>
-                    <span className="text-[14px] font-bold text-[#1a1b23] tabular-nums shrink-0 ml-4">{fmt(currentInstallment.amount)}</span>
+                  <div className="bg-gray-50 rounded-xl px-4 py-4">
+                    <p className="text-[13px] font-semibold text-[#1a1b23] mb-1">
+                      Installment {currentInstallment.sequence} of {plan.totalInstallments}
+                    </p>
+                    <p className="text-[12px] text-gray-400">Due {fmtShort(currentInstallment.dueDate)}</p>
                   </div>
 
                   {/* Add more row */}
