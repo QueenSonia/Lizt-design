@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { X, Download, Loader2, Check, ChevronLeft } from "lucide-react";
+import { X, Download, Loader2, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
@@ -531,12 +531,13 @@ export default function PayInstallmentDemo() {
                     <span className="text-[14px] font-bold text-[#1a1b23] tabular-nums shrink-0 ml-4">{fmt(currentInstallment.amount)}</span>
                   </div>
 
-                  {/* Subtle link */}
+                  {/* Add more row */}
                   <button
                     onClick={() => setModalStep("select")}
-                    className="mt-3 text-[12px] text-gray-400 hover:text-[#FF5722] transition-colors"
+                    className="mt-3 w-full flex items-center justify-between px-4 py-3 border border-gray-200 rounded-xl text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
                   >
-                    Pay more installments
+                    <span className="text-[13px] text-gray-500">Pay more installments</span>
+                    <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
                   </button>
                 </div>
 
