@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { X, Download, Loader2, Check } from "lucide-react";
+import { X, Download, Loader2, Check, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
@@ -131,11 +131,13 @@ export default function PayInstallmentDemo() {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
+  const [modalStep, setModalStep] = useState<"choose" | "select">("choose");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set([CURRENT_INSTALLMENT_ID]));
   const [isProcessing, setIsProcessing] = useState(false);
 
   const openModal = () => {
-    setSelectedIds(new Set([CURRENT_INSTALLMENT_ID])); // reset to just current each time
+    setSelectedIds(new Set([CURRENT_INSTALLMENT_ID]));
+    setModalStep("choose");
     setShowModal(true);
   };
 
@@ -387,61 +389,103 @@ export default function PayInstallmentDemo() {
           {/* Top bar */}
           <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 shrink-0">
             <button
-              onClick={() => !isProcessing && setShowModal(false)}
+              onClick={() => {
+                if (isProcessing) return;
+                if (modalStep === "select") setModalStep("choose");
+                else setShowModal(false);
+              }}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500"
             >
-              <X className="w-4 h-4" />
+              {modalStep === "select" ? <ChevronLeft className="w-4 h-4" /> : <X className="w-4 h-4" />}
             </button>
-            <h2 className="text-[15px] font-semibold text-[#1a1b23]">Select installments</h2>
+            <h2 className="text-[15px] font-semibold text-[#1a1b23]">
+              {modalStep === "choose" ? "Pay" : "Select installments"}
+            </h2>
           </div>
 
-          {/* Helper text */}
-          <div className="px-5 py-4 bg-gray-50 border-b border-gray-100 shrink-0">
-            <p className="text-[13px] text-gray-500 leading-relaxed">
-              You can pay for more than one installment at a time — including any overdue ones. Select all you'd like to clear in this payment.
-            </p>
-          </div>
-
-          {/* Installment list */}
-          <div className="overflow-y-auto flex-1">
-            {overdueInstallments.length > 0 && (
-              <>
-                <div className="px-5 py-2 bg-red-50 border-b border-red-100 flex items-center justify-between">
-                  <span className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">Overdue</span>
-                  <button
-                    onClick={() => setSelectedIds(prev => new Set([...prev, ...overdueInstallments.map(i => i.id)]))}
-                    className="text-[10px] text-red-500 font-medium hover:underline"
-                  >
-                    Select all overdue
-                  </button>
+          {modalStep === "choose" ? (
+            /* ── Choose step ── */
+            <div className="flex-1 px-5 py-8 flex flex-col gap-3">
+              <p className="text-[13px] text-gray-500 mb-2">How would you like to pay?</p>
+              <button
+                disabled={isProcessing}
+                onClick={handleProceed}
+                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 active:bg-orange-100 transition-colors text-left disabled:opacity-60"
+              >
+                <div>
+                  <p className="text-[14px] font-semibold text-[#1a1b23]">Pay this installment</p>
+                  <p className="text-[12px] text-gray-500 mt-0.5">
+                    Installment {currentInstallment.sequence} · {fmt(currentInstallment.amount)}
+                  </p>
                 </div>
-                {overdueInstallments.map(inst => (
-                  <InstallmentRow key={inst.id} inst={inst} checked={selectedIds.has(inst.id)} isCurrent={inst.id === CURRENT_INSTALLMENT_ID} onToggle={() => toggle(inst.id)} />
-                ))}
-              </>
-            )}
-            {upcomingInstallments.length > 0 && (
-              <>
-                <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
-                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Upcoming</span>
+                {isProcessing
+                  ? <Loader2 className="w-4 h-4 text-gray-400 shrink-0 animate-spin" />
+                  : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
+              </button>
+              <button
+                disabled={isProcessing}
+                onClick={() => setModalStep("select")}
+                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 active:bg-orange-100 transition-colors text-left disabled:opacity-60"
+              >
+                <div>
+                  <p className="text-[14px] font-semibold text-[#1a1b23]">Pay more installments</p>
+                  <p className="text-[12px] text-gray-500 mt-0.5">Select which ones to include</p>
                 </div>
-                {upcomingInstallments.map(inst => (
-                  <InstallmentRow key={inst.id} inst={inst} checked={selectedIds.has(inst.id)} isCurrent={inst.id === CURRENT_INSTALLMENT_ID} onToggle={() => toggle(inst.id)} />
-                ))}
-              </>
-            )}
-          </div>
-
-          {/* Sticky footer */}
-          <div className="px-5 pt-4 pb-8 border-t border-gray-100 shrink-0 space-y-3 bg-white">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] text-gray-500">{selectedIds.size} installment{selectedIds.size !== 1 ? "s" : ""} selected</span>
-              <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(modalTotal)}</span>
+                <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+              </button>
             </div>
-            <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-11 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[13px] font-semibold">
-              {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to checkout...</> : `Proceed to checkout · ${fmt(modalTotal)}`}
-            </Button>
-          </div>
+          ) : (
+            /* ── Select step ── */
+            <>
+              {/* Helper text */}
+              <div className="px-5 py-4 bg-gray-50 border-b border-gray-100 shrink-0">
+                <p className="text-[13px] text-gray-500 leading-relaxed">
+                  Select all installments you'd like to clear in this payment, including any overdue ones.
+                </p>
+              </div>
+
+              {/* Installment list */}
+              <div className="overflow-y-auto flex-1">
+                {overdueInstallments.length > 0 && (
+                  <>
+                    <div className="px-5 py-2 bg-red-50 border-b border-red-100 flex items-center justify-between">
+                      <span className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">Overdue</span>
+                      <button
+                        onClick={() => setSelectedIds(prev => new Set([...prev, ...overdueInstallments.map(i => i.id)]))}
+                        className="text-[10px] text-red-500 font-medium hover:underline"
+                      >
+                        Select all overdue
+                      </button>
+                    </div>
+                    {overdueInstallments.map(inst => (
+                      <InstallmentRow key={inst.id} inst={inst} checked={selectedIds.has(inst.id)} isCurrent={inst.id === CURRENT_INSTALLMENT_ID} onToggle={() => toggle(inst.id)} />
+                    ))}
+                  </>
+                )}
+                {upcomingInstallments.length > 0 && (
+                  <>
+                    <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
+                      <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Upcoming</span>
+                    </div>
+                    {upcomingInstallments.map(inst => (
+                      <InstallmentRow key={inst.id} inst={inst} checked={selectedIds.has(inst.id)} isCurrent={inst.id === CURRENT_INSTALLMENT_ID} onToggle={() => toggle(inst.id)} />
+                    ))}
+                  </>
+                )}
+              </div>
+
+              {/* Sticky footer */}
+              <div className="px-5 pt-4 pb-8 border-t border-gray-100 shrink-0 space-y-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-gray-500">{selectedIds.size} installment{selectedIds.size !== 1 ? "s" : ""} selected</span>
+                  <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(modalTotal)}</span>
+                </div>
+                <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-11 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[13px] font-semibold">
+                  {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to checkout...</> : `Proceed to checkout · ${fmt(modalTotal)}`}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -454,58 +498,104 @@ export default function PayInstallmentDemo() {
           {/* Panel */}
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl flex flex-col max-h-[80vh]">
             {/* Header */}
-            <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
-              <div>
-                <h2 className="text-[15px] font-semibold text-[#1a1b23]">Pay installments</h2>
-                <p className="text-[12px] text-gray-500 mt-1 leading-relaxed max-w-[300px]">
-                  You can pay for more than one installment at a time — including any overdue ones. Select all you'd like to clear in this payment.
-                </p>
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-2">
+                {modalStep === "select" && (
+                  <button
+                    onClick={() => !isProcessing && setModalStep("choose")}
+                    className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                )}
+                <h2 className="text-[15px] font-semibold text-[#1a1b23]">
+                  {modalStep === "choose" ? "Pay" : "Select installments"}
+                </h2>
               </div>
-              <button onClick={() => !isProcessing && setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400 shrink-0 ml-3">
+              <button onClick={() => !isProcessing && setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400 shrink-0">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Installment list */}
-            <div className="overflow-y-auto flex-1">
-              {overdueInstallments.length > 0 && (
-                <>
-                  <div className="px-5 py-2 bg-red-50 border-b border-red-100 flex items-center justify-between">
-                    <span className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">Overdue</span>
-                    <button onClick={() => setSelectedIds(prev => new Set([...prev, ...overdueInstallments.map(i => i.id)]))} className="text-[10px] text-red-500 font-medium hover:underline">
-                      Select all overdue
-                    </button>
+            {modalStep === "choose" ? (
+              /* ── Choose step ── */
+              <div className="px-5 py-6 flex flex-col gap-3">
+                <p className="text-[13px] text-gray-500 mb-1">How would you like to pay?</p>
+                <button
+                  disabled={isProcessing}
+                  onClick={handleProceed}
+                  className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 transition-colors text-left disabled:opacity-60"
+                >
+                  <div>
+                    <p className="text-[14px] font-semibold text-[#1a1b23]">Pay this installment</p>
+                    <p className="text-[12px] text-gray-500 mt-0.5">
+                      Installment {currentInstallment.sequence} · {fmt(currentInstallment.amount)}
+                    </p>
                   </div>
-                  {overdueInstallments.map(inst => (
-                    <InstallmentRow key={inst.id} inst={inst} checked={selectedIds.has(inst.id)} isCurrent={inst.id === CURRENT_INSTALLMENT_ID} onToggle={() => toggle(inst.id)} />
-                  ))}
-                </>
-              )}
-              {upcomingInstallments.length > 0 && (
-                <>
-                  <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
-                    <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Upcoming</span>
+                  {isProcessing
+                    ? <Loader2 className="w-4 h-4 text-gray-400 shrink-0 animate-spin" />
+                    : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
+                </button>
+                <button
+                  disabled={isProcessing}
+                  onClick={() => setModalStep("select")}
+                  className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 transition-colors text-left disabled:opacity-60"
+                >
+                  <div>
+                    <p className="text-[14px] font-semibold text-[#1a1b23]">Pay more installments</p>
+                    <p className="text-[12px] text-gray-500 mt-0.5">Select which ones to include</p>
                   </div>
-                  {upcomingInstallments.map(inst => (
-                    <InstallmentRow key={inst.id} inst={inst} checked={selectedIds.has(inst.id)} isCurrent={inst.id === CURRENT_INSTALLMENT_ID} onToggle={() => toggle(inst.id)} />
-                  ))}
-                </>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-5 pt-4 pb-6 border-t border-gray-100 shrink-0 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] text-gray-500">{selectedIds.size} installment{selectedIds.size !== 1 ? "s" : ""} selected</span>
-                <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(modalTotal)}</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                </button>
+                <button onClick={() => !isProcessing && setShowModal(false)} className="w-full text-center text-[12px] text-gray-400 hover:text-gray-600 transition-colors pt-2">
+                  Cancel
+                </button>
               </div>
-              <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-11 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[13px] font-semibold">
-                {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to checkout...</> : `Proceed to checkout · ${fmt(modalTotal)}`}
-              </Button>
-              <button onClick={() => !isProcessing && setShowModal(false)} className="w-full text-center text-[12px] text-gray-400 hover:text-gray-600 transition-colors">
-                Cancel
-              </button>
-            </div>
+            ) : (
+              /* ── Select step ── */
+              <>
+                {/* Installment list */}
+                <div className="overflow-y-auto flex-1">
+                  {overdueInstallments.length > 0 && (
+                    <>
+                      <div className="px-5 py-2 bg-red-50 border-b border-red-100 flex items-center justify-between">
+                        <span className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">Overdue</span>
+                        <button onClick={() => setSelectedIds(prev => new Set([...prev, ...overdueInstallments.map(i => i.id)]))} className="text-[10px] text-red-500 font-medium hover:underline">
+                          Select all overdue
+                        </button>
+                      </div>
+                      {overdueInstallments.map(inst => (
+                        <InstallmentRow key={inst.id} inst={inst} checked={selectedIds.has(inst.id)} isCurrent={inst.id === CURRENT_INSTALLMENT_ID} onToggle={() => toggle(inst.id)} />
+                      ))}
+                    </>
+                  )}
+                  {upcomingInstallments.length > 0 && (
+                    <>
+                      <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
+                        <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Upcoming</span>
+                      </div>
+                      {upcomingInstallments.map(inst => (
+                        <InstallmentRow key={inst.id} inst={inst} checked={selectedIds.has(inst.id)} isCurrent={inst.id === CURRENT_INSTALLMENT_ID} onToggle={() => toggle(inst.id)} />
+                      ))}
+                    </>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-5 pt-4 pb-6 border-t border-gray-100 shrink-0 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-gray-500">{selectedIds.size} installment{selectedIds.size !== 1 ? "s" : ""} selected</span>
+                    <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(modalTotal)}</span>
+                  </div>
+                  <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-11 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[13px] font-semibold">
+                    {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to checkout...</> : `Proceed to checkout · ${fmt(modalTotal)}`}
+                  </Button>
+                  <button onClick={() => !isProcessing && setShowModal(false)} className="w-full text-center text-[12px] text-gray-400 hover:text-gray-600 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
