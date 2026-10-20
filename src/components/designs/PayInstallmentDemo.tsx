@@ -387,72 +387,63 @@ export default function PayInstallmentDemo() {
       {showModal && (
         <div className="sm:hidden fixed inset-0 z-50 bg-white flex flex-col">
           {/* Top bar */}
-          <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 shrink-0">
-            <button
-              onClick={() => {
-                if (isProcessing) return;
-                if (modalStep === "select") setModalStep("summary");
-                else setShowModal(false);
-              }}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500"
-            >
-              {modalStep === "select" ? <ChevronLeft className="w-4 h-4" /> : <X className="w-4 h-4" />}
-            </button>
-            <h2 className="text-[15px] font-semibold text-[#1a1b23]">
-              {modalStep === "summary" ? "Payment summary" : "Add installments"}
-            </h2>
+          <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (isProcessing) return;
+                  if (modalStep === "select") setModalStep("summary");
+                  else setShowModal(false);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500"
+              >
+                {modalStep === "select" ? <ChevronLeft className="w-4 h-4" /> : <X className="w-4 h-4" />}
+              </button>
+              <h2 className="text-[15px] font-semibold text-[#1a1b23]">
+                {modalStep === "summary" ? "Review & Pay" : "Add installments"}
+              </h2>
+            </div>
           </div>
 
           {modalStep === "summary" ? (
-            /* ── Summary step: what you're paying ── */
+            /* ── Summary step ── */
             <>
-              <div className="flex-1 overflow-y-auto">
-                {/* Current installment row */}
-                <div className="px-5 py-5 border-b border-gray-100">
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-3">You are paying</p>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[14px] font-semibold text-[#1a1b23]">
-                        Installment {currentInstallment.sequence}
-                        <span className="ml-2 text-[10px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide align-middle">this invoice</span>
-                      </p>
-                      <p className="text-[12px] text-gray-400 mt-0.5">Due {fmtShort(currentInstallment.dueDate)}</p>
+              <div className="flex-1 overflow-y-auto px-5 py-6">
+                {/* Installment card */}
+                <div className="bg-gray-50 rounded-xl px-4 py-4 flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[13px] font-semibold text-[#1a1b23]">Installment {currentInstallment.sequence}</span>
+                      <span className="text-[9px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide">this invoice</span>
                     </div>
-                    <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(currentInstallment.amount)}</span>
+                    <p className="text-[12px] text-gray-400">Due {fmtShort(currentInstallment.dueDate)}</p>
                   </div>
+                  <span className="text-[14px] font-bold text-[#1a1b23] tabular-nums shrink-0 ml-4">{fmt(currentInstallment.amount)}</span>
                 </div>
 
-                {/* "Add more" link */}
-                <div className="px-5 py-4">
-                  <button
-                    onClick={() => setModalStep("select")}
-                    className="text-[13px] text-[#FF5722] hover:underline font-medium"
-                  >
-                    + Add more installments
-                  </button>
-                </div>
+                {/* Subtle link */}
+                <button
+                  onClick={() => setModalStep("select")}
+                  className="mt-3 text-[12px] text-gray-400 hover:text-[#FF5722] transition-colors"
+                >
+                  Pay more installments
+                </button>
               </div>
 
               {/* Footer */}
-              <div className="px-5 pt-4 pb-8 border-t border-gray-100 shrink-0 space-y-3 bg-white">
+              <div className="px-5 pt-4 pb-10 border-t border-gray-100 shrink-0 bg-white space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-gray-500">Total</span>
-                  <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(currentInstallment.amount)}</span>
+                  <span className="text-[12px] text-gray-500">Amount due</span>
+                  <span className="text-[18px] font-bold text-[#1a1b23] tabular-nums">{fmt(currentInstallment.amount)}</span>
                 </div>
-                <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-11 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[13px] font-semibold">
-                  {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to checkout...</> : `Proceed to checkout · ${fmt(currentInstallment.amount)}`}
+                <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-12 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[14px] font-semibold rounded-xl">
+                  {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : "Pay now"}
                 </Button>
               </div>
             </>
           ) : (
-            /* ── Select step: full checklist ── */
+            /* ── Select step ── */
             <>
-              <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 shrink-0">
-                <p className="text-[12px] text-gray-500 leading-relaxed">
-                  Select any additional installments you'd like to include in this payment.
-                </p>
-              </div>
-
               <div className="overflow-y-auto flex-1">
                 {overdueInstallments.length > 0 && (
                   <>
@@ -482,13 +473,13 @@ export default function PayInstallmentDemo() {
                 )}
               </div>
 
-              <div className="px-5 pt-4 pb-8 border-t border-gray-100 shrink-0 space-y-3 bg-white">
+              <div className="px-5 pt-4 pb-10 border-t border-gray-100 shrink-0 bg-white space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-gray-500">{selectedIds.size} installment{selectedIds.size !== 1 ? "s" : ""} selected</span>
-                  <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(modalTotal)}</span>
+                  <span className="text-[18px] font-bold text-[#1a1b23] tabular-nums">{fmt(modalTotal)}</span>
                 </div>
-                <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-11 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[13px] font-semibold">
-                  {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to checkout...</> : `Proceed to checkout · ${fmt(modalTotal)}`}
+                <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-12 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[14px] font-semibold rounded-xl">
+                  {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : `Pay now · ${fmt(modalTotal)}`}
                 </Button>
               </div>
             </>
@@ -516,7 +507,7 @@ export default function PayInstallmentDemo() {
                   </button>
                 )}
                 <h2 className="text-[15px] font-semibold text-[#1a1b23]">
-                  {modalStep === "summary" ? "Payment summary" : "Add installments"}
+                  {modalStep === "summary" ? "Review & Pay" : "Add installments"}
                 </h2>
               </div>
               <button onClick={() => !isProcessing && setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400 shrink-0">
@@ -525,43 +516,38 @@ export default function PayInstallmentDemo() {
             </div>
 
             {modalStep === "summary" ? (
-              /* ── Summary step: what you're paying ── */
+              /* ── Summary step ── */
               <>
-                <div className="flex-1 overflow-y-auto">
-                  {/* Current installment display */}
-                  <div className="px-5 py-5 border-b border-gray-100">
-                    <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-3">You are paying</p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[14px] font-semibold text-[#1a1b23]">
-                          Installment {currentInstallment.sequence}
-                          <span className="ml-2 text-[10px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide align-middle">this invoice</span>
-                        </p>
-                        <p className="text-[12px] text-gray-400 mt-0.5">Due {fmtShort(currentInstallment.dueDate)}</p>
+                <div className="flex-1 overflow-y-auto px-5 py-6">
+                  {/* Installment card */}
+                  <div className="bg-gray-50 rounded-xl px-4 py-4 flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[13px] font-semibold text-[#1a1b23]">Installment {currentInstallment.sequence}</span>
+                        <span className="text-[9px] bg-orange-100 text-orange-600 font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide">this invoice</span>
                       </div>
-                      <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(currentInstallment.amount)}</span>
+                      <p className="text-[12px] text-gray-400">Due {fmtShort(currentInstallment.dueDate)}</p>
                     </div>
+                    <span className="text-[14px] font-bold text-[#1a1b23] tabular-nums shrink-0 ml-4">{fmt(currentInstallment.amount)}</span>
                   </div>
 
-                  {/* "Add more" link */}
-                  <div className="px-5 py-4">
-                    <button
-                      onClick={() => setModalStep("select")}
-                      className="text-[13px] text-[#FF5722] hover:underline font-medium"
-                    >
-                      + Add more installments
-                    </button>
-                  </div>
+                  {/* Subtle link */}
+                  <button
+                    onClick={() => setModalStep("select")}
+                    className="mt-3 text-[12px] text-gray-400 hover:text-[#FF5722] transition-colors"
+                  >
+                    Pay more installments
+                  </button>
                 </div>
 
                 {/* Footer */}
-                <div className="px-5 pt-4 pb-6 border-t border-gray-100 shrink-0 space-y-3">
+                <div className="px-5 pt-4 pb-6 border-t border-gray-100 shrink-0 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-gray-500">Total</span>
-                    <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(currentInstallment.amount)}</span>
+                    <span className="text-[12px] text-gray-500">Amount due</span>
+                    <span className="text-[18px] font-bold text-[#1a1b23] tabular-nums">{fmt(currentInstallment.amount)}</span>
                   </div>
-                  <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-11 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[13px] font-semibold">
-                    {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to checkout...</> : `Proceed to checkout · ${fmt(currentInstallment.amount)}`}
+                  <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-12 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[14px] font-semibold rounded-xl">
+                    {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : "Pay now"}
                   </Button>
                   <button onClick={() => !isProcessing && setShowModal(false)} className="w-full text-center text-[12px] text-gray-400 hover:text-gray-600 transition-colors">
                     Cancel
@@ -597,13 +583,13 @@ export default function PayInstallmentDemo() {
                   )}
                 </div>
 
-                <div className="px-5 pt-4 pb-6 border-t border-gray-100 shrink-0 space-y-3">
+                <div className="px-5 pt-4 pb-6 border-t border-gray-100 shrink-0 space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[12px] text-gray-500">{selectedIds.size} installment{selectedIds.size !== 1 ? "s" : ""} selected</span>
-                    <span className="text-[16px] font-bold text-[#1a1b23] tabular-nums">{fmt(modalTotal)}</span>
+                    <span className="text-[18px] font-bold text-[#1a1b23] tabular-nums">{fmt(modalTotal)}</span>
                   </div>
-                  <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-11 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[13px] font-semibold">
-                    {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to checkout...</> : `Proceed to checkout · ${fmt(modalTotal)}`}
+                  <Button onClick={handleProceed} disabled={isProcessing} className="w-full h-12 bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-60 text-[14px] font-semibold rounded-xl">
+                    {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : `Pay now · ${fmt(modalTotal)}`}
                   </Button>
                   <button onClick={() => !isProcessing && setShowModal(false)} className="w-full text-center text-[12px] text-gray-400 hover:text-gray-600 transition-colors">
                     Cancel
