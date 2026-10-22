@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { Input } from "./ui/input";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { toast } from "sonner";
 import {
   MoreVertical,
@@ -33,6 +35,7 @@ import {
   ChevronDown,
   ChevronUp,
   SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -61,6 +64,7 @@ import { EditTenancyModal, EditTenancyData } from "./EditTenancyModal";
 import { LandlordTopNav } from "./LandlordTopNav";
 import { SetRentPriceRangeModal } from "./SetRentPriceRangeModal";
 import { useFetchPropertyDetailsWithHistory } from "@/services/property/query";
+import { isMarketingReadyById, toggleMarketingReady, subscribeToMarketingReady } from "@/lib/marketingReadyStore";
 import { subscribeToFMStore } from "@/lib/facilityManagerStore";
 import { getRecurringCharges, subscribeToRecurringCharges, type RecurringCharge } from "@/lib/recurringChargesStore";
 import { CreatePaymentPlanModal, type ChargeOption } from "./CreatePaymentPlanModal";
@@ -290,6 +294,32 @@ export default function LandlordPropertyDetail({
   useEffect(() => {
     return subscribeToRecurringCharges(() => rcTick((n) => n + 1));
   }, []);
+
+  const [, marketingTick] = useState(0);
+  useEffect(() => subscribeToMarketingReady(() => marketingTick(n => n + 1)), []);
+
+  // Attach tenant state (for vacant properties)
+  const [showSimpleAttachModal, setShowSimpleAttachModal] = useState(false);
+  const [simpleAttachForm, setSimpleAttachForm] = useState({ tenantName: "", startDate: undefined as Date | undefined, rent: "" });
+  const [simpleAttachErrors, setSimpleAttachErrors] = useState({ tenantName: "", startDate: "", rent: "" });
+  const [simpleAttachProcessing, setSimpleAttachProcessing] = useState(false);
+
+  const confirmSimpleAttach = () => {
+    const errs = { tenantName: "", startDate: "", rent: "" };
+    if (!simpleAttachForm.tenantName.trim()) errs.tenantName = "Tenant name is required";
+    if (!simpleAttachForm.startDate) errs.startDate = "Start date is required";
+    const rentNum = parseFloat(simpleAttachForm.rent.replace(/,/g, ""));
+    if (!simpleAttachForm.rent.trim() || isNaN(rentNum) || rentNum <= 0) errs.rent = "Enter a valid rent amount";
+    if (errs.tenantName || errs.startDate || errs.rent) { setSimpleAttachErrors(errs); return; }
+    setSimpleAttachProcessing(true);
+    setTimeout(() => {
+      setShowSimpleAttachModal(false);
+      setSimpleAttachProcessing(false);
+      setSimpleAttachForm({ tenantName: "", startDate: undefined, rent: "" });
+      toast.success("Tenant attached successfully.");
+      router.back();
+    }, 800);
+  };
 
   useEffect(() => {
     const token = sessionStorage.getItem("access_token");
@@ -2058,21 +2088,55 @@ export default function LandlordPropertyDetail({
             {propertyData?.status?.toUpperCase() === "VACANT" && (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm flex flex-col items-start justify-start text-left px-[18px] py-[14px]">
-                  <div className="w-12 h-12 mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-                    <Home className="w-6 h-6 text-gray-400" />
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Home className="w-6 h-6 text-gray-400" />
+                    </div>
+                    {effectivePropertyId && isMarketingReadyById(effectivePropertyId) && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-100">
+                        <CheckCircle className="w-3 h-3" />
+                        Ready for marketing
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-gray-900 mb-2">
                     This property is vacant
                   </h3>
-                  <p className="text-sm text-gray-500 mb-6">
+                  <p className="text-sm text-gray-500 mb-4">
                     Generate a KYC link to start receiving tenant applications.
                   </p>
-                  <Button
-                    onClick={handleGenerateKYCLink}
-                    className="bg-[#FF5000] hover:bg-[#E64500] text-white rounded-xl"
-                  >
-                    Generate KYC Link
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={handleGenerateKYCLink}
+                      className="bg-[#FF5000] hover:bg-[#E64500] text-white rounded-xl"
+                    >
+                      Generate KYC Link
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSimpleAttachForm({ tenantName: "", startDate: undefined, rent: "" });
+                        setSimpleAttachErrors({ tenantName: "", startDate: "", rent: "" });
+                        setShowSimpleAttachModal(true);
+                      }}
+                      className="rounded-xl border-gray-200 text-gray-700"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Attach a tenant
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => effectivePropertyId && toggleMarketingReady(effectivePropertyId)}
+                      className={`rounded-xl ${
+                        effectivePropertyId && isMarketingReadyById(effectivePropertyId)
+                          ? "border-green-300 bg-green-50 text-green-700 hover:bg-green-100"
+                          : "border-gray-200 text-gray-700"
+                      }`}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {effectivePropertyId && isMarketingReadyById(effectivePropertyId) ? "Unmark marketing" : "Ready for marketing"}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* KYC Applications List for Vacant Properties */}
@@ -2281,6 +2345,40 @@ export default function LandlordPropertyDetail({
                       })}
                     </div>
                   )}
+                </div>
+
+                {/* Property history: past tenancies, newest first */}
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-gray-900 mb-4">Property history</h2>
+                  {(() => {
+                    const pastTenancies: Array<{ id: string; tenantName: string; moveIn: string; moveOut: string; rent: number }> =
+                      (propertyData as any)?.pastTenancies ?? [];
+                    if (pastTenancies.length === 0) {
+                      return (
+                        <p className="text-sm text-gray-400">No previous tenancies.</p>
+                      );
+                    }
+                    const sorted = [...pastTenancies].sort(
+                      (a, b) => new Date(b.moveIn).getTime() - new Date(a.moveIn).getTime(),
+                    );
+                    return (
+                      <div className="divide-y divide-gray-100">
+                        {sorted.map((pt) => (
+                          <div key={pt.id} className="py-3 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm">
+                            <span className="font-medium text-gray-900 sm:w-40 shrink-0">{pt.tenantName}</span>
+                            <span className="text-gray-500 sm:flex-1">
+                              {new Date(pt.moveIn + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              {" to "}
+                              {new Date(pt.moveOut + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            </span>
+                            <span className="text-gray-600 font-medium sm:text-right shrink-0">
+                              {"₦" + pt.rent.toLocaleString("en-NG")} / yr
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -2840,6 +2938,67 @@ export default function LandlordPropertyDetail({
           isLoading={attachTenantFromKYCMutation.isPending}
         />
       )}
+
+      {/* Simple attach tenant dialog — for vacant properties without a KYC application */}
+      <Dialog open={showSimpleAttachModal} onOpenChange={(open) => { if (!open && !simpleAttachProcessing) setShowSimpleAttachModal(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Attach a tenant</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-900">{propertyData?.name}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{propertyData?.address}</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">Tenant name</label>
+              <Input
+                value={simpleAttachForm.tenantName}
+                onChange={e => setSimpleAttachForm(f => ({ ...f, tenantName: e.target.value }))}
+                placeholder="Full name"
+                className="h-9 text-sm"
+              />
+              {simpleAttachErrors.tenantName && <p className="text-xs text-red-500">{simpleAttachErrors.tenantName}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">Tenancy start date</label>
+              <DatePickerInput
+                value={simpleAttachForm.startDate}
+                onChange={d => setSimpleAttachForm(f => ({ ...f, startDate: d }))}
+                placeholder="Pick a date"
+              />
+              {simpleAttachErrors.startDate && <p className="text-xs text-red-500">{simpleAttachErrors.startDate}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">Annual rent (&#8358;)</label>
+              <Input
+                value={simpleAttachForm.rent}
+                onChange={e => setSimpleAttachForm(f => ({ ...f, rent: e.target.value }))}
+                placeholder="e.g. 1,200,000"
+                className="h-9 text-sm"
+              />
+              {simpleAttachErrors.rent && <p className="text-xs text-red-500">{simpleAttachErrors.rent}</p>}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1 h-9 text-sm"
+                onClick={() => setShowSimpleAttachModal(false)}
+                disabled={simpleAttachProcessing}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmSimpleAttach}
+                disabled={simpleAttachProcessing}
+                className="flex-1 h-9 text-sm bg-[#FF5000] hover:bg-[#e04600] text-white"
+              >
+                {simpleAttachProcessing ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Attaching...</> : "Confirm"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <LandlordReportMaintenanceModal
         open={reportModalOpen}

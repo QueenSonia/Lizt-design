@@ -7,7 +7,6 @@ import {
   Download, Upload, RefreshCw, Edit, AlertCircle, CheckCircle,
   Clock, Calendar, DollarSign, Building, User, Send,
   ChevronLeft, MoreHorizontal, Paperclip, Receipt, Info, Plus, Trash2, SlidersHorizontal, Settings,
-  ChevronDown, UserPlus, Loader2,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -32,6 +31,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { GlobalSearchDropdown } from "./GlobalSearch";
 import { getPaymentPlanThreads, getCurrentRevision } from "@/lib/paymentPlanThreadStore";
 import { LATE_PAYMENTS_SUMMARY } from "./LandlordLatePayments";
+import { MOCK_VACANT_PROPERTY_LIST } from "@/services/property/query";
+import { isMarketingReadyById, toggleMarketingReady, subscribeToMarketingReady } from "@/lib/marketingReadyStore";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -80,20 +81,6 @@ interface WhatsAppMsg {
   timestamp: string;
 }
 
-interface PastTenancy {
-  id: string;
-  tenantName: string;
-  moveIn: string;
-  moveOut: string;
-  rent: number;
-}
-
-interface VacantProperty {
-  id: string;
-  name: string;
-  address: string;
-  pastTenancies: PastTenancy[];
-}
 
 interface Invoice {
   id: string;
@@ -370,51 +357,6 @@ function generateMockTenancies(): Tenancy[] {
   return records;
 }
 
-// ── Vacant Properties Mock Data ───────────────────────────────────────────────
-
-const MOCK_VACANT_PROPERTIES: VacantProperty[] = [
-  {
-    id: "vp-001",
-    name: "Ikoyi Corner Flat",
-    address: "7B Cameron Road, Ikoyi, Lagos",
-    pastTenancies: [
-      { id: "pt-001a", tenantName: "Emeka Nwosu", moveIn: "2023-02-01", moveOut: "2024-08-31", rent: 2800000 },
-      { id: "pt-001b", tenantName: "Grace Olawale", moveIn: "2021-03-01", moveOut: "2023-01-31", rent: 2400000 },
-    ],
-  },
-  {
-    id: "vp-002",
-    name: "Lekki Gardens Studio",
-    address: "23 Freedom Way, Lekki Phase 1, Lagos",
-    pastTenancies: [
-      { id: "pt-002a", tenantName: "Tunde Afolabi", moveIn: "2022-09-01", moveOut: "2024-09-30", rent: 1500000 },
-    ],
-  },
-  {
-    id: "vp-003",
-    name: "Victoria Island Penthouse",
-    address: "15 Adeola Odeku Street, Victoria Island, Lagos",
-    pastTenancies: [],
-  },
-  {
-    id: "vp-004",
-    name: "Surulere Terrace",
-    address: "4 Association Avenue, Surulere, Lagos",
-    pastTenancies: [
-      { id: "pt-004a", tenantName: "Chidi Okonkwo", moveIn: "2024-01-01", moveOut: "2024-12-31", rent: 1200000 },
-      { id: "pt-004b", tenantName: "Ngozi Eze", moveIn: "2022-01-01", moveOut: "2023-12-31", rent: 1100000 },
-      { id: "pt-004c", tenantName: "Bola Adeyemi", moveIn: "2020-06-01", moveOut: "2021-12-31", rent: 950000 },
-    ],
-  },
-  {
-    id: "vp-005",
-    name: "Ajah Bungalow",
-    address: "8 Abraham Adesanya Boulevard, Ajah, Lagos",
-    pastTenancies: [
-      { id: "pt-005a", tenantName: "Funke Olatunji", moveIn: "2023-05-01", moveOut: "2025-04-30", rent: 900000 },
-    ],
-  },
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -593,56 +535,12 @@ function TenancyListScreen({
 
   // ── Vacant tab state ──
   const [mainTab, setMainTab] = useState<"active" | "vacant">("active");
-  const [vacantProperties, setVacantProperties] = useState<VacantProperty[]>(MOCK_VACANT_PROPERTIES);
-  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
-  const [readyForMarketing, setReadyForMarketing] = useState<Set<string>>(new Set());
-  const [attachId, setAttachId] = useState<string | null>(null);
-  const [attachForm, setAttachForm] = useState({ tenantName: "", startDate: undefined as Date | undefined, rent: "" });
-  const [attachErrors, setAttachErrors] = useState({ tenantName: "", startDate: "", rent: "" });
-  const [attachProcessing, setAttachProcessing] = useState(false);
+  const [, vacantTick] = useState(0);
 
   const activeCount = MOCK_TENANCIES.filter(t => t.status !== "ended").length;
-  const vacantCount = vacantProperties.length;
+  const vacantCount = MOCK_VACANT_PROPERTY_LIST.length;
 
-  const toggleHistory = (id: string) => {
-    setExpandedHistory(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleMarketing = (id: string) => {
-    setReadyForMarketing(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const openAttach = (id: string) => {
-    setAttachId(id);
-    setAttachForm({ tenantName: "", startDate: undefined, rent: "" });
-    setAttachErrors({ tenantName: "", startDate: "", rent: "" });
-  };
-
-  const confirmAttach = () => {
-    const errs = { tenantName: "", startDate: "", rent: "" };
-    if (!attachForm.tenantName.trim()) errs.tenantName = "Tenant name is required";
-    if (!attachForm.startDate) errs.startDate = "Start date is required";
-    const rentNum = parseFloat(attachForm.rent.replace(/,/g, ""));
-    if (!attachForm.rent.trim() || isNaN(rentNum) || rentNum <= 0) errs.rent = "Enter a valid rent amount";
-    if (errs.tenantName || errs.startDate || errs.rent) { setAttachErrors(errs); return; }
-    setAttachProcessing(true);
-    setTimeout(() => {
-      setVacantProperties(prev => prev.filter(p => p.id !== attachId));
-      setExpandedHistory(prev => { const n = new Set(prev); n.delete(attachId!); return n; });
-      setReadyForMarketing(prev => { const n = new Set(prev); n.delete(attachId!); return n; });
-      setAttachId(null);
-      setAttachProcessing(false);
-      toast.success("Tenant attached successfully.");
-    }, 800);
-  };
+  useEffect(() => subscribeToMarketingReady(() => vacantTick(n => n + 1)), []);
 
   useEffect(() => {
     setColumnVisibility(loadColumnVisibility());
@@ -1013,67 +911,42 @@ function TenancyListScreen({
         {/* ── Vacant tab content ── */}
         {mainTab === "vacant" && (
           <>
-            {vacantProperties.length === 0 ? (
+            {MOCK_VACANT_PROPERTY_LIST.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
                 <p className="text-gray-700 text-sm font-medium mb-1">No vacant properties right now.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {vacantProperties.map((vp) => {
-                  const isExpanded = expandedHistory.has(vp.id);
-                  const isReady = readyForMarketing.has(vp.id);
+                {MOCK_VACANT_PROPERTY_LIST.map((vp) => {
+                  const isReady = isMarketingReadyById(vp.id);
                   return (
-                    <div key={vp.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                      {/* Main row */}
-                      <div className="px-4 sm:px-6 py-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium text-gray-900 text-sm">{vp.name}</p>
-                              {isReady && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100">
-                                  <CheckCircle className="w-3 h-3" />
-                                  Ready for marketing
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-400 mt-0.5">{vp.address}</p>
-                          </div>
-                          <button
-                            onClick={() => toggleHistory(vp.id)}
-                            className="shrink-0 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors border border-gray-200 rounded-lg px-2.5 py-1.5"
-                          >
-                            <span>History</span>
-                            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Property history accordion */}
-                      {isExpanded && (
-                        <div className="border-t border-gray-100 bg-gray-50 px-4 sm:px-6 py-4">
-                          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Property history</p>
-                          {vp.pastTenancies.length === 0 ? (
-                            <p className="text-sm text-gray-400">No previous tenancies.</p>
-                          ) : (
-                            <div className="space-y-0 divide-y divide-gray-100">
-                              {vp.pastTenancies.map((pt) => (
-                                <div key={pt.id} className="py-2.5 grid grid-cols-1 sm:grid-cols-4 gap-1 sm:gap-3 text-xs">
-                                  <span className="font-medium text-gray-800">{pt.tenantName}</span>
-                                  <span className="text-gray-500">{fmtDate(pt.moveIn)} to {fmtDate(pt.moveOut)}</span>
-                                  <span className="text-gray-500 sm:col-span-2 sm:text-right">{fmtCurrency(pt.rent)} / yr</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="border-t border-gray-100 px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2">
+                    <div
+                      key={vp.id}
+                      className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                    >
+                      <div className="px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+                        {/* Clickable area: name + address */}
                         <button
-                          onClick={() => toggleMarketing(vp.id)}
-                          className={`flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-colors ${
+                          type="button"
+                          onClick={() => router.push(`/${userRole}/property-detail/${vp.id}`)}
+                          className="min-w-0 flex-1 text-left group"
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-gray-900 text-sm group-hover:text-[#FF5000] transition-colors">{vp.name}</p>
+                            {isReady && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100">
+                                <CheckCircle className="w-3 h-3" />
+                                Ready for marketing
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">{vp.address}</p>
+                        </button>
+                        {/* Marketing toggle — separate from navigation */}
+                        <button
+                          type="button"
+                          onClick={() => toggleMarketingReady(vp.id)}
+                          className={`shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-colors ${
                             isReady
                               ? "border-green-300 bg-green-50 text-green-700 hover:bg-green-100"
                               : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
@@ -1081,13 +954,6 @@ function TenancyListScreen({
                         >
                           <CheckCircle className="w-3.5 h-3.5" />
                           {isReady ? "Unmark" : "Ready for marketing"}
-                        </button>
-                        <button
-                          onClick={() => openAttach(vp.id)}
-                          className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[#FF5000] bg-[#FFF3EB] text-[#FF5000] hover:bg-[#FFE8D8] text-xs font-medium transition-colors"
-                        >
-                          <UserPlus className="w-3.5 h-3.5" />
-                          Attach a tenant
                         </button>
                       </div>
                     </div>
@@ -1328,71 +1194,6 @@ function TenancyListScreen({
         </div>
       </div>
 
-      {/* Attach Tenant Dialog */}
-      <Dialog open={attachId !== null} onOpenChange={(open) => { if (!open && !attachProcessing) setAttachId(null); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Attach a tenant</DialogTitle>
-          </DialogHeader>
-          {attachId && (() => {
-            const vp = vacantProperties.find(p => p.id === attachId);
-            return vp ? (
-              <div className="space-y-4 pt-1">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium text-gray-900">{vp.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{vp.address}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-700">Tenant name</label>
-                  <Input
-                    value={attachForm.tenantName}
-                    onChange={e => setAttachForm(f => ({ ...f, tenantName: e.target.value }))}
-                    placeholder="Full name"
-                    className="h-9 text-sm"
-                  />
-                  {attachErrors.tenantName && <p className="text-xs text-red-500">{attachErrors.tenantName}</p>}
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-700">Tenancy start date</label>
-                  <DatePickerInput
-                    value={attachForm.startDate}
-                    onChange={d => setAttachForm(f => ({ ...f, startDate: d }))}
-                    placeholder="Pick a date"
-                  />
-                  {attachErrors.startDate && <p className="text-xs text-red-500">{attachErrors.startDate}</p>}
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-700">Annual rent (&#8358;)</label>
-                  <Input
-                    value={attachForm.rent}
-                    onChange={e => setAttachForm(f => ({ ...f, rent: e.target.value }))}
-                    placeholder="e.g. 1,200,000"
-                    className="h-9 text-sm"
-                  />
-                  {attachErrors.rent && <p className="text-xs text-red-500">{attachErrors.rent}</p>}
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-9 text-sm"
-                    onClick={() => setAttachId(null)}
-                    disabled={attachProcessing}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={confirmAttach}
-                    disabled={attachProcessing}
-                    className="flex-1 h-9 text-sm bg-[#FF5000] hover:bg-[#e04600] text-white"
-                  >
-                    {attachProcessing ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Attaching...</> : "Confirm"}
-                  </Button>
-                </div>
-              </div>
-            ) : null;
-          })()}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -204,7 +204,16 @@ export function useFetchPropertyById(id: string) {
 }
 
 // Hook for fetching comprehensive property details with history (for property detail pages)
-const MOCK_PROPERTY_DETAIL = {
+
+export interface MockPastTenancy {
+  id: string;
+  tenantName: string;
+  moveIn: string;
+  moveOut: string;
+  rent: number;
+}
+
+const MOCK_PROPERTY_DETAIL_OCCUPIED = {
   id: 1,
   name: "Lekki Phase 1 Duplex",
   address: "15 Admiralty Way, Lekki Phase 1, Lagos",
@@ -242,12 +251,100 @@ const MOCK_PROPERTY_DETAIL = {
   pendingApplicationsCount: 0,
   offerLetterCount: 1,
   hasActiveKYCLink: false,
+  pastTenancies: [] as MockPastTenancy[],
 };
+
+const MOCK_VACANT_DETAIL_BASE = {
+  type: "Flat",
+  bedrooms: 2,
+  bathrooms: 1,
+  status: "VACANT",
+  rent: null,
+  serviceCharge: null,
+  rentExpiryDate: null,
+  pendingRenewalInvoice: null,
+  rentalPrice: null,
+  isMarketingReady: false,
+  currentTenant: null,
+  history: [],
+  kycApplications: [],
+  kycApplicationCount: 0,
+  pendingApplicationsCount: 0,
+  offerLetterCount: 0,
+  hasActiveKYCLink: false,
+};
+
+// Authoritative list of vacant properties — shared with Tenancies list and detail page
+export const MOCK_VACANT_PROPERTY_LIST: Array<{
+  id: string;
+  name: string;
+  address: string;
+  pastTenancies: MockPastTenancy[];
+}> = [
+  {
+    id: "vp-001",
+    name: "Ikoyi Corner Flat",
+    address: "7B Cameron Road, Ikoyi, Lagos",
+    pastTenancies: [
+      { id: "pt-001a", tenantName: "Emeka Nwosu", moveIn: "2023-02-01", moveOut: "2024-08-31", rent: 2800000 },
+      { id: "pt-001b", tenantName: "Grace Olawale", moveIn: "2021-03-01", moveOut: "2023-01-31", rent: 2400000 },
+    ],
+  },
+  {
+    id: "vp-002",
+    name: "Lekki Gardens Studio",
+    address: "23 Freedom Way, Lekki Phase 1, Lagos",
+    pastTenancies: [
+      { id: "pt-002a", tenantName: "Tunde Afolabi", moveIn: "2022-09-01", moveOut: "2024-09-30", rent: 1500000 },
+    ],
+  },
+  {
+    id: "vp-003",
+    name: "Victoria Island Penthouse",
+    address: "15 Adeola Odeku Street, Victoria Island, Lagos",
+    pastTenancies: [],
+  },
+  {
+    id: "vp-004",
+    name: "Surulere Terrace",
+    address: "4 Association Avenue, Surulere, Lagos",
+    pastTenancies: [
+      { id: "pt-004a", tenantName: "Chidi Okonkwo", moveIn: "2024-01-01", moveOut: "2024-12-31", rent: 1200000 },
+      { id: "pt-004b", tenantName: "Ngozi Eze", moveIn: "2022-01-01", moveOut: "2023-12-31", rent: 1100000 },
+      { id: "pt-004c", tenantName: "Bola Adeyemi", moveIn: "2020-06-01", moveOut: "2021-12-31", rent: 950000 },
+    ],
+  },
+  {
+    id: "vp-005",
+    name: "Ajah Bungalow",
+    address: "8 Abraham Adesanya Boulevard, Ajah, Lagos",
+    pastTenancies: [
+      { id: "pt-005a", tenantName: "Funke Olatunji", moveIn: "2023-05-01", moveOut: "2025-04-30", rent: 900000 },
+    ],
+  },
+];
+
+const MOCK_VACANT_DETAILS_BY_ID: Record<string, any> = Object.fromEntries(
+  MOCK_VACANT_PROPERTY_LIST.map((p, i) => [
+    p.id,
+    {
+      ...MOCK_VACANT_DETAIL_BASE,
+      id: i + 2,
+      name: p.name,
+      address: p.address,
+      description: `A vacant property at ${p.address}.`,
+      pastTenancies: p.pastTenancies,
+    },
+  ]),
+);
 
 export function useFetchPropertyDetailsWithHistory(id: string) {
   return useQuery({
     queryKey: ["get-property-details-with-history", id],
-    queryFn: async () => MOCK_PROPERTY_DETAIL,
+    queryFn: async () => {
+      if (id && MOCK_VACANT_DETAILS_BY_ID[id]) return MOCK_VACANT_DETAILS_BY_ID[id];
+      return MOCK_PROPERTY_DETAIL_OCCUPIED;
+    },
     enabled: !!id,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
