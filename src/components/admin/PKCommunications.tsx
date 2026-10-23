@@ -12,11 +12,11 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { getDateRange, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
+import { getDateRange, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
-  COMMS_STATS,
-  COMMS_TREND,
-  ONBOARDING_TREND,
+  getCommsStats,
+  getCommsTrend,
+  getOnboardingTrend,
 } from "./analyticsData";
 import { PKAnalyticsHeader } from "./PKAnalyticsHeader";
 
@@ -36,9 +36,10 @@ export default function PKCommunications() {
   }, [filterTick]);
 
   const dateRange = getDateRange();
-  const stats = COMMS_STATS[dateRange];
-  const commsTrend = COMMS_TREND[dateRange];
-  const onboarding = ONBOARDING_TREND[dateRange];
+  const filter = getAccountType();
+  const stats = getCommsStats(dateRange, filter);
+  const commsTrend = getCommsTrend(dateRange, filter);
+  const onboarding = getOnboardingTrend(dateRange, filter);
 
   return (
     <div className="p-6 lg:p-8 max-w-[1280px] mx-auto">
@@ -56,22 +57,22 @@ export default function PKCommunications() {
         ) : (
           <>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Messages Sent</div>
+              <div className="text-[11px] text-slate-500 mb-1">Messages sent</div>
               <div className="text-xl font-bold text-slate-900">{stats.sent.toLocaleString()}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">this period</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Delivery Rate</div>
+              <div className="text-[11px] text-slate-500 mb-1">Delivery rate</div>
               <div className="text-xl font-bold text-slate-900">{stats.deliveryRate}%</div>
               <div className="text-[10px] text-slate-400 mt-0.5">{stats.delivered.toLocaleString()} delivered</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Read Rate</div>
+              <div className="text-[11px] text-slate-500 mb-1">Read rate</div>
               <div className="text-xl font-bold text-slate-900">{stats.readRate}%</div>
               <div className="text-[10px] text-slate-400 mt-0.5">{stats.read.toLocaleString()} read</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Broadcasts Sent</div>
+              <div className="text-[11px] text-slate-500 mb-1">Broadcasts sent</div>
               <div className="text-xl font-bold text-slate-900">{stats.broadcasts}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">this period</div>
             </div>
@@ -81,14 +82,22 @@ export default function PKCommunications() {
 
       {/* Messages trend */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-1">Messages Over Time</h2>
-        <p className="text-xs text-slate-400 mb-4">Sent, delivered, and read per period</p>
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold text-slate-900">Messages over time</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Sent, delivered, and read per period</p>
+          {!loading && (
+            <div className="mt-2">
+              <span className="text-xl font-bold text-slate-900">{stats.sent.toLocaleString()} sent</span>
+              <span className="text-xs text-slate-400 ml-2">{stats.deliveryRate}% delivery · {stats.readRate}% read</span>
+            </div>
+          )}
+        </div>
         {loading ? (
           <Skeleton className="h-48 w-full" />
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={220}>
             <LineChart data={commsTrend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} width={38} />
               <Tooltip
@@ -114,14 +123,22 @@ export default function PKCommunications() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Onboarding chart */}
         <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">Resident Onboarding</h2>
-          <p className="text-xs text-slate-400 mb-4">Invited vs onboarded per period</p>
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-slate-900">Resident onboarding</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Invited vs onboarded per period</p>
+            {!loading && (
+              <div className="mt-2">
+                <span className="text-xl font-bold text-slate-900">{stats.onboardingRate}% onboarding rate</span>
+                <span className="text-xs text-slate-400 ml-2">{stats.onboardedResidents} of {stats.invitedResidents} invited</span>
+              </div>
+            )}
+          </div>
           {loading ? (
             <Skeleton className="h-48 w-full" />
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={onboarding} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} width={28} />
                 <Tooltip
@@ -141,7 +158,7 @@ export default function PKCommunications() {
 
         {/* Onboarding stats */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col">
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">Onboarding Summary</h2>
+          <h2 className="text-sm font-semibold text-slate-900 mb-1">Onboarding summary</h2>
           <p className="text-xs text-slate-400 mb-6">Residents invited and successfully onboarded</p>
           {loading ? (
             <div className="space-y-4">

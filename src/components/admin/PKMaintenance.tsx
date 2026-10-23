@@ -10,10 +10,10 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { getDateRange, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
+import { getDateRange, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
-  MAINTENANCE_STATS,
-  MAINTENANCE_WEEKLY,
+  getMaintenanceStats,
+  getMaintenanceWeekly,
   FM_PERFORMANCE,
 } from "./analyticsData";
 import { PKAnalyticsHeader } from "./PKAnalyticsHeader";
@@ -34,13 +34,14 @@ export default function PKMaintenance() {
   }, [filterTick]);
 
   const dateRange = getDateRange();
-  const stats = MAINTENANCE_STATS[dateRange];
-  const weekly = MAINTENANCE_WEEKLY[dateRange];
+  const filter = getAccountType();
+  const stats = getMaintenanceStats(dateRange, filter);
+  const weekly = getMaintenanceWeekly(dateRange, filter);
   const fmTable = FM_PERFORMANCE[dateRange];
 
   const statusBreakdown = [
     { label: "Open", count: stats.open, color: "#0F172A" },
-    { label: "In Progress", count: stats.inProgress, color: "#64748B" },
+    { label: "In progress", count: stats.inProgress, color: "#64748B" },
     { label: "Resolved", count: stats.resolved, color: "#CBD5E1" },
   ];
 
@@ -60,22 +61,22 @@ export default function PKMaintenance() {
         ) : (
           <>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Total Requests</div>
+              <div className="text-[11px] text-slate-500 mb-1">Total requests</div>
               <div className="text-xl font-bold text-slate-900">{stats.total}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">this period</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Open Now</div>
+              <div className="text-[11px] text-slate-500 mb-1">Open now</div>
               <div className="text-xl font-bold text-slate-900">{stats.open}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">{stats.inProgress} in progress</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Avg Resolution</div>
+              <div className="text-[11px] text-slate-500 mb-1">Avg resolution</div>
               <div className="text-xl font-bold text-slate-900">{stats.avgResolutionDays}d</div>
               <div className="text-[10px] text-slate-400 mt-0.5">median time</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Reopen Rate</div>
+              <div className="text-[11px] text-slate-500 mb-1">Reopen rate</div>
               <div className="text-xl font-bold text-slate-900">{stats.reopenRate}%</div>
               <div className="text-[10px] text-slate-400 mt-0.5">resolved then reopened</div>
             </div>
@@ -86,7 +87,7 @@ export default function PKMaintenance() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Status breakdown */}
         <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">Requests by Status</h2>
+          <h2 className="text-sm font-semibold text-slate-900 mb-1">Requests by status</h2>
           <p className="text-xs text-slate-400 mb-4">Current period totals</p>
           {loading ? (
             <div className="space-y-3">
@@ -121,14 +122,22 @@ export default function PKMaintenance() {
 
         {/* New vs Resolved chart */}
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">New vs Resolved</h2>
-          <p className="text-xs text-slate-400 mb-4">Period breakdown</p>
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-slate-900">New vs resolved</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Requests raised and closed per week</p>
+            {!loading && (
+              <div className="mt-2">
+                <span className="text-xl font-bold text-slate-900">{stats.total} total requests</span>
+                <span className="text-xs text-slate-400 ml-2">{stats.resolved} resolved this period</span>
+              </div>
+            )}
+          </div>
           {loading ? (
             <Skeleton className="h-48 w-full" />
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={weekly} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} width={28} />
                 <Tooltip
@@ -150,7 +159,7 @@ export default function PKMaintenance() {
       {/* FM performance table */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Facility Manager Performance</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Facility manager performance</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             FM assigned vs resolved, resolution time, and tenant confirmation lag
           </p>
@@ -166,12 +175,12 @@ export default function PKMaintenance() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[10px] uppercase tracking-wide text-slate-400 bg-slate-50 border-b border-slate-100">
-                  <th className="px-5 py-2.5 font-semibold">FM Name</th>
+                  <th className="px-5 py-2.5 font-semibold">FM name</th>
                   <th className="px-4 py-2.5 font-semibold text-right">Assigned</th>
                   <th className="px-4 py-2.5 font-semibold text-right">Resolved</th>
-                  <th className="px-4 py-2.5 font-semibold text-right">Avg Resolution</th>
+                  <th className="px-4 py-2.5 font-semibold text-right">Avg resolution</th>
                   <th className="px-4 py-2.5 font-semibold text-right">Reopened</th>
-                  <th className="px-4 py-2.5 font-semibold text-right">Confirm Lag</th>
+                  <th className="px-4 py-2.5 font-semibold text-right">Confirm lag</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">

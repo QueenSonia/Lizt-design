@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import {
   getDateRange,
   setDateRange,
-  getLandlordFilter,
-  setLandlordFilter,
+  getAccountType,
+  setAccountType,
   subscribeToAnalyticsFilters,
   DATE_RANGE_LABELS,
+  ACCOUNT_TYPE_LABELS,
   type DateRange,
+  type AccountType,
 } from "@/lib/analyticsDateStore";
-import { MOCK_LANDLORDS } from "./analyticsData";
 
 interface PKAnalyticsHeaderProps {
   title: string;
@@ -20,7 +21,7 @@ export function PKAnalyticsHeader({ title, subtitle }: PKAnalyticsHeaderProps) {
   const [, tick] = useState(0);
   useEffect(() => subscribeToAnalyticsFilters(() => tick((n) => n + 1)), []);
   const dateRange = getDateRange();
-  const landlord = getLandlordFilter();
+  const accountType = getAccountType();
 
   return (
     <div className="mb-6">
@@ -32,13 +33,13 @@ export function PKAnalyticsHeader({ title, subtitle }: PKAnalyticsHeaderProps) {
 
         <div className="flex items-center gap-2 flex-wrap shrink-0">
           <select
-            value={landlord}
-            onChange={(e) => setLandlordFilter(e.target.value)}
+            value={accountType}
+            onChange={(e) => setAccountType(e.target.value as AccountType)}
             className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FF5000]/20 focus:border-[#FF5000]"
           >
-            {MOCK_LANDLORDS.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
+            {(Object.keys(ACCOUNT_TYPE_LABELS) as AccountType[]).map((t) => (
+              <option key={t} value={t}>
+                {ACCOUNT_TYPE_LABELS[t]}
               </option>
             ))}
           </select>

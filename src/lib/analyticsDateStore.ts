@@ -1,13 +1,20 @@
 const RANGE_KEY = "pk_analytics_range";
-const LANDLORD_KEY = "pk_analytics_landlord";
+const ACCOUNT_KEY = "pk_analytics_account";
 const _listeners = new Set<() => void>();
 
 export type DateRange = "30d" | "90d" | "12m";
+export type AccountType = "all" | "landlord" | "pm";
 
 export const DATE_RANGE_LABELS: Record<DateRange, string> = {
   "30d": "Last 30 days",
   "90d": "Last 90 days",
   "12m": "Last 12 months",
+};
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  all: "All account types",
+  landlord: "Landlords",
+  pm: "Property managers",
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -36,12 +43,12 @@ export function setDateRange(range: DateRange): void {
   _listeners.forEach((cb) => cb());
 }
 
-export function getLandlordFilter(): string {
-  return read<string>(LANDLORD_KEY, "all");
+export function getAccountType(): AccountType {
+  return read<AccountType>(ACCOUNT_KEY, "all");
 }
 
-export function setLandlordFilter(id: string): void {
-  write(LANDLORD_KEY, id);
+export function setAccountType(type: AccountType): void {
+  write(ACCOUNT_KEY, type);
   _listeners.forEach((cb) => cb());
 }
 

@@ -41,12 +41,7 @@ export function AdminSidebar() {
 
   const currentScreen = pathname.split("/").pop() || "dashboard";
 
-  const initials = (user?.name || "SA")
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const initials = "A";
 
   return (
     <>
@@ -142,7 +137,7 @@ export function AdminSidebar() {
             {!collapsed && (
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-white truncate">
-                  {user?.name || "Super Admin"}
+                  Analytics
                 </div>
                 <div className="text-[11px] text-slate-400 truncate">{user?.email}</div>
               </div>

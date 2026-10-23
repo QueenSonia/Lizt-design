@@ -11,11 +11,11 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { getDateRange, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
+import { getDateRange, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
-  OCCUPANCY_STATS,
+  getOccupancyStats,
+  getVacancyByArea,
   OCCUPANCY_RATE_TREND,
-  VACANCY_BY_AREA,
 } from "./analyticsData";
 import { PKAnalyticsHeader } from "./PKAnalyticsHeader";
 
@@ -35,9 +35,10 @@ export default function PKOccupancy() {
   }, [filterTick]);
 
   const dateRange = getDateRange();
-  const stats = OCCUPANCY_STATS[dateRange];
+  const filter = getAccountType();
+  const stats = getOccupancyStats(dateRange, filter);
   const trend = OCCUPANCY_RATE_TREND[dateRange];
-  const byArea = VACANCY_BY_AREA[dateRange];
+  const byArea = getVacancyByArea(dateRange, filter);
 
   return (
     <div className="p-6 lg:p-8 max-w-[1280px] mx-auto">
@@ -55,22 +56,22 @@ export default function PKOccupancy() {
         ) : (
           <>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Occupancy Rate</div>
+              <div className="text-[11px] text-slate-500 mb-1">Occupancy rate</div>
               <div className="text-xl font-bold text-slate-900">{stats.rate}%</div>
               <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">+{stats.rateDelta}pp vs prev</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Active Properties</div>
+              <div className="text-[11px] text-slate-500 mb-1">Active tenancies</div>
               <div className="text-xl font-bold text-slate-900">{stats.active.toLocaleString()}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">of {stats.total.toLocaleString()} total</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Vacant Properties</div>
+              <div className="text-[11px] text-slate-500 mb-1">Vacant properties</div>
               <div className="text-xl font-bold text-slate-900">{stats.vacant}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">avg {stats.avgDaysVacant} days vacant</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="text-[11px] text-slate-500 mb-1">Ready for Marketing</div>
+              <div className="text-[11px] text-slate-500 mb-1">Ready for marketing</div>
               <div className="text-xl font-bold text-slate-900">{stats.readyForMarketing}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">of {stats.vacant} vacant</div>
             </div>
@@ -80,14 +81,22 @@ export default function PKOccupancy() {
 
       {/* Occupancy trend */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-1">Occupancy Rate Trend</h2>
-        <p className="text-xs text-slate-400 mb-4">Percentage of properties occupied over time</p>
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold text-slate-900">Occupancy rate trend</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Percentage of properties occupied over time</p>
+          {!loading && (
+            <div className="mt-2">
+              <span className="text-xl font-bold text-slate-900">{stats.rate}%</span>
+              <span className="text-xs text-emerald-600 font-semibold ml-2">+{stats.rateDelta}pp vs prev</span>
+            </div>
+          )}
+        </div>
         {loading ? (
           <Skeleton className="h-48 w-full" />
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={220}>
             <LineChart data={trend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis
                 domain={[80, 100]}
@@ -116,7 +125,7 @@ export default function PKOccupancy() {
 
       {/* Vacancy by area */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-1">Vacancy by Area</h2>
+        <h2 className="text-sm font-semibold text-slate-900 mb-1">Vacancy by area</h2>
         <p className="text-xs text-slate-400 mb-4">Number of vacant properties per location</p>
         {loading ? (
           <Skeleton className="h-40 w-full" />
@@ -149,7 +158,7 @@ export default function PKOccupancy() {
       {/* Area breakdown table */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Vacancy Breakdown by Area</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Vacancy breakdown by area</h2>
           <p className="text-xs text-slate-400 mt-0.5">Occupancy rate per location</p>
         </div>
         {loading ? (
@@ -169,7 +178,7 @@ export default function PKOccupancy() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {byArea.map((row) => {
-                  const occ = (((row.total - row.vacant) / row.total) * 100).toFixed(1);
+                  const occ = row.total > 0 ? (((row.total - row.vacant) / row.total) * 100).toFixed(1) : "0.0";
                   return (
                     <tr key={row.area} className="hover:bg-slate-50/50">
                       <td className="px-5 py-3 font-medium text-slate-900 text-xs">{row.area}</td>

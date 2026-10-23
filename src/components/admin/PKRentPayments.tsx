@@ -10,12 +10,11 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { getDateRange, getLandlordFilter, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
+import { getDateRange, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
-  OVERVIEW_STATS,
-  RENT_COLLECTED_SERIES,
-  COLLECTION_RATE,
-  LATE_PAYMENT_STATS,
+  getOverviewStats,
+  getRentSeries,
+  getLatePayments,
   OVERDUE_TENANCIES,
   fmtCompact,
   fmtM,
@@ -38,10 +37,11 @@ export default function PKRentPayments() {
   }, [filterTick]);
 
   const dateRange = getDateRange();
-  const stats = OVERVIEW_STATS[dateRange];
-  const series = RENT_COLLECTED_SERIES[dateRange];
-  const collRate = COLLECTION_RATE[dateRange];
-  const late = LATE_PAYMENT_STATS[dateRange];
+  const filter = getAccountType();
+  const stats = getOverviewStats(dateRange, filter);
+  const series = getRentSeries(dateRange, filter);
+  const late = getLatePayments(dateRange, filter);
+  const collRate = ((stats.rentCollected / stats.rentExpected) * 100).toFixed(1);
 
   return (
     <div className="p-6 lg:p-8 max-w-[1280px] mx-auto">
@@ -52,8 +52,8 @@ export default function PKRentPayments() {
         {[
           { label: "Collected", value: fmtCompact(stats.rentCollected) },
           { label: "Expected", value: fmtCompact(stats.rentExpected) },
-          { label: "Collection Rate", value: `${collRate}%` },
-          { label: "Late Payments", value: late.count.toString() },
+          { label: "Collection rate", value: `${collRate}%` },
+          { label: "Late payments", value: late.count.toString() },
         ].map(({ label, value }) => (
           <div key={label} className="bg-white border border-slate-200 rounded-xl p-4">
             {loading ? (
@@ -73,14 +73,22 @@ export default function PKRentPayments() {
 
       {/* Collected vs Expected chart */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-1">Collected vs Expected</h2>
-        <p className="text-xs text-slate-400 mb-4">Rent in ₦M per period</p>
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold text-slate-900">Collected vs expected</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Rent in ₦M per period</p>
+          {!loading && (
+            <div className="mt-2">
+              <span className="text-xl font-bold text-slate-900">{collRate}% collection rate</span>
+              <span className="text-xs text-slate-400 ml-2">{fmtCompact(stats.rentCollected)} of {fmtCompact(stats.rentExpected)}</span>
+            </div>
+          )}
+        </div>
         {loading ? (
-          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-64 w-full" />
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={260}>
             <BarChart data={series} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis
                 tickFormatter={(v: number) => `₦${(v / 1_000_000).toFixed(0)}M`}
@@ -108,7 +116,7 @@ export default function PKRentPayments() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Late payment summary */}
         <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">Late Payments</h2>
+          <h2 className="text-sm font-semibold text-slate-900 mb-1">Late payments</h2>
           <p className="text-xs text-slate-400 mb-4">
             {loading ? <Skeleton className="h-3 w-32 inline-block" /> : `${late.count} payments, ${fmtCompact(late.totalAmount)} outstanding`}
           </p>
@@ -146,7 +154,7 @@ export default function PKRentPayments() {
 
         {/* Collection rate visual */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col">
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">Collection Rate</h2>
+          <h2 className="text-sm font-semibold text-slate-900 mb-1">Collection rate</h2>
           <p className="text-xs text-slate-400 mb-6">Share of expected rent actually collected</p>
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
@@ -160,7 +168,7 @@ export default function PKRentPayments() {
                   <circle
                     cx="50" cy="50" r="40" fill="none"
                     stroke="#FF5000" strokeWidth="12"
-                    strokeDasharray={`${(collRate / 100) * 251.3} 251.3`}
+                    strokeDasharray={`${(parseFloat(collRate) / 100) * 251.3} 251.3`}
                     strokeLinecap="round"
                   />
                 </svg>
@@ -187,7 +195,7 @@ export default function PKRentPayments() {
       {/* Most overdue table */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Most Overdue Tenancies</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Most overdue tenancies</h2>
           <p className="text-xs text-slate-400 mt-0.5">Sorted by days overdue</p>
         </div>
         {loading ? (
@@ -204,7 +212,7 @@ export default function PKRentPayments() {
                   <th className="px-5 py-2.5 font-semibold">Tenant</th>
                   <th className="px-4 py-2.5 font-semibold">Property</th>
                   <th className="px-4 py-2.5 font-semibold text-right">Amount</th>
-                  <th className="px-4 py-2.5 font-semibold text-right">Days Overdue</th>
+                  <th className="px-4 py-2.5 font-semibold text-right">Days overdue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
