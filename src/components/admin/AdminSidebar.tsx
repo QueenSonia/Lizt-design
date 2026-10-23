@@ -5,16 +5,9 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   Building2,
-  Users,
-  UserCheck,
   Wrench,
-  ShieldCheck,
   CreditCard,
-  Headphones,
-  FileBarChart2,
-  Bell,
-  History,
-  Settings,
+  MessageSquare,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -32,18 +25,11 @@ interface NavItem {
 }
 
 export const ADMIN_NAV: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "properties", label: "Properties", icon: Building2 },
-  { id: "landlords", label: "Landlords", icon: Users },
-  { id: "tenants", label: "Tenants", icon: UserCheck },
-  { id: "facility-managers", label: "Facility Managers", icon: Wrench },
-  { id: "kyc-applications", label: "KYC Applications", icon: ShieldCheck, badge: 47 },
-  { id: "payments", label: "Payments", icon: CreditCard },
-  { id: "service-requests", label: "Maintenance Requests", icon: Headphones, badge: 132 },
-  { id: "reports", label: "Reports", icon: FileBarChart2 },
-  { id: "notifications", label: "Notifications", icon: Bell, badge: 4 },
-  { id: "activity-logs", label: "Activity Logs", icon: History },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "rent-payments", label: "Rent and Payments", icon: CreditCard },
+  { id: "occupancy", label: "Occupancy", icon: Building2 },
+  { id: "maintenance", label: "Maintenance", icon: Wrench },
+  { id: "communications", label: "Communications", icon: MessageSquare },
 ];
 
 export function AdminSidebar() {
@@ -83,7 +69,7 @@ export function AdminSidebar() {
             )}
           </button>
           <button
-            onClick={() => router.push("/admin/dashboard")}
+            onClick={() => router.push("/admin/overview")}
             className="w-full flex flex-col items-start text-left px-5 pt-6 pb-5 gap-3"
           >
             <Image
@@ -96,10 +82,10 @@ export function AdminSidebar() {
             {!collapsed && (
               <div className="min-w-0">
                 <div className="text-base font-semibold text-white tracking-tight leading-tight">
-                  Admin
+                  Property Kraft
                 </div>
                 <div className="text-[11px] text-slate-400 tracking-wide mt-0.5">
-                  Platform Console
+                  Analytics
                 </div>
               </div>
             )}
