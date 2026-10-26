@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   XAxis,
@@ -11,11 +11,11 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { getDateRange, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
+import { getPeriod, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
   getOccupancyStats,
+  getOccupancyRateTrend,
   getVacancyByArea,
-  OCCUPANCY_RATE_TREND,
 } from "./analyticsData";
 import { PKAnalyticsHeader } from "./PKAnalyticsHeader";
 
@@ -34,11 +34,14 @@ export default function PKOccupancy() {
     return () => clearTimeout(t);
   }, [filterTick]);
 
-  const dateRange = getDateRange();
+  const period = getPeriod();
   const filter = getAccountType();
-  const stats = getOccupancyStats(dateRange, filter);
-  const trend = OCCUPANCY_RATE_TREND[dateRange];
-  const byArea = getVacancyByArea(dateRange, filter);
+  const stats  = getOccupancyStats(period, filter);
+  const trend  = getOccupancyRateTrend(period, filter);
+  const byArea = getVacancyByArea(period, filter);
+
+  const rateMin = Math.max(0, Math.min(...trend.map((d) => d.rate)) - 2);
+  const rateMax = Math.min(100, Math.max(...trend.map((d) => d.rate)) + 2);
 
   return (
     <div className="p-6 lg:p-8 max-w-[1280px] mx-auto">
@@ -58,7 +61,9 @@ export default function PKOccupancy() {
             <div className="bg-white border border-slate-200 rounded-xl p-4">
               <div className="text-[11px] text-slate-500 mb-1">Occupancy rate</div>
               <div className="text-xl font-bold text-slate-900">{stats.rate}%</div>
-              <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">+{stats.rateDelta}pp vs prev</div>
+              <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                {stats.rateDelta >= 0 ? "+" : ""}{stats.rateDelta}pp vs prev
+              </div>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4">
               <div className="text-[11px] text-slate-500 mb-1">Active tenancies</div>
@@ -79,7 +84,7 @@ export default function PKOccupancy() {
         )}
       </div>
 
-      {/* Occupancy trend */}
+      {/* Occupancy rate trend */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
         <div className="mb-4">
           <h2 className="text-sm font-semibold text-slate-900">Occupancy rate trend</h2>
@@ -87,38 +92,48 @@ export default function PKOccupancy() {
           {!loading && (
             <div className="mt-2">
               <span className="text-xl font-bold text-slate-900">{stats.rate}%</span>
-              <span className="text-xs text-emerald-600 font-semibold ml-2">+{stats.rateDelta}pp vs prev</span>
+              <span className="text-xs text-emerald-600 font-semibold ml-2">
+                {stats.rateDelta >= 0 ? "+" : ""}{stats.rateDelta}pp vs prev
+              </span>
             </div>
           )}
         </div>
         {loading ? (
-          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-52 w-full" />
         ) : (
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={trend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+            <AreaChart data={trend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="grad-rate" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#FF5000" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#FF5000" stopOpacity={0}    />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis
-                domain={[80, 100]}
+                domain={[rateMin, rateMax]}
                 tickFormatter={(v: number) => `${v}%`}
                 tick={{ fontSize: 10, fill: "#94A3B8" }}
                 axisLine={false}
                 tickLine={false}
                 width={38}
+                tickCount={4}
               />
               <Tooltip
                 formatter={(v: number) => [`${v}%`, "Occupancy"]}
                 contentStyle={{ fontSize: 11, borderRadius: 6, border: "1px solid #E2E8F0" }}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="rate"
                 stroke="#FF5000"
                 strokeWidth={2.5}
+                fill="url(#grad-rate)"
                 dot={false}
                 activeDot={{ r: 4 }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         )}
       </div>
@@ -131,11 +146,7 @@ export default function PKOccupancy() {
           <Skeleton className="h-40 w-full" />
         ) : (
           <ResponsiveContainer width="100%" height={160}>
-            <BarChart
-              data={byArea}
-              layout="vertical"
-              margin={{ top: 0, right: 16, bottom: 0, left: 8 }}
-            >
+            <BarChart data={byArea} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 8 }}>
               <XAxis type="number" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis
                 dataKey="area"
@@ -162,9 +173,7 @@ export default function PKOccupancy() {
           <p className="text-xs text-slate-400 mt-0.5">Occupancy rate per location</p>
         </div>
         {loading ? (
-          <div className="p-5 space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-8 w-full" />)}
-          </div>
+          <div className="p-5 space-y-3">{[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

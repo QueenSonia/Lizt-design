@@ -1,14 +1,14 @@
-const RANGE_KEY = "pk_analytics_range";
+const PERIOD_KEY = "pk_analytics_period";
 const ACCOUNT_KEY = "pk_analytics_account";
 const _listeners = new Set<() => void>();
 
-export type DateRange = "30d" | "90d" | "12m";
+export type Period = "weekly" | "monthly" | "yearly";
 export type AccountType = "all" | "landlord" | "pm";
 
-export const DATE_RANGE_LABELS: Record<DateRange, string> = {
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-  "12m": "Last 12 months",
+export const PERIOD_LABELS: Record<Period, string> = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  yearly: "Yearly",
 };
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
@@ -34,12 +34,12 @@ function write(key: string, value: unknown): void {
   } catch {}
 }
 
-export function getDateRange(): DateRange {
-  return read<DateRange>(RANGE_KEY, "30d");
+export function getPeriod(): Period {
+  return read<Period>(PERIOD_KEY, "monthly");
 }
 
-export function setDateRange(range: DateRange): void {
-  write(RANGE_KEY, range);
+export function setPeriod(period: Period): void {
+  write(PERIOD_KEY, period);
   _listeners.forEach((cb) => cb());
 }
 

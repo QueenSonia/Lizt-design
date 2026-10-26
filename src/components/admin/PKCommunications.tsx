@@ -12,7 +12,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { getDateRange, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
+import { getPeriod, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
   getCommsStats,
   getCommsTrend,
@@ -35,11 +35,11 @@ export default function PKCommunications() {
     return () => clearTimeout(t);
   }, [filterTick]);
 
-  const dateRange = getDateRange();
-  const filter = getAccountType();
-  const stats = getCommsStats(dateRange, filter);
-  const commsTrend = getCommsTrend(dateRange, filter);
-  const onboarding = getOnboardingTrend(dateRange, filter);
+  const period     = getPeriod();
+  const filter     = getAccountType();
+  const stats      = getCommsStats(period, filter);
+  const commsTrend = getCommsTrend(period, filter);
+  const onboarding = getOnboardingTrend(period, filter);
 
   return (
     <div className="p-6 lg:p-8 max-w-[1280px] mx-auto">
@@ -88,18 +88,20 @@ export default function PKCommunications() {
           {!loading && (
             <div className="mt-2">
               <span className="text-xl font-bold text-slate-900">{stats.sent.toLocaleString()} sent</span>
-              <span className="text-xs text-slate-400 ml-2">{stats.deliveryRate}% delivery · {stats.readRate}% read</span>
+              <span className="text-xs text-slate-400 ml-2">
+                {stats.deliveryRate}% delivery · {stats.readRate}% read
+              </span>
             </div>
           )}
         </div>
         {loading ? (
-          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-52 w-full" />
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={commsTrend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} width={38} />
+              <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} width={38} tickCount={4} />
               <Tooltip
                 formatter={(v: number, name: string) => {
                   const labels: Record<string, string> = { sent: "Sent", delivered: "Delivered", read: "Read" };
@@ -111,9 +113,9 @@ export default function PKCommunications() {
                 wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                 formatter={(name: string) => ({ sent: "Sent", delivered: "Delivered", read: "Read" }[name] ?? name)}
               />
-              <Line type="monotone" dataKey="sent" stroke="#FF5000" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+              <Line type="monotone" dataKey="sent"      stroke="#FF5000" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
               <Line type="monotone" dataKey="delivered" stroke="#0F172A" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
-              <Line type="monotone" dataKey="read" stroke="#94A3B8" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+              <Line type="monotone" dataKey="read"      stroke="#94A3B8" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -121,7 +123,6 @@ export default function PKCommunications() {
 
       {/* Onboarding */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Onboarding chart */}
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-slate-900">Resident onboarding</h2>
@@ -129,12 +130,14 @@ export default function PKCommunications() {
             {!loading && (
               <div className="mt-2">
                 <span className="text-xl font-bold text-slate-900">{stats.onboardingRate}% onboarding rate</span>
-                <span className="text-xs text-slate-400 ml-2">{stats.onboardedResidents} of {stats.invitedResidents} invited</span>
+                <span className="text-xs text-slate-400 ml-2">
+                  {stats.onboardedResidents} of {stats.invitedResidents} invited
+                </span>
               </div>
             )}
           </div>
           {loading ? (
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-52 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={onboarding} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -149,21 +152,18 @@ export default function PKCommunications() {
                   wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                   formatter={(name: string) => (name === "invited" ? "Invited" : "Onboarded")}
                 />
-                <Bar dataKey="invited" fill="#CBD5E1" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="invited"   fill="#CBD5E1" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="onboarded" fill="#FF5000" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
 
-        {/* Onboarding stats */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col">
           <h2 className="text-sm font-semibold text-slate-900 mb-1">Onboarding summary</h2>
           <p className="text-xs text-slate-400 mb-6">Residents invited and successfully onboarded</p>
           {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
+            <div className="space-y-4">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : (
             <div className="flex-1 flex flex-col justify-center space-y-5">
               <div>

@@ -10,10 +10,10 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { getDateRange, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
+import { getPeriod, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
   getMaintenanceStats,
-  getMaintenanceWeekly,
+  getMaintenanceNvsR,
   FM_PERFORMANCE,
 } from "./analyticsData";
 import { PKAnalyticsHeader } from "./PKAnalyticsHeader";
@@ -33,16 +33,16 @@ export default function PKMaintenance() {
     return () => clearTimeout(t);
   }, [filterTick]);
 
-  const dateRange = getDateRange();
-  const filter = getAccountType();
-  const stats = getMaintenanceStats(dateRange, filter);
-  const weekly = getMaintenanceWeekly(dateRange, filter);
-  const fmTable = FM_PERFORMANCE[dateRange];
+  const period  = getPeriod();
+  const filter  = getAccountType();
+  const stats   = getMaintenanceStats(period, filter);
+  const weekly  = getMaintenanceNvsR(period, filter);
+  const fmTable = FM_PERFORMANCE[period];
 
   const statusBreakdown = [
-    { label: "Open", count: stats.open, color: "#0F172A" },
+    { label: "Open",        count: stats.open,       color: "#0F172A" },
     { label: "In progress", count: stats.inProgress, color: "#64748B" },
-    { label: "Resolved", count: stats.resolved, color: "#CBD5E1" },
+    { label: "Resolved",    count: stats.resolved,   color: "#CBD5E1" },
   ];
 
   return (
@@ -90,9 +90,7 @@ export default function PKMaintenance() {
           <h2 className="text-sm font-semibold text-slate-900 mb-1">Requests by status</h2>
           <p className="text-xs text-slate-400 mb-4">Current period totals</p>
           {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
-            </div>
+            <div className="space-y-3">{[1,2,3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
           ) : stats.total === 0 ? (
             <div className="py-10 text-center text-sm text-slate-400">No requests this period.</div>
           ) : (
@@ -108,10 +106,7 @@ export default function PKMaintenance() {
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
-                      style={{
-                        width: `${(s.count / stats.total) * 100}%`,
-                        backgroundColor: s.color,
-                      }}
+                      style={{ width: `${(s.count / stats.total) * 100}%`, backgroundColor: s.color }}
                     />
                   </div>
                 </li>
@@ -124,7 +119,7 @@ export default function PKMaintenance() {
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5">
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-slate-900">New vs resolved</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Requests raised and closed per week</p>
+            <p className="text-xs text-slate-400 mt-0.5">Requests raised and closed per period</p>
             {!loading && (
               <div className="mt-2">
                 <span className="text-xl font-bold text-slate-900">{stats.total} total requests</span>
@@ -133,7 +128,7 @@ export default function PKMaintenance() {
             )}
           </div>
           {loading ? (
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-52 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={weekly} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -149,7 +144,7 @@ export default function PKMaintenance() {
                   formatter={(name: string) => (name === "newRequests" ? "New" : "Resolved")}
                 />
                 <Bar dataKey="newRequests" fill="#0F172A" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="resolved" fill="#CBD5E1" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="resolved"    fill="#CBD5E1" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -160,14 +155,10 @@ export default function PKMaintenance() {
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-900">Facility manager performance</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            FM assigned vs resolved, resolution time, and tenant confirmation lag
-          </p>
+          <p className="text-xs text-slate-400 mt-0.5">Assigned vs resolved, resolution time, confirmation lag</p>
         </div>
         {loading ? (
-          <div className="p-5 space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-8 w-full" />)}
-          </div>
+          <div className="p-5 space-y-3">{[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
         ) : fmTable.length === 0 ? (
           <div className="p-10 text-center text-sm text-slate-400">No data available.</div>
         ) : (
@@ -202,9 +193,7 @@ export default function PKMaintenance() {
                           {fm.reopened}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-xs tabular-nums text-slate-500">
-                        {fm.confirmLagHours}h
-                      </td>
+                      <td className="px-4 py-3 text-right text-xs tabular-nums text-slate-500">{fm.confirmLagHours}h</td>
                     </tr>
                   );
                 })}

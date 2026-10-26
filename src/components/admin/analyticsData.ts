@@ -1,14 +1,11 @@
-import type { DateRange, AccountType } from "@/lib/analyticsDateStore";
+import type { Period, AccountType } from "@/lib/analyticsDateStore";
 
-export const TODAY = "2026-10-23";
+// ── MULTIPLIERS ───────────────────────────────────────────────────────────────
 
-// ── ACCOUNT TYPE MULTIPLIERS ──────────────────────────────────────────────────
-// Landlords hold 85% of all properties; property managers 15%.
-
-const RENT_MULT: Record<AccountType, number>  = { all: 1,    landlord: 0.85, pm: 0.15 };
-const MAINT_MULT: Record<AccountType, number> = { all: 1,    landlord: 0.80, pm: 0.20 };
-const REMIND_MULT: Record<AccountType, number>= { all: 1,    landlord: 0.82, pm: 0.18 };
-const TOTAL_PROPS: Record<AccountType, number>= { all: 1284, landlord: 1091, pm: 193  };
+const RENT_MULT: Record<AccountType, number>   = { all: 1, landlord: 0.85, pm: 0.15 };
+const MAINT_MULT: Record<AccountType, number>  = { all: 1, landlord: 0.80, pm: 0.20 };
+const REMIND_MULT: Record<AccountType, number> = { all: 1, landlord: 0.82, pm: 0.18 };
+const TOTAL_PROPS: Record<AccountType, number> = { all: 1284, landlord: 1091, pm: 193 };
 
 // ── FORMATTERS ────────────────────────────────────────────────────────────────
 
@@ -20,12 +17,18 @@ export function fmtCompact(n: number): string {
 }
 
 export function fmtM(n: number): string {
+  if (n >= 1_000_000_000) return `₦${(n / 1_000_000_000).toFixed(1)}B`;
   return `₦${(n / 1_000_000).toFixed(0)}M`;
 }
 
-// ── OVERVIEW STATS (6 headline cards) ─────────────────────────────────────────
+// ── TYPES ─────────────────────────────────────────────────────────────────────
 
-type OverviewStatsRow = {
+export type TenancyPoint  = { label: string; total: number; active: number; vacant: number };
+export type RentPoint     = { label: string; collected: number; expected: number };
+export type CountPoint    = { label: string; count: number };
+export type MaintNVRPoint = { label: string; newRequests: number; resolved: number };
+
+export type OverviewStatsRow = {
   totalProperties: number;
   activeTenancies: number;
   vacantProperties: number;
@@ -33,106 +36,86 @@ type OverviewStatsRow = {
   rentExpected: number;
   maintenanceTotal: number;
   remindersSent: number;
-  // deltas vs previous period (positive = increase)
   totalPropertiesDelta: number;
   activeTenanciesDelta: number;
   vacantPropertiesDelta: number;
-  rentCollectedDeltaPct: number; // e.g. 5.0 means +5.0%
+  rentCollectedDeltaPct: number;
   maintenanceDelta: number;
   remindersDelta: number;
 };
 
-const OVERVIEW_DATA: Record<DateRange, Record<AccountType, OverviewStatsRow>> = {
-  "30d": {
-    all: {
-      totalProperties: 1284, activeTenancies: 1192, vacantProperties: 92,
-      rentCollected: 284_500_000, rentExpected: 300_700_000,
-      maintenanceTotal: 87, remindersSent: 3_847,
-      totalPropertiesDelta: +3, activeTenanciesDelta: +8, vacantPropertiesDelta: -8,
-      rentCollectedDeltaPct: +5.0, maintenanceDelta: -11, remindersDelta: +294,
-    },
-    landlord: {
-      totalProperties: 1091, activeTenancies: 1012, vacantProperties: 79,
-      rentCollected: 241_825_000, rentExpected: 255_595_000,
-      maintenanceTotal: 70, remindersSent: 3_154,
-      totalPropertiesDelta: +3, activeTenanciesDelta: +7, vacantPropertiesDelta: -7,
-      rentCollectedDeltaPct: +4.8, maintenanceDelta: -9, remindersDelta: +242,
-    },
-    pm: {
-      totalProperties: 193, activeTenancies: 180, vacantProperties: 13,
-      rentCollected: 42_675_000, rentExpected: 45_105_000,
-      maintenanceTotal: 17, remindersSent: 693,
-      totalPropertiesDelta: 0, activeTenanciesDelta: +1, vacantPropertiesDelta: -1,
-      rentCollectedDeltaPct: +5.7, maintenanceDelta: -2, remindersDelta: +52,
-    },
-  },
-  "90d": {
-    all: {
-      totalProperties: 1284, activeTenancies: 1192, vacantProperties: 92,
-      rentCollected: 848_500_000, rentExpected: 894_200_000,
-      maintenanceTotal: 241, remindersSent: 11_234,
-      totalPropertiesDelta: +8, activeTenanciesDelta: +14, vacantPropertiesDelta: -14,
-      rentCollectedDeltaPct: +8.2, maintenanceDelta: -28, remindersDelta: +1_847,
-    },
-    landlord: {
-      totalProperties: 1091, activeTenancies: 1012, vacantProperties: 79,
-      rentCollected: 721_225_000, rentExpected: 760_070_000,
-      maintenanceTotal: 193, remindersSent: 9_212,
-      totalPropertiesDelta: +7, activeTenanciesDelta: +12, vacantPropertiesDelta: -12,
-      rentCollectedDeltaPct: +7.9, maintenanceDelta: -23, remindersDelta: +1_515,
-    },
-    pm: {
-      totalProperties: 193, activeTenancies: 180, vacantProperties: 13,
-      rentCollected: 127_275_000, rentExpected: 134_130_000,
-      maintenanceTotal: 48, remindersSent: 2_022,
-      totalPropertiesDelta: +1, activeTenanciesDelta: +2, vacantPropertiesDelta: -2,
-      rentCollectedDeltaPct: +9.1, maintenanceDelta: -5, remindersDelta: +332,
-    },
-  },
-  "12m": {
-    all: {
-      totalProperties: 1284, activeTenancies: 1192, vacantProperties: 92,
-      rentCollected: 3_002_500_000, rentExpected: 3_207_700_000,
-      maintenanceTotal: 876, remindersSent: 43_284,
-      totalPropertiesDelta: +31, activeTenanciesDelta: +72, vacantPropertiesDelta: -72,
-      rentCollectedDeltaPct: +12.4, maintenanceDelta: -47, remindersDelta: +7_219,
-    },
-    landlord: {
-      totalProperties: 1091, activeTenancies: 1012, vacantProperties: 79,
-      rentCollected: 2_552_125_000, rentExpected: 2_726_545_000,
-      maintenanceTotal: 701, remindersSent: 35_493,
-      totalPropertiesDelta: +26, activeTenanciesDelta: +61, vacantPropertiesDelta: -61,
-      rentCollectedDeltaPct: +11.9, maintenanceDelta: -38, remindersDelta: +5_920,
-    },
-    pm: {
-      totalProperties: 193, activeTenancies: 180, vacantProperties: 13,
-      rentCollected: 450_375_000, rentExpected: 481_155_000,
-      maintenanceTotal: 175, remindersSent: 7_791,
-      totalPropertiesDelta: +5, activeTenanciesDelta: +11, vacantPropertiesDelta: -11,
-      rentCollectedDeltaPct: +13.8, maintenanceDelta: -9, remindersDelta: +1_299,
-    },
-  },
+// ── TENANCY SERIES (active + vacant = total always) ───────────────────────────
+// Weekly: last 12 weeks (Mon dates), current = week of Oct 20 2026
+// Monthly: last 12 months (Nov 2025 - Oct 2026)
+// Yearly: last 5 years (2022-2026 YTD)
+
+const BASE_TENANCY: Record<Period, TenancyPoint[]> = {
+  weekly: [
+    { label: "Aug 4",  total: 1278, active: 1181, vacant: 97 },
+    { label: "Aug 11", total: 1279, active: 1182, vacant: 97 },
+    { label: "Aug 18", total: 1280, active: 1183, vacant: 97 },
+    { label: "Aug 25", total: 1280, active: 1184, vacant: 96 },
+    { label: "Sep 1",  total: 1281, active: 1185, vacant: 96 },
+    { label: "Sep 8",  total: 1281, active: 1186, vacant: 95 },
+    { label: "Sep 15", total: 1282, active: 1187, vacant: 95 },
+    { label: "Sep 22", total: 1282, active: 1188, vacant: 94 },
+    { label: "Sep 29", total: 1283, active: 1188, vacant: 95 },
+    { label: "Oct 6",  total: 1283, active: 1189, vacant: 94 },
+    { label: "Oct 13", total: 1283, active: 1190, vacant: 93 },
+    { label: "Oct 20", total: 1284, active: 1192, vacant: 92 },
+  ],
+  monthly: [
+    { label: "Nov", total: 1253, active: 1092, vacant: 161 },
+    { label: "Dec", total: 1258, active: 1101, vacant: 157 },
+    { label: "Jan", total: 1260, active: 1108, vacant: 152 },
+    { label: "Feb", total: 1264, active: 1119, vacant: 145 },
+    { label: "Mar", total: 1266, active: 1125, vacant: 141 },
+    { label: "Apr", total: 1270, active: 1131, vacant: 139 },
+    { label: "May", total: 1272, active: 1137, vacant: 135 },
+    { label: "Jun", total: 1276, active: 1145, vacant: 131 },
+    { label: "Jul", total: 1279, active: 1150, vacant: 129 },
+    { label: "Aug", total: 1281, active: 1165, vacant: 116 },
+    { label: "Sep", total: 1283, active: 1178, vacant: 105 },
+    { label: "Oct", total: 1284, active: 1192, vacant: 92  },
+  ],
+  yearly: [
+    { label: "2022", total: 1140, active: 995,  vacant: 145 },
+    { label: "2023", total: 1190, active: 1042, vacant: 148 },
+    { label: "2024", total: 1230, active: 1085, vacant: 145 },
+    { label: "2025", total: 1260, active: 1132, vacant: 128 },
+    { label: "2026", total: 1284, active: 1192, vacant: 92  },
+  ],
 };
 
-export function getOverviewStats(range: DateRange, filter: AccountType): OverviewStatsRow {
-  return OVERVIEW_DATA[range][filter];
+export function getTenancyChartSeries(period: Period, filter: AccountType): TenancyPoint[] {
+  const base = BASE_TENANCY[period];
+  if (filter === "all") return base;
+  const targetTotal = TOTAL_PROPS[filter];
+  return base.map((d) => {
+    const filteredTotal = Math.round((d.total / 1284) * targetTotal);
+    const scaledActive  = Math.round((d.active / d.total) * filteredTotal);
+    return { label: d.label, total: filteredTotal, active: scaledActive, vacant: filteredTotal - scaledActive };
+  });
 }
 
-// ── RENT COLLECTED SERIES ─────────────────────────────────────────────────────
+// ── RENT SERIES ───────────────────────────────────────────────────────────────
 
-const BASE_RENT_SERIES: Record<DateRange, Array<{ label: string; collected: number; expected: number }>> = {
-  "30d": [
-    { label: "Wk 1", collected: 68_400_000, expected: 73_200_000 },
-    { label: "Wk 2", collected: 72_300_000, expected: 76_800_000 },
-    { label: "Wk 3", collected: 74_600_000, expected: 78_400_000 },
-    { label: "Wk 4", collected: 69_200_000, expected: 72_300_000 },
+const BASE_RENT: Record<Period, RentPoint[]> = {
+  weekly: [
+    { label: "Aug 4",  collected: 66_200_000, expected: 69_800_000 },
+    { label: "Aug 11", collected: 68_400_000, expected: 72_100_000 },
+    { label: "Aug 18", collected: 70_100_000, expected: 73_800_000 },
+    { label: "Aug 25", collected: 72_300_000, expected: 76_100_000 },
+    { label: "Sep 1",  collected: 69_800_000, expected: 73_500_000 },
+    { label: "Sep 8",  collected: 71_200_000, expected: 74_900_000 },
+    { label: "Sep 15", collected: 73_400_000, expected: 77_200_000 },
+    { label: "Sep 22", collected: 68_100_000, expected: 71_900_000 },
+    { label: "Sep 29", collected: 70_700_000, expected: 74_400_000 },
+    { label: "Oct 6",  collected: 67_900_000, expected: 71_500_000 },
+    { label: "Oct 13", collected: 70_700_000, expected: 74_500_000 },
+    { label: "Oct 20", collected: 73_200_000, expected: 77_400_000 },
   ],
-  "90d": [
-    { label: "Aug", collected: 281_000_000, expected: 295_000_000 },
-    { label: "Sep", collected: 283_000_000, expected: 298_000_000 },
-    { label: "Oct", collected: 284_500_000, expected: 300_700_000 },
-  ],
-  "12m": [
+  monthly: [
     { label: "Nov", collected: 218_000_000, expected: 235_000_000 },
     { label: "Dec", collected: 225_000_000, expected: 241_000_000 },
     { label: "Jan", collected: 198_000_000, expected: 224_000_000 },
@@ -143,164 +126,184 @@ const BASE_RENT_SERIES: Record<DateRange, Array<{ label: string; collected: numb
     { label: "Jun", collected: 271_000_000, expected: 285_000_000 },
     { label: "Jul", collected: 276_000_000, expected: 290_000_000 },
     { label: "Aug", collected: 281_000_000, expected: 295_000_000 },
-    { label: "Sep", collected: 283_000_000, expected: 298_000_000 },
+    { label: "Sep", collected: 271_000_000, expected: 289_000_000 },
     { label: "Oct", collected: 284_500_000, expected: 300_700_000 },
   ],
+  yearly: [
+    { label: "2022", collected: 1_800_000_000, expected: 2_100_000_000 },
+    { label: "2023", collected: 2_100_000_000, expected: 2_400_000_000 },
+    { label: "2024", collected: 2_450_000_000, expected: 2_720_000_000 },
+    { label: "2025", collected: 2_670_000_000, expected: 2_940_000_000 },
+    { label: "2026", collected: 3_002_500_000, expected: 3_207_700_000 },
+  ],
 };
 
-// Keep constant export for backward-compat with PKRentPayments
-export const RENT_COLLECTED_SERIES = BASE_RENT_SERIES;
-
-export function getRentSeries(range: DateRange, filter: AccountType) {
+export function getRentChartSeries(period: Period, filter: AccountType): RentPoint[] {
   const m = RENT_MULT[filter];
-  return BASE_RENT_SERIES[range].map((d) => ({
+  return BASE_RENT[period].map((d) => ({
     label: d.label,
     collected: Math.round(d.collected * m),
-    expected: Math.round(d.expected * m),
+    expected:  Math.round(d.expected  * m),
   }));
 }
 
-export const COLLECTION_RATE: Record<DateRange, number> = {
-  "30d": 94.6, "90d": 94.9, "12m": 93.6,
-};
+export const getRentSeries = getRentChartSeries;
 
-// ── TENANCIES TREND (active vs vacant — active + vacant = total always) ───────
+// ── MAINTENANCE NEW-VS-RESOLVED SERIES ────────────────────────────────────────
 
-const BASE_TENANCIES_TREND: Record<DateRange, Array<{ label: string; active: number; vacant: number }>> = {
-  "30d": [
-    { label: "Wk 1", active: 1184, vacant: 100 },
-    { label: "Wk 2", active: 1188, vacant: 96  },
-    { label: "Wk 3", active: 1190, vacant: 94  },
-    { label: "Wk 4", active: 1192, vacant: 92  },
+const BASE_MAINT_NVR: Record<Period, MaintNVRPoint[]> = {
+  weekly: [
+    { label: "Aug 4",  newRequests: 17, resolved: 13 },
+    { label: "Aug 11", newRequests: 19, resolved: 16 },
+    { label: "Aug 18", newRequests: 21, resolved: 17 },
+    { label: "Aug 25", newRequests: 18, resolved: 14 },
+    { label: "Sep 1",  newRequests: 22, resolved: 19 },
+    { label: "Sep 8",  newRequests: 19, resolved: 17 },
+    { label: "Sep 15", newRequests: 23, resolved: 18 },
+    { label: "Sep 22", newRequests: 20, resolved: 16 },
+    { label: "Sep 29", newRequests: 18, resolved: 15 },
+    { label: "Oct 6",  newRequests: 24, resolved: 19 },
+    { label: "Oct 13", newRequests: 18, resolved: 16 },
+    { label: "Oct 20", newRequests: 22, resolved: 17 },
   ],
-  "90d": [
-    { label: "Aug", active: 1178, vacant: 106 },
-    { label: "Sep", active: 1185, vacant: 99  },
-    { label: "Oct", active: 1192, vacant: 92  },
-  ],
-  "12m": [
-    { label: "Nov", active: 1120, vacant: 164 },
-    { label: "Dec", active: 1128, vacant: 156 },
-    { label: "Jan", active: 1115, vacant: 169 },
-    { label: "Feb", active: 1124, vacant: 160 },
-    { label: "Mar", active: 1139, vacant: 145 },
-    { label: "Apr", active: 1150, vacant: 134 },
-    { label: "May", active: 1158, vacant: 126 },
-    { label: "Jun", active: 1164, vacant: 120 },
-    { label: "Jul", active: 1170, vacant: 114 },
-    { label: "Aug", active: 1178, vacant: 106 },
-    { label: "Sep", active: 1185, vacant: 99  },
-    { label: "Oct", active: 1192, vacant: 92  },
-  ],
-};
-
-export function getTenanciesTrend(range: DateRange, filter: AccountType) {
-  const filteredTotal = TOTAL_PROPS[filter];
-  return BASE_TENANCIES_TREND[range].map((d) => {
-    if (filter === "all") return d;
-    const baseTotal = 1284;
-    const scaledActive = Math.round((d.active / baseTotal) * filteredTotal);
-    const scaledVacant = filteredTotal - scaledActive;
-    return { label: d.label, active: scaledActive, vacant: scaledVacant };
-  });
-}
-
-// ── REMINDERS SENT SERIES ─────────────────────────────────────────────────────
-
-const BASE_REMINDERS_SERIES: Record<DateRange, Array<{ label: string; count: number }>> = {
-  "30d": [
-    { label: "Wk 1", count: 924  },
-    { label: "Wk 2", count: 1012 },
-    { label: "Wk 3", count: 987  },
-    { label: "Wk 4", count: 924  },
-  ],
-  "90d": [
-    { label: "Aug", count: 3_712 },
-    { label: "Sep", count: 3_847 },
-    { label: "Oct", count: 3_675 },
-  ],
-  "12m": [
-    { label: "Nov", count: 3_124 },
-    { label: "Dec", count: 3_287 },
-    { label: "Jan", count: 2_984 },
-    { label: "Feb", count: 3_214 },
-    { label: "Mar", count: 3_541 },
-    { label: "Apr", count: 3_712 },
-    { label: "May", count: 3_814 },
-    { label: "Jun", count: 3_879 },
-    { label: "Jul", count: 3_947 },
-    { label: "Aug", count: 3_712 },
-    { label: "Sep", count: 3_847 },
-    { label: "Oct", count: 4_223 },
-  ],
-};
-
-export function getRemindersSeries(range: DateRange, filter: AccountType) {
-  const m = REMIND_MULT[filter];
-  return BASE_REMINDERS_SERIES[range].map((d) => ({
-    label: d.label,
-    count: Math.round(d.count * m),
-  }));
-}
-
-// ── MAINTENANCE WEEKLY ────────────────────────────────────────────────────────
-
-const BASE_MAINTENANCE_WEEKLY: Record<DateRange, Array<{ label: string; newRequests: number; resolved: number }>> = {
-  "30d": [
-    { label: "Wk 1", newRequests: 22, resolved: 18 },
-    { label: "Wk 2", newRequests: 19, resolved: 21 },
-    { label: "Wk 3", newRequests: 24, resolved: 16 },
-    { label: "Wk 4", newRequests: 22, resolved: 17 },
-  ],
-  "90d": [
-    { label: "Aug W1", newRequests: 18, resolved: 14 },
-    { label: "Aug W2", newRequests: 22, resolved: 19 },
-    { label: "Aug W3", newRequests: 19, resolved: 21 },
-    { label: "Aug W4", newRequests: 21, resolved: 16 },
-    { label: "Sep W1", newRequests: 16, resolved: 18 },
-    { label: "Sep W2", newRequests: 20, resolved: 17 },
-    { label: "Sep W3", newRequests: 24, resolved: 21 },
-    { label: "Sep W4", newRequests: 18, resolved: 19 },
-    { label: "Oct W1", newRequests: 22, resolved: 18 },
-    { label: "Oct W2", newRequests: 19, resolved: 21 },
-    { label: "Oct W3", newRequests: 24, resolved: 16 },
-    { label: "Oct W4", newRequests: 22, resolved: 17 },
-  ],
-  "12m": [
-    { label: "Nov", newRequests: 84,  resolved: 62  },
-    { label: "Dec", newRequests: 91,  resolved: 71  },
-    { label: "Jan", newRequests: 88,  resolved: 69  },
-    { label: "Feb", newRequests: 76,  resolved: 74  },
-    { label: "Mar", newRequests: 82,  resolved: 78  },
+  monthly: [
+    { label: "Nov", newRequests: 72,  resolved: 62  },
+    { label: "Dec", newRequests: 84,  resolved: 71  },
+    { label: "Jan", newRequests: 79,  resolved: 68  },
+    { label: "Feb", newRequests: 68,  resolved: 74  },
+    { label: "Mar", newRequests: 75,  resolved: 78  },
     { label: "Apr", newRequests: 71,  resolved: 76  },
-    { label: "May", newRequests: 68,  resolved: 71  },
-    { label: "Jun", newRequests: 74,  resolved: 72  },
-    { label: "Jul", newRequests: 79,  resolved: 74  },
+    { label: "May", newRequests: 73,  resolved: 71  },
+    { label: "Jun", newRequests: 68,  resolved: 72  },
+    { label: "Jul", newRequests: 76,  resolved: 74  },
     { label: "Aug", newRequests: 80,  resolved: 71  },
-    { label: "Sep", newRequests: 77,  resolved: 79  },
+    { label: "Sep", newRequests: 98,  resolved: 79  },
     { label: "Oct", newRequests: 87,  resolved: 72  },
   ],
+  yearly: [
+    { label: "2022", newRequests: 612,  resolved: 580  },
+    { label: "2023", newRequests: 724,  resolved: 698  },
+    { label: "2024", newRequests: 810,  resolved: 779  },
+    { label: "2025", newRequests: 923,  resolved: 891  },
+    { label: "2026", newRequests: 876,  resolved: 742  },
+  ],
 };
 
-// Keep constant for PKMaintenance backward compat
-export const MAINTENANCE_WEEKLY = BASE_MAINTENANCE_WEEKLY;
-
-export function getMaintenanceWeekly(range: DateRange, filter: AccountType) {
+export function getMaintenanceNvsR(period: Period, filter: AccountType): MaintNVRPoint[] {
   const m = MAINT_MULT[filter];
-  return BASE_MAINTENANCE_WEEKLY[range].map((d) => ({
+  return BASE_MAINT_NVR[period].map((d) => ({
     label: d.label,
     newRequests: Math.round(d.newRequests * m),
-    resolved: Math.round(d.resolved * m),
+    resolved:    Math.round(d.resolved    * m),
   }));
+}
+
+export function getMaintenanceChartSeries(period: Period, filter: AccountType): CountPoint[] {
+  return getMaintenanceNvsR(period, filter).map((d) => ({ label: d.label, count: d.newRequests }));
+}
+
+export const getMaintenanceWeekly = getMaintenanceNvsR;
+
+// ── REMINDERS SERIES ──────────────────────────────────────────────────────────
+
+const BASE_REMINDERS: Record<Period, CountPoint[]> = {
+  weekly: [
+    { label: "Aug 4",  count: 920  },
+    { label: "Aug 11", count: 950  },
+    { label: "Aug 18", count: 980  },
+    { label: "Aug 25", count: 940  },
+    { label: "Sep 1",  count: 1010 },
+    { label: "Sep 8",  count: 970  },
+    { label: "Sep 15", count: 1030 },
+    { label: "Sep 22", count: 980  },
+    { label: "Sep 29", count: 940  },
+    { label: "Oct 6",  count: 1020 },
+    { label: "Oct 13", count: 940  },
+    { label: "Oct 20", count: 980  },
+  ],
+  monthly: [
+    { label: "Nov", count: 3124 },
+    { label: "Dec", count: 3287 },
+    { label: "Jan", count: 2984 },
+    { label: "Feb", count: 3214 },
+    { label: "Mar", count: 3541 },
+    { label: "Apr", count: 3712 },
+    { label: "May", count: 3814 },
+    { label: "Jun", count: 3879 },
+    { label: "Jul", count: 3947 },
+    { label: "Aug", count: 3712 },
+    { label: "Sep", count: 3553 },
+    { label: "Oct", count: 3847 },
+  ],
+  yearly: [
+    { label: "2022", count: 28_400 },
+    { label: "2023", count: 33_200 },
+    { label: "2024", count: 38_100 },
+    { label: "2025", count: 36_065 },
+    { label: "2026", count: 43_284 },
+  ],
+};
+
+export function getRemindersChartSeries(period: Period, filter: AccountType): CountPoint[] {
+  const m = REMIND_MULT[filter];
+  return BASE_REMINDERS[period].map((d) => ({ label: d.label, count: Math.round(d.count * m) }));
+}
+
+export const getRemindersSeries = getRemindersChartSeries;
+
+// ── OVERVIEW STATS (computed from series — guaranteed consistent) ──────────────
+
+export function getOverviewStats(period: Period, filter: AccountType): OverviewStatsRow {
+  const tenancy   = getTenancyChartSeries(period, filter);
+  const rent      = getRentChartSeries(period, filter);
+  const maint     = getMaintenanceChartSeries(period, filter);
+  const reminders = getRemindersChartSeries(period, filter);
+
+  const cur  = tenancy[tenancy.length - 1];
+  const prev = tenancy[tenancy.length - 2];
+  const curR  = rent[rent.length - 1];
+  const prevR = rent[rent.length - 2];
+  const curM  = maint[maint.length - 1];
+  const prevM = maint[maint.length - 2];
+  const curRem  = reminders[reminders.length - 1];
+  const prevRem = reminders[reminders.length - 2];
+
+  const rentDeltaPct = parseFloat(
+    (((curR.collected - prevR.collected) / prevR.collected) * 100).toFixed(1)
+  );
+
+  return {
+    totalProperties:       cur.total,
+    activeTenancies:       cur.active,
+    vacantProperties:      cur.vacant,
+    rentCollected:         curR.collected,
+    rentExpected:          curR.expected,
+    maintenanceTotal:      curM.count,
+    remindersSent:         curRem.count,
+    totalPropertiesDelta:  cur.total  - prev.total,
+    activeTenanciesDelta:  cur.active - prev.active,
+    vacantPropertiesDelta: cur.vacant - prev.vacant,
+    rentCollectedDeltaPct: rentDeltaPct,
+    maintenanceDelta:      curM.count  - prevM.count,
+    remindersDelta:        curRem.count - prevRem.count,
+  };
 }
 
 // ── LATE PAYMENTS ─────────────────────────────────────────────────────────────
 
-const BASE_LATE: Record<DateRange, {
+const BASE_LATE: Record<Period, {
   count: number; totalAmount: number;
   aging: Array<{ label: string; count: number; amount: number }>;
 }> = {
-  "30d": {
+  weekly: {
+    count: 22, totalAmount: 10_600_000,
+    aging: [
+      { label: "1 to 7 days",  count: 10, amount: 3_600_000 },
+      { label: "8 to 30 days", count: 8,  amount: 4_500_000 },
+      { label: "30+ days",     count: 4,  amount: 2_500_000 },
+    ],
+  },
+  monthly: {
     count: 87, totalAmount: 42_300_000,
     aging: [
       { label: "1 to 7 days",  count: 38, amount: 14_200_000 },
@@ -308,15 +311,7 @@ const BASE_LATE: Record<DateRange, {
       { label: "30+ days",     count: 18, amount: 10_000_000 },
     ],
   },
-  "90d": {
-    count: 224, totalAmount: 118_600_000,
-    aging: [
-      { label: "1 to 7 days",  count: 89,  amount: 32_400_000 },
-      { label: "8 to 30 days", count: 82,  amount: 51_200_000 },
-      { label: "30+ days",     count: 53,  amount: 35_000_000 },
-    ],
-  },
-  "12m": {
+  yearly: {
     count: 687, totalAmount: 384_100_000,
     aging: [
       { label: "1 to 7 days",  count: 271, amount: 98_700_000  },
@@ -326,17 +321,15 @@ const BASE_LATE: Record<DateRange, {
   },
 };
 
-export const LATE_PAYMENT_STATS = BASE_LATE;
-
-export function getLatePayments(range: DateRange, filter: AccountType) {
-  const m = RENT_MULT[filter];
-  const base = BASE_LATE[range];
+export function getLatePayments(period: Period, filter: AccountType) {
+  const m    = RENT_MULT[filter];
+  const base = BASE_LATE[period];
   return {
-    count: Math.round(base.count * m),
+    count:       Math.round(base.count * m),
     totalAmount: Math.round(base.totalAmount * m),
     aging: base.aging.map((b) => ({
       label: b.label,
-      count: Math.round(b.count * m),
+      count:  Math.round(b.count  * m),
       amount: Math.round(b.amount * m),
     })),
   };
@@ -345,13 +338,13 @@ export function getLatePayments(range: DateRange, filter: AccountType) {
 // ── OVERDUE TENANCIES ─────────────────────────────────────────────────────────
 
 export const OVERDUE_TENANCIES = [
-  { tenant: "Tunde Akinwale",  property: "Royal Gardens — Unit 1",   amount: 3_750_000, daysOverdue: 62 },
-  { tenant: "Emeka Chukwu",    property: "Cedar Park — Unit 3B",     amount: 1_200_000, daysOverdue: 48 },
-  { tenant: "Fatima Bello",    property: "Ocean View — Unit 5A",     amount: 2_100_000, daysOverdue: 35 },
-  { tenant: "Olawale Adeyemi", property: "Palm Grove — Unit 2C",     amount: 1_800_000, daysOverdue: 28 },
-  { tenant: "Grace Nwankwo",   property: "Surulere Court — Unit 1",  amount: 950_000,   daysOverdue: 19 },
-  { tenant: "Kemi Ibrahim",    property: "Maple Court — Unit 8D",    amount: 1_500_000, daysOverdue: 14 },
-  { tenant: "Chidi Obi",       property: "Sapphire Heights — Unit 2A", amount: 850_000, daysOverdue: 9  },
+  { tenant: "Tunde Akinwale",  property: "Royal Gardens — Unit 1",    amount: 3_750_000, daysOverdue: 62 },
+  { tenant: "Emeka Chukwu",    property: "Cedar Park — Unit 3B",      amount: 1_200_000, daysOverdue: 48 },
+  { tenant: "Fatima Bello",    property: "Ocean View — Unit 5A",      amount: 2_100_000, daysOverdue: 35 },
+  { tenant: "Olawale Adeyemi", property: "Palm Grove — Unit 2C",      amount: 1_800_000, daysOverdue: 28 },
+  { tenant: "Grace Nwankwo",   property: "Surulere Court — Unit 1",   amount: 950_000,   daysOverdue: 19 },
+  { tenant: "Kemi Ibrahim",    property: "Maple Court — Unit 8D",     amount: 1_500_000, daysOverdue: 14 },
+  { tenant: "Chidi Obi",       property: "Sapphire Heights — Unit 2A",amount: 850_000,   daysOverdue: 9  },
 ];
 
 // ── LONGEST VACANT PROPERTIES ─────────────────────────────────────────────────
@@ -364,70 +357,57 @@ export const LONGEST_VACANT_PROPERTIES = [
   { name: "Maple Court",   unit: "Unit 5D", area: "Lekki",    daysVacant: 47 },
 ];
 
-// ── OCCUPANCY STATS ───────────────────────────────────────────────────────────
+// ── OCCUPANCY ─────────────────────────────────────────────────────────────────
 
-const BASE_OCCUPANCY: Record<DateRange, {
-  total: number; active: number; vacant: number; rate: number; rateDelta: number;
-  avgDaysVacant: number; readyForMarketing: number;
-}> = {
-  "30d": { total: 1284, active: 1192, vacant: 92,  rate: 92.8, rateDelta: +0.6, avgDaysVacant: 34, readyForMarketing: 28 },
-  "90d": { total: 1284, active: 1192, vacant: 92,  rate: 92.8, rateDelta: +1.8, avgDaysVacant: 38, readyForMarketing: 31 },
-  "12m": { total: 1284, active: 1192, vacant: 92,  rate: 92.8, rateDelta: +3.6, avgDaysVacant: 42, readyForMarketing: 38 },
+const BASE_AVG_VACANCY: Record<Period, { avgDaysVacant: number; readyForMarketing: number }> = {
+  weekly:  { avgDaysVacant: 32, readyForMarketing: 26 },
+  monthly: { avgDaysVacant: 34, readyForMarketing: 28 },
+  yearly:  { avgDaysVacant: 42, readyForMarketing: 38 },
 };
 
-export const OCCUPANCY_STATS = BASE_OCCUPANCY;
-
-export function getOccupancyStats(range: DateRange, filter: AccountType) {
-  const base = BASE_OCCUPANCY[range];
-  const filteredTotal = TOTAL_PROPS[filter];
-  const scaledActive = Math.round((base.active / base.total) * filteredTotal);
+export function getOccupancyStats(period: Period, filter: AccountType) {
+  const last = getTenancyChartSeries(period, filter).at(-1)!;
+  const meta = BASE_AVG_VACANCY[period];
+  const prev = getTenancyChartSeries(period, filter).at(-2)!;
+  const rateDelta = parseFloat(
+    ((last.active / last.total - prev.active / prev.total) * 100).toFixed(1)
+  );
   return {
-    total: filteredTotal,
-    active: scaledActive,
-    vacant: filteredTotal - scaledActive,
-    rate: parseFloat(((scaledActive / filteredTotal) * 100).toFixed(1)),
-    rateDelta: base.rateDelta,
-    avgDaysVacant: base.avgDaysVacant,
-    readyForMarketing: Math.round(base.readyForMarketing * RENT_MULT[filter]),
+    total:              last.total,
+    active:             last.active,
+    vacant:             last.vacant,
+    rate:               parseFloat(((last.active / last.total) * 100).toFixed(1)),
+    rateDelta,
+    avgDaysVacant:      meta.avgDaysVacant,
+    readyForMarketing:  Math.round(meta.readyForMarketing * RENT_MULT[filter]),
   };
 }
 
-// ── OCCUPANCY RATE TREND ──────────────────────────────────────────────────────
-
-export const OCCUPANCY_RATE_TREND: Record<DateRange, Array<{ label: string; rate: number }>> = {
-  "30d": [
-    { label: "Wk 1", rate: 92.1 }, { label: "Wk 2", rate: 92.4 },
-    { label: "Wk 3", rate: 92.6 }, { label: "Wk 4", rate: 92.8 },
-  ],
-  "90d": [
-    { label: "Aug", rate: 91.8 }, { label: "Sep", rate: 92.2 }, { label: "Oct", rate: 92.8 },
-  ],
-  "12m": [
-    { label: "Nov", rate: 87.2 }, { label: "Dec", rate: 87.8 }, { label: "Jan", rate: 86.4 },
-    { label: "Feb", rate: 87.1 }, { label: "Mar", rate: 88.6 }, { label: "Apr", rate: 89.4 },
-    { label: "May", rate: 90.1 }, { label: "Jun", rate: 90.7 }, { label: "Jul", rate: 91.2 },
-    { label: "Aug", rate: 91.8 }, { label: "Sep", rate: 92.2 }, { label: "Oct", rate: 92.8 },
-  ],
-};
+export function getOccupancyRateTrend(period: Period, filter: AccountType) {
+  return getTenancyChartSeries(period, filter).map((d) => ({
+    label: d.label,
+    rate:  parseFloat(((d.active / d.total) * 100).toFixed(1)),
+  }));
+}
 
 // ── VACANCY BY AREA ───────────────────────────────────────────────────────────
 
-const BASE_VACANCY_BY_AREA: Record<DateRange, Array<{ area: string; vacant: number; total: number }>> = {
-  "30d": [
+const BASE_VACANCY_BY_AREA: Record<Period, Array<{ area: string; vacant: number; total: number }>> = {
+  weekly: [
     { area: "Lekki",           vacant: 24, total: 412 },
     { area: "Victoria Island", vacant: 8,  total: 198 },
     { area: "Ikoyi",           vacant: 11, total: 142 },
     { area: "Surulere",        vacant: 9,  total: 52  },
     { area: "Ajah",            vacant: 31, total: 224 },
   ],
-  "90d": [
-    { area: "Lekki",           vacant: 27, total: 412 },
+  monthly: [
+    { area: "Lekki",           vacant: 24, total: 412 },
     { area: "Victoria Island", vacant: 8,  total: 198 },
-    { area: "Ikoyi",           vacant: 12, total: 142 },
-    { area: "Surulere",        vacant: 10, total: 52  },
-    { area: "Ajah",            vacant: 34, total: 224 },
+    { area: "Ikoyi",           vacant: 11, total: 142 },
+    { area: "Surulere",        vacant: 9,  total: 52  },
+    { area: "Ajah",            vacant: 31, total: 224 },
   ],
-  "12m": [
+  yearly: [
     { area: "Lekki",           vacant: 34, total: 412 },
     { area: "Victoria Island", vacant: 9,  total: 198 },
     { area: "Ikoyi",           vacant: 14, total: 142 },
@@ -436,65 +416,61 @@ const BASE_VACANCY_BY_AREA: Record<DateRange, Array<{ area: string; vacant: numb
   ],
 };
 
-export const VACANCY_BY_AREA = BASE_VACANCY_BY_AREA;
-
-export function getVacancyByArea(range: DateRange, filter: AccountType) {
-  const m = RENT_MULT[filter]; // approximate area split
-  return BASE_VACANCY_BY_AREA[range].map((d) => ({
-    area: d.area,
+export function getVacancyByArea(period: Period, filter: AccountType) {
+  const m = RENT_MULT[filter];
+  return BASE_VACANCY_BY_AREA[period].map((d) => ({
+    area:   d.area,
     vacant: Math.round(d.vacant * m),
-    total: Math.round(d.total * m),
+    total:  Math.round(d.total  * m),
   }));
 }
 
 // ── MAINTENANCE STATS ─────────────────────────────────────────────────────────
 
-const BASE_MAINT_STATS: Record<DateRange, {
+const BASE_MAINT_STATS: Record<Period, {
   total: number; open: number; inProgress: number; resolved: number;
   avgResolutionDays: number; reopenRate: number;
 }> = {
-  "30d": { total: 87,  open: 34, inProgress: 20, resolved: 33,  avgResolutionDays: 3.8, reopenRate: 4.2 },
-  "90d": { total: 241, open: 34, inProgress: 20, resolved: 187, avgResolutionDays: 4.1, reopenRate: 4.8 },
-  "12m": { total: 876, open: 34, inProgress: 20, resolved: 822, avgResolutionDays: 4.3, reopenRate: 5.2 },
+  weekly:  { total: 22,  open: 8,  inProgress: 5,  resolved: 9,   avgResolutionDays: 3.8, reopenRate: 4.2 },
+  monthly: { total: 87,  open: 34, inProgress: 20, resolved: 33,  avgResolutionDays: 3.8, reopenRate: 4.2 },
+  yearly:  { total: 876, open: 34, inProgress: 20, resolved: 822, avgResolutionDays: 4.3, reopenRate: 5.2 },
 };
 
-export const MAINTENANCE_STATS = BASE_MAINT_STATS;
-
-export function getMaintenanceStats(range: DateRange, filter: AccountType) {
-  const m = MAINT_MULT[filter];
-  const base = BASE_MAINT_STATS[range];
-  const total = Math.round(base.total * m);
-  const open = Math.round(base.open * m);
-  const inProgress = Math.round(base.inProgress * m);
+export function getMaintenanceStats(period: Period, filter: AccountType) {
+  const m    = MAINT_MULT[filter];
+  const base = BASE_MAINT_STATS[period];
+  const total       = Math.round(base.total      * m);
+  const open        = Math.round(base.open        * m);
+  const inProgress  = Math.round(base.inProgress  * m);
   return {
     total, open, inProgress,
-    resolved: total - open - inProgress,
+    resolved: Math.max(0, total - open - inProgress),
     avgResolutionDays: base.avgResolutionDays,
-    reopenRate: base.reopenRate,
+    reopenRate:        base.reopenRate,
   };
 }
 
 // ── FM PERFORMANCE ────────────────────────────────────────────────────────────
 
-export const FM_PERFORMANCE: Record<DateRange, Array<{
+export const FM_PERFORMANCE: Record<Period, Array<{
   name: string; assigned: number; resolved: number;
   avgResolutionHours: number; reopened: number; confirmLagHours: number;
 }>> = {
-  "30d": [
+  weekly: [
+    { name: "Sade Williams",  assigned: 10, resolved: 7,  avgResolutionHours: 3.8, reopened: 1, confirmLagHours: 1.8 },
+    { name: "Jide Akinola",   assigned: 8,  resolved: 6,  avgResolutionHours: 4.2, reopened: 0, confirmLagHours: 2.1 },
+    { name: "Kola Adeyemi",   assigned: 6,  resolved: 5,  avgResolutionHours: 4.7, reopened: 0, confirmLagHours: 3.2 },
+    { name: "Amaka Okonkwo",  assigned: 5,  resolved: 4,  avgResolutionHours: 5.4, reopened: 1, confirmLagHours: 2.5 },
+    { name: "Emeka Obi",      assigned: 5,  resolved: 4,  avgResolutionHours: 5.1, reopened: 0, confirmLagHours: 2.8 },
+  ],
+  monthly: [
     { name: "Sade Williams",  assigned: 38, resolved: 29, avgResolutionHours: 3.8, reopened: 2, confirmLagHours: 1.8 },
     { name: "Jide Akinola",   assigned: 31, resolved: 24, avgResolutionHours: 4.2, reopened: 1, confirmLagHours: 2.1 },
     { name: "Kola Adeyemi",   assigned: 24, resolved: 19, avgResolutionHours: 4.7, reopened: 0, confirmLagHours: 3.2 },
     { name: "Amaka Okonkwo",  assigned: 21, resolved: 17, avgResolutionHours: 5.4, reopened: 2, confirmLagHours: 2.5 },
     { name: "Emeka Obi",      assigned: 18, resolved: 14, avgResolutionHours: 5.1, reopened: 1, confirmLagHours: 2.8 },
   ],
-  "90d": [
-    { name: "Sade Williams",  assigned: 112, resolved: 94,  avgResolutionHours: 4.1, reopened: 5,  confirmLagHours: 1.9 },
-    { name: "Jide Akinola",   assigned: 94,  resolved: 76,  avgResolutionHours: 4.5, reopened: 4,  confirmLagHours: 2.3 },
-    { name: "Kola Adeyemi",   assigned: 72,  resolved: 62,  avgResolutionHours: 5.1, reopened: 2,  confirmLagHours: 3.4 },
-    { name: "Amaka Okonkwo",  assigned: 63,  resolved: 51,  avgResolutionHours: 5.8, reopened: 6,  confirmLagHours: 2.7 },
-    { name: "Emeka Obi",      assigned: 54,  resolved: 42,  avgResolutionHours: 5.4, reopened: 3,  confirmLagHours: 2.9 },
-  ],
-  "12m": [
+  yearly: [
     { name: "Sade Williams",  assigned: 412, resolved: 364, avgResolutionHours: 4.2, reopened: 18, confirmLagHours: 2.0 },
     { name: "Jide Akinola",   assigned: 348, resolved: 294, avgResolutionHours: 4.6, reopened: 15, confirmLagHours: 2.4 },
     { name: "Kola Adeyemi",   assigned: 274, resolved: 241, avgResolutionHours: 5.2, reopened: 9,  confirmLagHours: 3.5 },
@@ -505,60 +481,22 @@ export const FM_PERFORMANCE: Record<DateRange, Array<{
 
 // ── COMMUNICATIONS ────────────────────────────────────────────────────────────
 
-const BASE_COMMS_STATS: Record<DateRange, {
-  sent: number; delivered: number; read: number;
-  deliveryRate: number; readRate: number; broadcasts: number;
-  invitedResidents: number; onboardedResidents: number; onboardingRate: number;
-}> = {
-  "30d": {
-    sent: 4284, delivered: 4102, read: 3618,
-    deliveryRate: 95.8, readRate: 88.2, broadcasts: 12,
-    invitedResidents: 124, onboardedResidents: 98, onboardingRate: 79.0,
-  },
-  "90d": {
-    sent: 12847, delivered: 12264, read: 10713,
-    deliveryRate: 95.5, readRate: 87.4, broadcasts: 34,
-    invitedResidents: 341, onboardedResidents: 278, onboardingRate: 81.5,
-  },
-  "12m": {
-    sent: 47312, delivered: 44872, read: 38587,
-    deliveryRate: 94.8, readRate: 86.0, broadcasts: 108,
-    invitedResidents: 1284, onboardedResidents: 1047, onboardingRate: 81.5,
-  },
-};
-
-export const COMMS_STATS = BASE_COMMS_STATS;
-
-export function getCommsStats(range: DateRange, filter: AccountType) {
-  const m = REMIND_MULT[filter];
-  const base = BASE_COMMS_STATS[range];
-  const sent = Math.round(base.sent * m);
-  const delivered = Math.round(base.delivered * m);
-  const read = Math.round(base.read * m);
-  return {
-    sent, delivered, read,
-    deliveryRate: base.deliveryRate,
-    readRate: base.readRate,
-    broadcasts: Math.round(base.broadcasts * m),
-    invitedResidents: Math.round(base.invitedResidents * m),
-    onboardedResidents: Math.round(base.onboardedResidents * m),
-    onboardingRate: base.onboardingRate,
-  };
-}
-
-const BASE_COMMS_TREND: Record<DateRange, Array<{ label: string; sent: number; delivered: number; read: number }>> = {
-  "30d": [
-    { label: "Wk 1", sent: 1024, delivered: 981,  read: 862 },
-    { label: "Wk 2", sent: 1142, delivered: 1094, read: 966 },
-    { label: "Wk 3", sent: 1087, delivered: 1041, read: 921 },
-    { label: "Wk 4", sent: 1031, delivered: 986,  read: 869 },
+const BASE_COMMS_TREND: Record<Period, Array<{ label: string; sent: number; delivered: number; read: number }>> = {
+  weekly: [
+    { label: "Aug 4",  sent: 840,  delivered: 804,  read: 712  },
+    { label: "Aug 11", sent: 920,  delivered: 880,  read: 778  },
+    { label: "Aug 18", sent: 1020, delivered: 975,  read: 861  },
+    { label: "Aug 25", sent: 960,  delivered: 918,  read: 810  },
+    { label: "Sep 1",  sent: 1080, delivered: 1032, read: 913  },
+    { label: "Sep 8",  sent: 990,  delivered: 947,  read: 835  },
+    { label: "Sep 15", sent: 1130, delivered: 1080, read: 952  },
+    { label: "Sep 22", sent: 1010, delivered: 966,  read: 851  },
+    { label: "Sep 29", sent: 940,  delivered: 899,  read: 793  },
+    { label: "Oct 6",  sent: 1110, delivered: 1061, read: 934  },
+    { label: "Oct 13", sent: 1020, delivered: 975,  read: 861  },
+    { label: "Oct 20", sent: 1080, delivered: 1032, read: 913  },
   ],
-  "90d": [
-    { label: "Aug", sent: 4012,  delivered: 3832,  read: 3372 },
-    { label: "Sep", sent: 4284,  delivered: 4102,  read: 3618 },
-    { label: "Oct", sent: 4551,  delivered: 4330,  read: 3723 },
-  ],
-  "12m": [
+  monthly: [
     { label: "Nov", sent: 2841,  delivered: 2698,  read: 2341 },
     { label: "Dec", sent: 3124,  delivered: 2967,  read: 2572 },
     { label: "Jan", sent: 3287,  delivered: 3118,  read: 2724 },
@@ -572,47 +510,95 @@ const BASE_COMMS_TREND: Record<DateRange, Array<{ label: string; sent: number; d
     { label: "Sep", sent: 4284,  delivered: 4102,  read: 3618 },
     { label: "Oct", sent: 4551,  delivered: 4330,  read: 3723 },
   ],
+  yearly: [
+    { label: "2022", sent: 28_100, delivered: 26_800, read: 23_200 },
+    { label: "2023", sent: 32_400, delivered: 30_800, read: 26_700 },
+    { label: "2024", sent: 38_900, delivered: 36_900, read: 32_000 },
+    { label: "2025", sent: 43_700, delivered: 41_400, read: 35_800 },
+    { label: "2026", sent: 47_312, delivered: 44_872, read: 38_587 },
+  ],
 };
 
-export const COMMS_TREND = BASE_COMMS_TREND;
-
-export function getCommsTrend(range: DateRange, filter: AccountType) {
+export function getCommsTrend(period: Period, filter: AccountType) {
   const m = REMIND_MULT[filter];
-  return BASE_COMMS_TREND[range].map((d) => ({
-    label: d.label,
-    sent: Math.round(d.sent * m),
+  return BASE_COMMS_TREND[period].map((d) => ({
+    label:     d.label,
+    sent:      Math.round(d.sent      * m),
     delivered: Math.round(d.delivered * m),
-    read: Math.round(d.read * m),
+    read:      Math.round(d.read      * m),
   }));
 }
 
-const BASE_ONBOARDING: Record<DateRange, Array<{ label: string; invited: number; onboarded: number }>> = {
-  "30d": [
-    { label: "Wk 1", invited: 32, onboarded: 24 }, { label: "Wk 2", invited: 28, onboarded: 23 },
-    { label: "Wk 3", invited: 34, onboarded: 27 }, { label: "Wk 4", invited: 30, onboarded: 24 },
+const BASE_COMMS_META: Record<Period, {
+  deliveryRate: number; readRate: number; broadcasts: number;
+  onboardingRate: number;
+}> = {
+  weekly:  { deliveryRate: 95.6, readRate: 84.5, broadcasts: 3,   onboardingRate: 79.0 },
+  monthly: { deliveryRate: 95.8, readRate: 88.2, broadcasts: 12,  onboardingRate: 79.0 },
+  yearly:  { deliveryRate: 94.8, readRate: 86.0, broadcasts: 108, onboardingRate: 81.5 },
+};
+
+export function getCommsStats(period: Period, filter: AccountType) {
+  const m    = REMIND_MULT[filter];
+  const meta = BASE_COMMS_META[period];
+  const last = getCommsTrend(period, filter).at(-1)!;
+  const ob   = getOnboardingTrend(period, filter).at(-1)!;
+  return {
+    sent:               last.sent,
+    delivered:          last.delivered,
+    read:               last.read,
+    deliveryRate:       meta.deliveryRate,
+    readRate:           meta.readRate,
+    broadcasts:         Math.round(meta.broadcasts * m),
+    invitedResidents:   ob.invited,
+    onboardedResidents: ob.onboarded,
+    onboardingRate:     meta.onboardingRate,
+  };
+}
+
+const BASE_ONBOARDING: Record<Period, Array<{ label: string; invited: number; onboarded: number }>> = {
+  weekly: [
+    { label: "Aug 4",  invited: 8,  onboarded: 6  },
+    { label: "Aug 11", invited: 7,  onboarded: 6  },
+    { label: "Aug 18", invited: 9,  onboarded: 7  },
+    { label: "Aug 25", invited: 8,  onboarded: 6  },
+    { label: "Sep 1",  invited: 10, onboarded: 8  },
+    { label: "Sep 8",  invited: 7,  onboarded: 6  },
+    { label: "Sep 15", invited: 9,  onboarded: 7  },
+    { label: "Sep 22", invited: 8,  onboarded: 6  },
+    { label: "Sep 29", invited: 7,  onboarded: 5  },
+    { label: "Oct 6",  invited: 9,  onboarded: 7  },
+    { label: "Oct 13", invited: 8,  onboarded: 6  },
+    { label: "Oct 20", invited: 9,  onboarded: 7  },
   ],
-  "90d": [
-    { label: "Aug", invited: 112, onboarded: 91 },
-    { label: "Sep", invited: 105, onboarded: 87 },
-    { label: "Oct", invited: 124, onboarded: 98 },
+  monthly: [
+    { label: "Nov", invited: 84,  onboarded: 68  },
+    { label: "Dec", invited: 91,  onboarded: 72  },
+    { label: "Jan", invited: 78,  onboarded: 61  },
+    { label: "Feb", invited: 96,  onboarded: 79  },
+    { label: "Mar", invited: 108, onboarded: 88  },
+    { label: "Apr", invited: 112, onboarded: 93  },
+    { label: "May", invited: 119, onboarded: 97  },
+    { label: "Jun", invited: 124, onboarded: 102 },
+    { label: "Jul", invited: 131, onboarded: 107 },
+    { label: "Aug", invited: 112, onboarded: 91  },
+    { label: "Sep", invited: 105, onboarded: 87  },
+    { label: "Oct", invited: 124, onboarded: 98  },
   ],
-  "12m": [
-    { label: "Nov", invited: 84,  onboarded: 68  }, { label: "Dec", invited: 91,  onboarded: 72  },
-    { label: "Jan", invited: 78,  onboarded: 61  }, { label: "Feb", invited: 96,  onboarded: 79  },
-    { label: "Mar", invited: 108, onboarded: 88  }, { label: "Apr", invited: 112, onboarded: 93  },
-    { label: "May", invited: 119, onboarded: 97  }, { label: "Jun", invited: 124, onboarded: 102 },
-    { label: "Jul", invited: 131, onboarded: 107 }, { label: "Aug", invited: 112, onboarded: 91  },
-    { label: "Sep", invited: 105, onboarded: 87  }, { label: "Oct", invited: 124, onboarded: 98  },
+  yearly: [
+    { label: "2022", invited: 820,  onboarded: 641  },
+    { label: "2023", invited: 974,  onboarded: 779  },
+    { label: "2024", invited: 1082, onboarded: 874  },
+    { label: "2025", invited: 1193, onboarded: 971  },
+    { label: "2026", invited: 1284, onboarded: 1047 },
   ],
 };
 
-export const ONBOARDING_TREND = BASE_ONBOARDING;
-
-export function getOnboardingTrend(range: DateRange, filter: AccountType) {
+export function getOnboardingTrend(period: Period, filter: AccountType) {
   const m = REMIND_MULT[filter];
-  return BASE_ONBOARDING[range].map((d) => ({
-    label: d.label,
-    invited: Math.round(d.invited * m),
+  return BASE_ONBOARDING[period].map((d) => ({
+    label:     d.label,
+    invited:   Math.round(d.invited   * m),
     onboarded: Math.round(d.onboarded * m),
   }));
 }

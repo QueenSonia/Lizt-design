@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  getDateRange,
-  setDateRange,
+  getPeriod,
+  setPeriod,
   getAccountType,
   setAccountType,
   subscribeToAnalyticsFilters,
-  DATE_RANGE_LABELS,
+  PERIOD_LABELS,
   ACCOUNT_TYPE_LABELS,
-  type DateRange,
+  type Period,
   type AccountType,
 } from "@/lib/analyticsDateStore";
 
@@ -20,7 +20,7 @@ interface PKAnalyticsHeaderProps {
 export function PKAnalyticsHeader({ title, subtitle }: PKAnalyticsHeaderProps) {
   const [, tick] = useState(0);
   useEffect(() => subscribeToAnalyticsFilters(() => tick((n) => n + 1)), []);
-  const dateRange = getDateRange();
+  const period      = getPeriod();
   const accountType = getAccountType();
 
   return (
@@ -45,17 +45,17 @@ export function PKAnalyticsHeader({ title, subtitle }: PKAnalyticsHeaderProps) {
           </select>
 
           <div className="flex bg-slate-100 rounded-lg p-0.5 gap-0.5">
-            {(["30d", "90d", "12m"] as DateRange[]).map((r) => (
+            {(["weekly", "monthly", "yearly"] as Period[]).map((p) => (
               <button
-                key={r}
-                onClick={() => setDateRange(r)}
+                key={p}
+                onClick={() => setPeriod(p)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-                  dateRange === r
+                  period === p
                     ? "bg-white text-slate-900 shadow-sm"
                     : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                {DATE_RANGE_LABELS[r]}
+                {PERIOD_LABELS[p]}
               </button>
             ))}
           </div>

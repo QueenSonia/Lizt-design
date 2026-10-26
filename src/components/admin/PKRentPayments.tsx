@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { getDateRange, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
+import { getPeriod, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
   getOverviewStats,
   getRentSeries,
@@ -36,11 +36,11 @@ export default function PKRentPayments() {
     return () => clearTimeout(t);
   }, [filterTick]);
 
-  const dateRange = getDateRange();
+  const period = getPeriod();
   const filter = getAccountType();
-  const stats = getOverviewStats(dateRange, filter);
-  const series = getRentSeries(dateRange, filter);
-  const late = getLatePayments(dateRange, filter);
+  const stats  = getOverviewStats(period, filter);
+  const series = getRentSeries(period, filter);
+  const late   = getLatePayments(period, filter);
   const collRate = ((stats.rentCollected / stats.rentExpected) * 100).toFixed(1);
 
   return (
@@ -50,17 +50,14 @@ export default function PKRentPayments() {
       {/* KPI row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[
-          { label: "Collected", value: fmtCompact(stats.rentCollected) },
-          { label: "Expected", value: fmtCompact(stats.rentExpected) },
-          { label: "Collection rate", value: `${collRate}%` },
-          { label: "Late payments", value: late.count.toString() },
+          { label: "Collected",       value: fmtCompact(stats.rentCollected) },
+          { label: "Expected",        value: fmtCompact(stats.rentExpected)  },
+          { label: "Collection rate", value: `${collRate}%`                  },
+          { label: "Late payments",   value: late.count.toString()           },
         ].map(({ label, value }) => (
           <div key={label} className="bg-white border border-slate-200 rounded-xl p-4">
             {loading ? (
-              <>
-                <Skeleton className="h-3 w-20 mb-2" />
-                <Skeleton className="h-7 w-28" />
-              </>
+              <><Skeleton className="h-3 w-20 mb-2" /><Skeleton className="h-7 w-28" /></>
             ) : (
               <>
                 <div className="text-[11px] text-slate-500 mb-1">{label}</div>
@@ -75,11 +72,13 @@ export default function PKRentPayments() {
       <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
         <div className="mb-4">
           <h2 className="text-sm font-semibold text-slate-900">Collected vs expected</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Rent in ₦M per period</p>
+          <p className="text-xs text-slate-400 mt-0.5">Rent per period</p>
           {!loading && (
             <div className="mt-2">
               <span className="text-xl font-bold text-slate-900">{collRate}% collection rate</span>
-              <span className="text-xs text-slate-400 ml-2">{fmtCompact(stats.rentCollected)} of {fmtCompact(stats.rentExpected)}</span>
+              <span className="text-xs text-slate-400 ml-2">
+                {fmtCompact(stats.rentCollected)} of {fmtCompact(stats.rentExpected)}
+              </span>
             </div>
           )}
         </div>
@@ -91,7 +90,7 @@ export default function PKRentPayments() {
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis
-                tickFormatter={(v: number) => `₦${(v / 1_000_000).toFixed(0)}M`}
+                tickFormatter={(v: number) => fmtM(v)}
                 tick={{ fontSize: 10, fill: "#94A3B8" }}
                 axisLine={false}
                 tickLine={false}
@@ -106,24 +105,21 @@ export default function PKRentPayments() {
                 formatter={(name: string) => (name === "collected" ? "Collected" : "Expected")}
               />
               <Bar dataKey="collected" fill="#FF5000" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="expected" fill="#CBD5E1" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="expected"  fill="#CBD5E1" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
       </div>
 
-      {/* Late payments + aging */}
+      {/* Late payments + collection rate */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Late payment summary */}
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <h2 className="text-sm font-semibold text-slate-900 mb-1">Late payments</h2>
           <p className="text-xs text-slate-400 mb-4">
             {loading ? <Skeleton className="h-3 w-32 inline-block" /> : `${late.count} payments, ${fmtCompact(late.totalAmount)} outstanding`}
           </p>
           {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
+            <div className="space-y-3">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : (
             <ul className="space-y-3">
               {late.aging.map((b) => {
@@ -140,7 +136,7 @@ export default function PKRentPayments() {
                       <div
                         className={`h-full rounded-full ${
                           b.label.startsWith("30+") ? "bg-slate-700" :
-                          b.label.startsWith("8") ? "bg-slate-500" : "bg-slate-300"
+                          b.label.startsWith("8")   ? "bg-slate-500" : "bg-slate-300"
                         }`}
                         style={{ width: `${pct}%` }}
                       />
@@ -152,7 +148,6 @@ export default function PKRentPayments() {
           )}
         </div>
 
-        {/* Collection rate visual */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col">
           <h2 className="text-sm font-semibold text-slate-900 mb-1">Collection rate</h2>
           <p className="text-xs text-slate-400 mb-6">Share of expected rent actually collected</p>
@@ -199,9 +194,7 @@ export default function PKRentPayments() {
           <p className="text-xs text-slate-400 mt-0.5">Sorted by days overdue</p>
         </div>
         {loading ? (
-          <div className="p-5 space-y-3">
-            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-8 w-full" />)}
-          </div>
+          <div className="p-5 space-y-3">{[1,2,3,4].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
         ) : OVERDUE_TENANCIES.length === 0 ? (
           <div className="p-10 text-center text-sm text-slate-400">No overdue tenancies.</div>
         ) : (
@@ -228,9 +221,7 @@ export default function PKRentPayments() {
                         t.daysOverdue >= 60 ? "bg-slate-900 text-white" :
                         t.daysOverdue >= 30 ? "bg-slate-700 text-white" :
                         t.daysOverdue >= 14 ? "bg-slate-200 text-slate-800" : "bg-slate-100 text-slate-600"
-                      }`}>
-                        {t.daysOverdue}d
-                      </span>
+                      }`}>{t.daysOverdue}d</span>
                     </td>
                   </tr>
                 ))}
