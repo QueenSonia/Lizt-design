@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import {
   getPeriod,
   setPeriod,
@@ -32,17 +33,20 @@ export function PKAnalyticsHeader({ title, subtitle }: PKAnalyticsHeaderProps) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap shrink-0">
-          <select
-            value={accountType}
-            onChange={(e) => setAccountType(e.target.value as AccountType)}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FF5000]/20 focus:border-[#FF5000]"
-          >
-            {(Object.keys(ACCOUNT_TYPE_LABELS) as AccountType[]).map((t) => (
-              <option key={t} value={t}>
-                {ACCOUNT_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={accountType}
+              onChange={(e) => setAccountType(e.target.value as AccountType)}
+              className="appearance-none text-xs font-semibold border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FF5000]/20 focus:border-[#FF5000] cursor-pointer"
+            >
+              {(Object.keys(ACCOUNT_TYPE_LABELS) as AccountType[]).map((t) => (
+                <option key={t} value={t}>
+                  {ACCOUNT_TYPE_LABELS[t]}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" aria-hidden="true" />
+          </div>
 
           <div className="flex bg-slate-100 rounded-lg p-0.5 gap-0.5">
             {(["weekly", "monthly", "yearly"] as Period[]).map((p) => (
