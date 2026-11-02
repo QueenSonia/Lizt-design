@@ -10,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, ChevronLeft, Paperclip, AlertCircle, Check, CheckCircle2 } from "lucide-react";
+import { Search, Wrench, Users, Loader2, Filter, LayoutGrid, ChevronRight, X, ChevronDown, ChevronLeft, Paperclip, AlertCircle, Check, CheckCircle2, Star } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
+import { Checkbox } from "./ui/checkbox";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
@@ -671,6 +673,11 @@ export function LandlordFacility({
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [statusGroupFilter, setStatusGroupFilter] = useState<"in_progress" | "resolved" | "closed" | "reopened">("in_progress");
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [fmDropdownRowId, setFmDropdownRowId] = useState<string | null>(null);
+  const [bulkFmOpen, setBulkFmOpen] = useState(false);
+  const [srPage, setSrPage] = useState(1);
   const page = 1;
   const size = 50;
 
@@ -771,6 +778,39 @@ export function LandlordFacility({
   const formatStatusLabel = (status: string) =>
     status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
+  const SR_PAGE_SIZE = 25;
+
+  function getLatestSnippet(reqId: string): string {
+    const entries = getThread(reqId);
+    const sorted = [...entries].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    for (const e of sorted) {
+      if (e.type === "message" && (e as any).body) return (e as any).body as string;
+    }
+    for (const e of sorted) {
+      if (e.type === "event" && (e as any).body) return (e as any).body as string;
+    }
+    return "";
+  }
+
+  function fmtRowDate(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  }
+
+  function isNeedsAction(req: ServiceRequest): boolean {
+    const s = (statusOverrides[req.id] ?? req.status).toLowerCase();
+    const a = getRequestAssignee(req.id);
+    return !a || !["in_progress", "resolved", "closed"].includes(s);
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
   const fetchManagers = () => {
     setManagers(MOCK_FACILITY_MANAGERS);
     setLoadingManagers(false);
@@ -822,6 +862,24 @@ export function LandlordFacility({
       const bPriority = isTaskPriority(b.id) ? 0 : 1;
       return aPriority - bPriority;
     });
+
+  const statusCounts = {
+    in_progress: requests.filter(r => STATUS_GROUP_MAP.in_progress.includes((statusOverrides[r.id] ?? r.status).toLowerCase())).length,
+    resolved: requests.filter(r => STATUS_GROUP_MAP.resolved.includes((statusOverrides[r.id] ?? r.status).toLowerCase())).length,
+    closed: requests.filter(r => STATUS_GROUP_MAP.closed.includes((statusOverrides[r.id] ?? r.status).toLowerCase())).length,
+    reopened: requests.filter(r => STATUS_GROUP_MAP.reopened.includes((statusOverrides[r.id] ?? r.status).toLowerCase())).length,
+  };
+
+  const srTotalPages = Math.max(1, Math.ceil(filteredRequests.length / SR_PAGE_SIZE));
+  const paginatedRequests = filteredRequests.slice((srPage - 1) * SR_PAGE_SIZE, srPage * SR_PAGE_SIZE);
+
+  function toggleSelectAll() {
+    if (selectedIds.size === paginatedRequests.length && paginatedRequests.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedRequests.map(r => r.id)));
+    }
+  }
 
   // ── Global search ──────────────────────────────────────────────────────────
   const isSearching = debouncedQuery.trim().length > 0;
@@ -965,83 +1023,101 @@ export function LandlordFacility({
 
             {/* Maintenance Requests group */}
             {searchedRequests.length > 0 && (() => {
-              const shown = expandedGroups["requests"] ? searchedRequests : searchedRequests.slice(0, 5);
+              const shown = expandedGroups["requests"] ? searchedRequests : searchedRequests.slice(0, 10);
               return (
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-sm font-semibold text-gray-700">Maintenance Requests</h3>
                     <span className="text-xs text-gray-400">{searchedRequests.length}</span>
                   </div>
-                  <div className="space-y-4">
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     {shown.map((request) => {
                       const assignee = getRequestAssignee(request.id);
                       const isPriority = isTaskPriority(request.id);
+                      const status = (statusOverrides[request.id] ?? request.status).toLowerCase();
+                      const isHoveredSR = hoveredRowId === request.id;
+                      const needsAct = isNeedsAction(request);
+                      const snippet = getLatestSnippet(request.id);
+                      const canApproveRow = !!assignee && !["in_progress","resolved","closed"].includes(status);
+                      const fmDropOpen = fmDropdownRowId === request.id;
                       return (
-                        <div
-                          key={request.id}
-                          role="button"
-                          tabIndex={0}
+                        <div key={request.id} role="button" tabIndex={0}
+                          className={`flex items-center min-h-[48px] pl-1 pr-3 border-b border-gray-100 last:border-0 cursor-pointer transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF5000] ${isHoveredSR ? "bg-gray-50" : needsAct ? "bg-white" : "bg-gray-50/50"}`}
+                          onMouseEnter={() => setHoveredRowId(request.id)}
+                          onMouseLeave={() => setHoveredRowId(null)}
                           onClick={() => router.push(`/${userRole}/maintenance-request-detail?id=${request.id}`)}
-                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/${userRole}/maintenance-request-detail?id=${request.id}`); } }}
-                          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); router.push(`/${userRole}/maintenance-request-detail?id=${request.id}`); } }}
                         >
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <h3 className="text-base font-medium text-gray-900 leading-snug">
-                              <Highlight text={request.description} words={searchWords} />
-                            </h3>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {isPriority && (
-                                <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">Priority</span>
-                              )}
-                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
-                                ({ open: "bg-yellow-50 text-yellow-700 border-yellow-200", in_progress: "bg-blue-50 text-blue-700 border-blue-200", resolved: "bg-green-50 text-green-700 border-green-200", reopened: "bg-red-50 text-red-700 border-red-200", urgent: "bg-red-50 text-red-700 border-red-200", closed: "bg-gray-100 text-gray-600 border-gray-200", pending: "bg-yellow-50 text-yellow-700 border-yellow-200" } as Record<string, string>)[(statusOverrides[request.id] ?? request.status)?.toLowerCase()] ?? "bg-gray-100 text-gray-600 border-gray-200"
-                              }`}>
-                                {formatStatusLabel(statusOverrides[request.id] ?? request.status)}
-                              </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" className="shrink-0 w-7 flex items-center justify-center focus:outline-none" aria-label={isPriority ? "Remove priority" : "Mark as priority"}
+                                onClick={(e) => { e.stopPropagation(); const was = isTaskPriority(request.id); setTaskPriority(request.id, !was); toast.success(was ? "Priority removed." : "Marked as priority."); }}>
+                                <Star className={`w-3.5 h-3.5 ${isPriority ? "fill-[#FF5000] text-[#FF5000]" : "text-gray-300 hover:text-gray-400"}`} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isPriority ? "Remove priority" : "Mark as priority"}</TooltipContent>
+                          </Tooltip>
+                          <div className="flex-1 min-w-0 mr-2 py-3">
+                            <p className="hidden sm:block text-sm leading-snug truncate">
+                              <span className={needsAct ? "font-semibold text-gray-900" : "font-normal text-gray-700"}><Highlight text={request.description} words={searchWords} /></span>
+                              {(request.property_name || snippet) && <span className="text-gray-400 font-normal"> · <Highlight text={request.property_name} words={searchWords} />{snippet ? ` · ${snippet}` : ""}</span>}
+                            </p>
+                            <div className="sm:hidden">
+                              <p className={`text-sm truncate leading-snug ${needsAct ? "font-semibold text-gray-900" : "font-normal text-gray-700"}`}><Highlight text={request.description} words={searchWords} /></p>
+                              <p className="text-xs text-gray-400 truncate mt-0.5"><Highlight text={request.property_name} words={searchWords} />{snippet ? ` · ${snippet}` : ""}</p>
                             </div>
                           </div>
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">Property:</span>
-                              <span className="text-sm text-gray-900"><Highlight text={request.property_name} words={searchWords} /></span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">Reported by:</span>
-                              <span className="text-sm text-gray-900">
-                                {SOURCE_LABEL[resolveSource(request)]} – <Highlight text={reporterName(request)} words={searchWords} />
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">Assigned to:</span>
-                              {assignee ? (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
-                                  <Users className="w-3 h-3" />
-                                  <Highlight text={assignee.name} words={searchWords} />
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">Unassigned</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
-                            <div><span className="text-gray-600">Date Reported: </span><span>{formatDateTime(request.date_reported)}</span></div>
-                            <div className="text-xs">Last Updated: {getRelativeTime(request.updated_at || request.updatedAt)}</div>
+                          <div className="shrink-0 mr-2 hidden sm:block">
+                            {assignee ? <span className="inline-flex text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 max-w-[90px] truncate">{assignee.name.split(" ")[0]}</span>
+                              : <span className="inline-flex text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200">Unassigned</span>}
                           </div>
                           {request.attachments && request.attachments.length > 0 && (
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <Paperclip className="w-3.5 h-3.5 text-gray-400" />
-                              <span className="text-xs text-gray-500">{request.attachments.length} attachment{request.attachments.length !== 1 ? "s" : ""}</span>
+                            <div className="shrink-0 flex items-center gap-0.5 mr-2 text-gray-400">
+                              <Paperclip className="w-3 h-3" /><span className="text-xs">{request.attachments.length}</span>
                             </div>
                           )}
+                          <div className="shrink-0 w-16 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                            {isHoveredSR ? (
+                              <div className="flex items-center gap-0.5">
+                                <Popover open={fmDropOpen} onOpenChange={(open) => { if (open) setFmDropdownRowId(request.id); else setFmDropdownRowId(null); }}>
+                                  <Tooltip><TooltipTrigger asChild>
+                                    <PopoverTrigger asChild>
+                                      <button type="button" className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-200" aria-label="Assign FM">
+                                        <Users className="w-3.5 h-3.5" />
+                                      </button>
+                                    </PopoverTrigger>
+                                  </TooltipTrigger><TooltipContent>Assign FM</TooltipContent></Tooltip>
+                                  <PopoverContent align="end" className="w-52 p-0">
+                                    <div className="py-1.5">
+                                      <p className="text-xs font-medium text-gray-500 px-3 pb-1.5">Assign to</p>
+                                      <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-500" onClick={() => { assignRequestToManager(request.id, null); appendThreadEntry(request.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() }); toast.success("Request unassigned"); setFmDropdownRowId(null); }}>Unassign</button>
+                                      {managers.map((m) => <button key={m.id} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700" onClick={() => { const prev = getRequestAssignee(request.id); assignRequestToManager(request.id, m.id); appendThreadEntry(request.id, { id: makeMsgId(), type: "event", body: prev ? `Reassigned from ${prev.name} to ${m.name}` : `Assigned to ${m.name}`, timestamp: new Date().toISOString() }); toast.success(`${prev ? "Reassigned" : "Assigned"} to ${m.name}.`); setFmDropdownRowId(null); }}>{m.name}</button>)}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                                {canApproveRow && (
+                                  <Tooltip><TooltipTrigger asChild>
+                                    <button type="button" className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:bg-emerald-50" aria-label="Approve"
+                                      onClick={() => { setStatusOverrides(prev => ({ ...prev, [request.id]: "in_progress" })); appendThreadEntry(request.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() }); toast.success("Request approved."); }}>
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </TooltipTrigger><TooltipContent>Approve</TooltipContent></Tooltip>
+                                )}
+                                <Tooltip><TooltipTrigger asChild>
+                                  <button type="button" className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-[#FF5000] hover:bg-orange-50" aria-label={isPriority ? "Remove priority" : "Add priority"}
+                                    onClick={() => { const was = isTaskPriority(request.id); setTaskPriority(request.id, !was); toast.success(was ? "Priority removed." : "Marked as priority."); }}>
+                                    <Star className={`w-3.5 h-3.5 ${isPriority ? "fill-[#FF5000] text-[#FF5000]" : ""}`} />
+                                  </button>
+                                </TooltipTrigger><TooltipContent>{isPriority ? "Remove priority" : "Add priority"}</TooltipContent></Tooltip>
+                              </div>
+                            ) : <span className="text-xs text-gray-400">{fmtRowDate(request.date_reported)}</span>}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-                  {searchedRequests.length > 5 && (
-                    <button
-                      onClick={() => setExpandedGroups((prev) => ({ ...prev, requests: !prev.requests }))}
-                      className="mt-3 text-sm text-[#FF5000] hover:underline"
-                    >
+                  {searchedRequests.length > 10 && (
+                    <button onClick={() => setExpandedGroups((prev) => ({ ...prev, requests: !prev.requests }))} className="mt-3 text-sm text-[#FF5000] hover:underline">
                       {expandedGroups["requests"] ? "Show less" : `Show all ${searchedRequests.length}`}
                     </button>
                   )}
@@ -1196,36 +1272,45 @@ export function LandlordFacility({
         {/* ── Maintenance Requests tab ── */}
         {!isSearching && activeTab === "service_requests" && (
           <>
-            {/* Maintenance Requests */}
-            <div>
-              {/* Status group filter + filter button */}
-              <div className="mb-2.5 flex items-center gap-1.5 flex-wrap">
-                {([
-                  { value: "in_progress", label: "In Progress" },
-                  { value: "resolved", label: "Resolved" },
-                  { value: "closed", label: "Closed" },
-                  { value: "reopened", label: "Reopened" },
-                ] as const).map((opt) => {
-                  const active = statusGroupFilter === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setStatusGroupFilter(opt.value)}
-                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                        active
-                          ? "bg-gray-900 text-white border-gray-900"
-                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-                <div className="ml-auto">
+            {/* Gmail-style status sub-tabs */}
+            <div className="bg-white rounded-t-xl border border-gray-200 border-b-0 overflow-hidden">
+              <div className="flex items-center border-b border-gray-200">
+                <div className="flex flex-1 overflow-x-auto">
+                  {([
+                    { value: "in_progress", label: "In Progress" },
+                    { value: "resolved", label: "Resolved" },
+                    { value: "closed", label: "Closed" },
+                    { value: "reopened", label: "Reopened" },
+                  ] as const).map((opt) => {
+                    const active = statusGroupFilter === opt.value;
+                    const count = statusCounts[opt.value];
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setStatusGroupFilter(opt.value); setSrPage(1); setSelectedIds(new Set()); }}
+                        className={`px-4 py-2.5 text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                          active
+                            ? "border-[#FF5000] text-[#FF5000] font-medium"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200"
+                        }`}
+                      >
+                        {opt.label}
+                        {count > 0 && (
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            active ? "bg-orange-100 text-[#FF5000]" : "bg-gray-100 text-gray-500"
+                          }`}>
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="px-2 shrink-0">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="icon" className="shrink-0 h-7 w-7">
+                      <Button variant="outline" size="icon" className="h-7 w-7">
                         <Filter className="w-3.5 h-3.5" />
                       </Button>
                     </PopoverTrigger>
@@ -1265,105 +1350,280 @@ export function LandlordFacility({
                 </div>
               </div>
 
+              {/* Bulk action bar / select-all header */}
+              {selectedIds.size > 0 ? (
+                <div className="flex items-center gap-3 px-3 py-2 bg-orange-50 border-b border-orange-100 flex-wrap">
+                  <Checkbox
+                    checked={selectedIds.size === paginatedRequests.length && paginatedRequests.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                  <span className="text-sm font-medium text-gray-700">{selectedIds.size} selected</span>
+                  <div className="flex items-center gap-2">
+                    <Popover open={bulkFmOpen} onOpenChange={setBulkFmOpen}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                              <Users className="w-3 h-3" />Assign FM
+                            </Button>
+                          </PopoverTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>Assign facility manager</TooltipContent>
+                      </Tooltip>
+                      <PopoverContent align="start" className="w-56 p-0">
+                        <div className="py-1.5">
+                          <p className="text-xs font-medium text-gray-500 px-3 pb-1.5">Assign to</p>
+                          {managers.map((m) => (
+                            <button key={m.id} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                              onClick={() => {
+                                const now = new Date().toISOString();
+                                for (const id of selectedIds) {
+                                  const prev = getRequestAssignee(id);
+                                  assignRequestToManager(id, m.id);
+                                  appendThreadEntry(id, { id: makeMsgId(), type: "event", body: prev ? `Reassigned from ${prev.name} to ${m.name}` : `Assigned to ${m.name}`, timestamp: now });
+                                }
+                                toast.success(`Assigned ${selectedIds.size} request${selectedIds.size !== 1 ? "s" : ""} to ${m.name}`);
+                                setBulkFmOpen(false); setSelectedIds(new Set());
+                              }}>{m.name}</button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1"
+                          onClick={() => {
+                            const now = new Date().toISOString(); let count = 0;
+                            for (const id of selectedIds) {
+                              const r = requests.find(x => x.id === id); if (!r) continue;
+                              const s = (statusOverrides[id] ?? r.status).toLowerCase();
+                              const a = getRequestAssignee(id);
+                              if (a && !["in_progress","resolved","closed"].includes(s)) {
+                                setStatusOverrides(prev => ({ ...prev, [id]: "in_progress" }));
+                                appendThreadEntry(id, { id: makeMsgId(), type: "event", body: `Request approved — ${a.name} notified`, timestamp: now });
+                                count++;
+                              }
+                            }
+                            if (count > 0) toast.success(`${count} request${count !== 1 ? "s" : ""} approved.`);
+                            else toast.info("No eligible requests to approve.");
+                            setSelectedIds(new Set());
+                          }}>
+                          <CheckCircle2 className="w-3 h-3" />Approve
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Approve eligible selected</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1"
+                          onClick={() => {
+                            for (const id of selectedIds) setTaskPriority(id, true);
+                            toast.success(`${selectedIds.size} request${selectedIds.size !== 1 ? "s" : ""} marked as priority.`);
+                            setSelectedIds(new Set());
+                          }}>
+                          <Star className="w-3 h-3" />Set Priority
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Mark selected as priority</TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <button className="ml-auto text-xs text-gray-500 hover:text-gray-700" onClick={() => setSelectedIds(new Set())}>Clear</button>
+                </div>
+              ) : (
+                <div className="flex items-center h-9 px-3 border-b border-gray-100 bg-gray-50/70">
+                  <div className="w-8 flex items-center justify-center">
+                    <Checkbox
+                      checked={paginatedRequests.length > 0 && selectedIds.size === paginatedRequests.length}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </div>
+                  <div className="w-7" />
+                  <span className="flex-1 text-xs font-medium text-gray-400 pl-1">Request</span>
+                  <span className="hidden sm:block text-xs font-medium text-gray-400 mr-2 w-24 text-right">Assigned to</span>
+                  <span className="text-xs font-medium text-gray-400 w-16 text-right">Date</span>
+                </div>
+              )}
+
+              {/* Loading */}
               {loadingRequests && (
-                <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-                  <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
-                  <p className="text-gray-500">Loading maintenance requests...</p>
+                <div className="py-12 text-center">
+                  <Loader2 className="w-8 h-8 text-[#FF5000] animate-spin mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">Loading...</p>
                 </div>
               )}
 
+              {/* Error */}
               {error && (
-                <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-                  <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                    <Wrench className="w-8 h-8 text-red-400" />
-                  </div>
-                  <h3 className="text-lg text-gray-900 mb-2">Error loading requests</h3>
-                  <p className="text-gray-500">{error instanceof Error ? error.message : "Please try again later."}</p>
+                <div className="py-12 text-center">
+                  <Wrench className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">{error instanceof Error ? error.message : "Please try again."}</p>
                 </div>
               )}
 
+              {/* Empty state */}
               {!loadingRequests && !error && filteredRequests.length === 0 && (
-                <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                    <Wrench className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg text-gray-900 mb-2">No maintenance requests yet.</h3>
-                  <p className="text-gray-500">Requests from your tenants will appear here.</p>
+                <div className="py-16 text-center">
+                  <Wrench className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-gray-700 mb-1">No requests here</p>
+                  <p className="text-xs text-gray-400">Requests will appear here once submitted.</p>
                 </div>
               )}
 
-              {!loadingRequests && !error && filteredRequests.length > 0 && (() => {
-                const renderCard = (request: ServiceRequest) => {
-                  const assignee = getRequestAssignee(request.id);
-                  const isPriority = isTaskPriority(request.id);
-                  return (
+              {/* Inbox rows */}
+              {!loadingRequests && !error && paginatedRequests.length > 0 && paginatedRequests.map((request) => {
+                const assignee = getRequestAssignee(request.id);
+                const isPriority = isTaskPriority(request.id);
+                const status = (statusOverrides[request.id] ?? request.status).toLowerCase();
+                const isSelected = selectedIds.has(request.id);
+                const isHovered = hoveredRowId === request.id;
+                const needsAct = isNeedsAction(request);
+                const snippet = getLatestSnippet(request.id);
+                const canApproveRow = !!assignee && !["in_progress","resolved","closed"].includes(status);
+                const fmDropOpen = fmDropdownRowId === request.id;
+                return (
                   <div
                     key={request.id}
                     role="button"
                     tabIndex={0}
+                    className={`flex items-center min-h-[48px] pl-1 pr-3 border-b border-gray-100 last:border-0 cursor-pointer transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF5000] ${
+                      isSelected ? "bg-orange-50/70" : isHovered ? "bg-gray-50 shadow-[inset_0_-1px_0_#e5e7eb]" : needsAct ? "bg-white" : "bg-gray-50/50"
+                    }`}
+                    onMouseEnter={() => setHoveredRowId(request.id)}
+                    onMouseLeave={() => setHoveredRowId(null)}
                     onClick={() => router.push(`/${userRole}/maintenance-request-detail?id=${request.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        router.push(`/${userRole}/maintenance-request-detail?id=${request.id}`);
-                      }
-                    }}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:bg-gray-50 active:scale-[0.98] active:duration-100 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5000] focus:ring-offset-1"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); router.push(`/${userRole}/maintenance-request-detail?id=${request.id}`); } }}
                   >
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                      <h3 className="text-base font-medium text-gray-900 leading-snug">{request.description}</h3>
-                      {isPriority && (
-                        <span className="shrink-0 text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded mt-0.5">
-                          Priority
-                        </span>
+                    {/* Checkbox - hidden on mobile */}
+                    <div className="shrink-0 w-8 items-center justify-center hidden sm:flex" onClick={(e) => { e.stopPropagation(); toggleSelect(request.id); }}>
+                      <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(request.id)} onClick={(e) => e.stopPropagation()} aria-label={`Select ${request.description}`} />
+                    </div>
+
+                    {/* Star */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="shrink-0 w-7 flex items-center justify-center focus:outline-none" aria-label={isPriority ? "Remove priority" : "Mark as priority"}
+                          onClick={(e) => { e.stopPropagation(); const was = isTaskPriority(request.id); setTaskPriority(request.id, !was); toast.success(was ? "Priority removed." : "Marked as priority."); }}>
+                          <Star className={`w-3.5 h-3.5 transition-colors ${isPriority ? "fill-[#FF5000] text-[#FF5000]" : "text-gray-300 hover:text-gray-400"}`} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isPriority ? "Remove priority" : "Mark as priority"}</TooltipContent>
+                    </Tooltip>
+
+                    {/* Title + property + snippet */}
+                    <div className="flex-1 min-w-0 mr-2 py-3">
+                      {/* Desktop: one truncated line */}
+                      <p className="hidden sm:block text-sm leading-snug truncate">
+                        <span className={needsAct ? "font-semibold text-gray-900" : "font-normal text-gray-700"}>{request.description}</span>
+                        {(request.property_name || snippet) && (
+                          <span className="text-gray-400 font-normal"> · {request.property_name}{snippet ? ` · ${snippet}` : ""}</span>
+                        )}
+                      </p>
+                      {/* Mobile: two lines */}
+                      <div className="sm:hidden">
+                        <p className={`text-sm truncate leading-snug ${needsAct ? "font-semibold text-gray-900" : "font-normal text-gray-700"}`}>{request.description}</p>
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{request.property_name}{snippet ? ` · ${snippet}` : ""}</p>
+                      </div>
+                    </div>
+
+                    {/* FM chip - desktop only */}
+                    <div className="shrink-0 mr-2 hidden sm:block">
+                      {assignee ? (
+                        <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 max-w-[90px] truncate">{assignee.name.split(" ")[0]}</span>
+                      ) : (
+                        <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200">Unassigned</span>
                       )}
                     </div>
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Property:</span>
-                        <span className="text-sm text-gray-900">{request.property_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Reported by:</span>
-                        <span className="text-sm text-gray-900">
-                          {SOURCE_LABEL[resolveSource(request)]} – {reporterName(request)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Assigned to:</span>
-                        {assignee ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
-                            <Users className="w-3 h-3" />
-                            {assignee.name}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
-                            Unassigned
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
-                      <div>
-                        <span className="text-gray-600">Date Reported: </span>
-                        <span>{formatDateTime(request.date_reported)}</span>
-                      </div>
-                      <div className="text-xs">
-                        Last Updated: {getRelativeTime(request.updated_at || request.updatedAt)}
-                      </div>
-                    </div>
+
+                    {/* Attachment count */}
                     {request.attachments && request.attachments.length > 0 && (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <Paperclip className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-xs text-gray-500">{request.attachments.length} attachment{request.attachments.length !== 1 ? "s" : ""}</span>
+                      <div className="shrink-0 flex items-center gap-0.5 mr-2 text-gray-400">
+                        <Paperclip className="w-3 h-3" /><span className="text-xs">{request.attachments.length}</span>
                       </div>
                     )}
-                  </div>
-                  );
-                };
 
-                return <div className="space-y-4">{filteredRequests.map(renderCard)}</div>;
-              })()}
+                    {/* Date / hover actions */}
+                    <div className="shrink-0 w-16 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                      {isHovered ? (
+                        <div className="flex items-center gap-0.5">
+                          {/* Assign FM row action */}
+                          <Popover open={fmDropOpen} onOpenChange={(open) => { if (open) setFmDropdownRowId(request.id); else setFmDropdownRowId(null); }}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                  <button type="button" className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-200" aria-label="Assign facility manager">
+                                    <Users className="w-3.5 h-3.5" />
+                                  </button>
+                                </PopoverTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>Assign FM</TooltipContent>
+                            </Tooltip>
+                            <PopoverContent align="end" className="w-52 p-0">
+                              <div className="py-1.5">
+                                <p className="text-xs font-medium text-gray-500 px-3 pb-1.5">Assign to</p>
+                                <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-500"
+                                  onClick={() => { assignRequestToManager(request.id, null); appendThreadEntry(request.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: new Date().toISOString() }); toast.success("Request unassigned"); setFmDropdownRowId(null); }}>
+                                  Unassign
+                                </button>
+                                {managers.map((m) => (
+                                  <button key={m.id} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                                    onClick={() => { const prev = getRequestAssignee(request.id); assignRequestToManager(request.id, m.id); appendThreadEntry(request.id, { id: makeMsgId(), type: "event", body: prev ? `Reassigned from ${prev.name} to ${m.name}` : `Assigned to ${m.name}`, timestamp: new Date().toISOString() }); toast.success(`${prev ? "Reassigned" : "Assigned"} to ${m.name}.`); setFmDropdownRowId(null); }}>
+                                    {m.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+
+                          {/* Approve row action - only when awaiting */}
+                          {canApproveRow && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:bg-emerald-50" aria-label="Approve"
+                                  onClick={() => { setStatusOverrides(prev => ({ ...prev, [request.id]: "in_progress" })); appendThreadEntry(request.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() }); toast.success("Request approved."); }}>
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Approve</TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          {/* Toggle priority row action */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-[#FF5000] hover:bg-orange-50" aria-label={isPriority ? "Remove priority" : "Add priority"}
+                                onClick={() => { const was = isTaskPriority(request.id); setTaskPriority(request.id, !was); toast.success(was ? "Priority removed." : "Marked as priority."); }}>
+                                <Star className={`w-3.5 h-3.5 ${isPriority ? "fill-[#FF5000] text-[#FF5000]" : ""}`} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isPriority ? "Remove priority" : "Add priority"}</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">{fmtRowDate(request.date_reported)}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Pagination */}
+              {filteredRequests.length > SR_PAGE_SIZE && (
+                <div className="flex items-center justify-end gap-3 px-4 py-2.5 border-t border-gray-100 bg-gray-50/50">
+                  <span className="text-xs text-gray-500">
+                    {(srPage - 1) * SR_PAGE_SIZE + 1} to {Math.min(srPage * SR_PAGE_SIZE, filteredRequests.length)} of {filteredRequests.length}
+                  </span>
+                  <div className="flex items-center gap-0.5">
+                    <button disabled={srPage <= 1} onClick={() => setSrPage(p => p - 1)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Previous page">
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button disabled={srPage >= srTotalPages} onClick={() => setSrPage(p => p + 1)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Next page">
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}
