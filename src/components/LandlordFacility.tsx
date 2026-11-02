@@ -324,7 +324,7 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     id: "sr-005", request_id: "SR-005", tenant_name: "Emmanuel Etim", reporter_name: "Emmanuel Etim", source: "tenant",
     property_name: "Victoria Island Studio", issue_category: "HVAC",
     description: "Air conditioner not cooling, just blowing warm air.",
-    status: "urgent", date_reported: "2026-04-27T19:05:00.000Z", updated_at: "2026-04-27T21:05:00.000Z",
+    status: "in_progress", date_reported: "2026-04-27T19:05:00.000Z", updated_at: "2026-04-27T21:05:00.000Z",
     tenant_id: "t-003", property_id: "p-003",
     attachments: [
       { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400", type: "image" as const, group: "original" as const },
@@ -439,6 +439,26 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
         resolvedBy: "Tunde Adeyemi",
         rejectedByTenant: true,
         tenantFeedback: "Water is still seeping through the wall after rain.",
+      },
+    ],
+  },
+  {
+    id: "sr-011", request_id: "SR-011", tenant_name: "Adaeze Nwosu", reporter_name: "Adaeze Nwosu", source: "tenant" as const,
+    property_name: "Ikoyi 2-Bed Apartment", issue_category: "Electrical",
+    description: "Buzzing sound from electrical panel resumed after repair.",
+    status: "reopened", date_reported: "2026-05-12T10:00:00.000Z", updated_at: "2026-05-28T14:20:00.000Z",
+    reopened_at: "2026-05-28T14:20:00.000Z",
+    tenant_id: "t-002", property_id: "p-002",
+    notes: "Tenant reports the buzzing returned two days after the repair.",
+    resolutions: [
+      {
+        summary: "Checked and tightened loose wiring in the electrical panel. No exposed conductors found.",
+        category: "Electrical",
+        hadCost: false,
+        resolvedAt: "2026-05-18T09:00:00.000Z",
+        resolvedBy: "Amaka Nwosu",
+        rejectedByTenant: true,
+        tenantFeedback: "The buzzing sound came back after two days.",
       },
     ],
   },
@@ -800,7 +820,8 @@ export function LandlordFacility({
   function isNeedsAction(req: ServiceRequest): boolean {
     const s = (statusOverrides[req.id] ?? req.status).toLowerCase();
     const a = getRequestAssignee(req.id);
-    return !a || !["in_progress", "resolved", "closed"].includes(s);
+    if (!a) return true; // unassigned always needs action
+    return ["open", "pending", "urgent"].includes(s); // assigned but awaiting approval
   }
 
   function toggleSelect(id: string) {
@@ -1037,7 +1058,6 @@ export function LandlordFacility({
                       const status = (statusOverrides[request.id] ?? request.status).toLowerCase();
                       const isHoveredSR = hoveredRowId === request.id;
                       const needsAct = isNeedsAction(request);
-                      const snippet = getLatestSnippet(request.id);
                       const canApproveRow = !!assignee && !["in_progress","resolved","closed"].includes(status);
                       const fmDropOpen = fmDropdownRowId === request.id;
                       return (
@@ -1060,11 +1080,11 @@ export function LandlordFacility({
                           <div className="flex-1 min-w-0 mr-2 py-3">
                             <p className="hidden sm:block text-sm leading-snug truncate">
                               <span className={needsAct ? "font-semibold text-gray-900" : "font-normal text-gray-700"}><Highlight text={request.description} words={searchWords} /></span>
-                              {(request.property_name || snippet) && <span className="text-gray-400 font-normal"> · <Highlight text={request.property_name} words={searchWords} />{snippet ? ` · ${snippet}` : ""}</span>}
+                              <span className="ml-2 text-xs text-gray-400 font-normal"><Highlight text={reporterName(request)} words={searchWords} /><span className="mx-1 text-gray-300">·</span><Highlight text={request.property_name} words={searchWords} /></span>
                             </p>
                             <div className="sm:hidden">
                               <p className={`text-sm truncate leading-snug ${needsAct ? "font-semibold text-gray-900" : "font-normal text-gray-700"}`}><Highlight text={request.description} words={searchWords} /></p>
-                              <p className="text-xs text-gray-400 truncate mt-0.5"><Highlight text={request.property_name} words={searchWords} />{snippet ? ` · ${snippet}` : ""}</p>
+                              <p className="text-xs text-gray-400 truncate mt-0.5"><Highlight text={reporterName(request)} words={searchWords} /><span className="mx-1 text-gray-300">·</span><Highlight text={request.property_name} words={searchWords} /></p>
                             </div>
                           </div>
                           <div className="shrink-0 mr-2 hidden sm:block">
@@ -1479,7 +1499,6 @@ export function LandlordFacility({
                 const isSelected = selectedIds.has(request.id);
                 const isHovered = hoveredRowId === request.id;
                 const needsAct = isNeedsAction(request);
-                const snippet = getLatestSnippet(request.id);
                 const canApproveRow = !!assignee && !["in_progress","resolved","closed"].includes(status);
                 const fmDropOpen = fmDropdownRowId === request.id;
                 return (
@@ -1511,19 +1530,17 @@ export function LandlordFacility({
                       <TooltipContent>{isPriority ? "Remove priority" : "Mark as priority"}</TooltipContent>
                     </Tooltip>
 
-                    {/* Title + property + snippet */}
+                    {/* Title + reporter + property */}
                     <div className="flex-1 min-w-0 mr-2 py-3">
-                      {/* Desktop: one truncated line */}
+                      {/* Desktop: one truncated line — title first, reporter · property after */}
                       <p className="hidden sm:block text-sm leading-snug truncate">
                         <span className={needsAct ? "font-semibold text-gray-900" : "font-normal text-gray-700"}>{request.description}</span>
-                        {(request.property_name || snippet) && (
-                          <span className="text-gray-400 font-normal"> · {request.property_name}{snippet ? ` · ${snippet}` : ""}</span>
-                        )}
+                        <span className="ml-2 text-xs text-gray-400 font-normal">{reporterName(request)}<span className="mx-1 text-gray-300">·</span>{request.property_name}</span>
                       </p>
                       {/* Mobile: two lines */}
                       <div className="sm:hidden">
                         <p className={`text-sm truncate leading-snug ${needsAct ? "font-semibold text-gray-900" : "font-normal text-gray-700"}`}>{request.description}</p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{request.property_name}{snippet ? ` · ${snippet}` : ""}</p>
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{reporterName(request)}<span className="mx-1 text-gray-300">·</span>{request.property_name}</p>
                       </div>
                     </div>
 
