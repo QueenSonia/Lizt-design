@@ -27,7 +27,9 @@ export const MOCK_FM_LIST: MockFacilityManager[] = [
 
 // requestId → managerId
 const _requestAssignments = new Map<string, string>([
+  ["sr-001", "fm-001"],
   ["sr-002", "fm-001"],
+  ["sr-003", "fm-003"],
   ["sr-004", "fm-003"],
   ["sr-005", "fm-001"],  // Chukwuemeka Obi — AC not cooling
   ["sr-006", "fm-002"],  // Amaka Nwosu — generator failure

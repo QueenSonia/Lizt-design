@@ -263,7 +263,7 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     id: "sr-001", request_id: "SR-001", tenant_name: "James Okafor", reporter_name: "James Okafor", source: "tenant",
     property_name: "Lekki Phase 1 Duplex", issue_category: "Plumbing",
     description: "Kitchen sink is leaking and water pools under the cabinet.",
-    status: "open", date_reported: "2026-04-25T09:30:00.000Z", updated_at: "2026-04-26T11:00:00.000Z",
+    status: "in_progress", date_reported: "2026-04-25T09:30:00.000Z", updated_at: "2026-04-26T11:00:00.000Z",
     tenant_id: "t-001", property_id: "p-001",
     attachments: [
       { url: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400", type: "image", group: "original" },
@@ -286,7 +286,7 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     id: "sr-003", request_id: "SR-003", tenant_name: "—", reporter_name: "Tobi Adekunle", source: "facility_manager",
     property_name: "Lekki Phase 1 Duplex", issue_category: "Common Area",
     description: "Driveway gate motor is jammed; needs replacement bracket.",
-    status: "open", date_reported: "2026-04-26T07:45:00.000Z", updated_at: "2026-04-27T13:00:00.000Z",
+    status: "in_progress", date_reported: "2026-04-26T07:45:00.000Z", updated_at: "2026-04-27T13:00:00.000Z",
     tenant_id: "", property_id: "p-001",
   },
   {
@@ -336,7 +336,7 @@ const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
     id: "sr-006", request_id: "SR-006", tenant_name: "—", reporter_name: "Tobi Adekunle", source: "facility_manager" as const,
     property_name: "Lekki Phase 1 Duplex", issue_category: "Electrical",
     description: "Generator failed during power outage and building currently has no backup power.",
-    status: "open", date_reported: "2026-04-28T09:15:00.000Z", updated_at: "2026-04-28T09:30:00.000Z",
+    status: "in_progress", date_reported: "2026-04-28T09:15:00.000Z", updated_at: "2026-04-28T09:30:00.000Z",
     tenant_id: "", property_id: "p-001",
     attachments: [
       { url: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400", type: "image" as const, group: "original" as const },
