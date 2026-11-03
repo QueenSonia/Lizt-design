@@ -1,6 +1,7 @@
 /* eslint-disable */
 "use client";
 
+import React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { RadioGroup } from "./ui/radio-group";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { toast } from "sonner";
 import {
@@ -238,7 +240,6 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     );
   };
 
-
   const PAYMENT_STATUS_BADGE_CLASS: Record<string, string> = {
     pending: "bg-amber-50 text-amber-700 border border-amber-200",
     approved: "bg-blue-50 text-blue-700 border border-blue-200",
@@ -260,9 +261,16 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
   };
 
   const ROLE_TAG_CLASS: Record<string, string> = {
-    TENANT: "bg-blue-50 text-blue-700 border border-blue-200",
-    RESIDENT: "bg-purple-50 text-purple-700 border border-purple-200",
-    "FACILITY MANAGER": "bg-orange-50 text-orange-700 border border-orange-200",
+    TENANT: "bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold px-1.5 py-0.5 rounded",
+    RESIDENT: "bg-violet-50 text-violet-700 border border-violet-200 text-[10px] font-semibold px-1.5 py-0.5 rounded",
+    "FACILITY MANAGER": "bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-semibold px-1.5 py-0.5 rounded",
+    LANDLORD: "bg-gray-100 text-gray-700 border border-gray-200 text-[10px] font-semibold px-1.5 py-0.5 rounded",
+  };
+
+  const AVATAR_CLASS: Record<string, string> = {
+    TENANT: "bg-blue-100 text-blue-700",
+    RESIDENT: "bg-violet-100 text-violet-700",
+    "FACILITY MANAGER": "bg-amber-100 text-amber-700",
     LANDLORD: "bg-gray-900 text-white",
   };
 
@@ -314,7 +322,6 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
   if (reopenedItems.length > 0) allDisplayItems.push({ kind: "reopened_media" });
   for (const e of thread) allDisplayItems.push({ kind: "thread", entry: e });
 
-  // Activity filter
   const filteredDisplayItems: DisplayItem[] =
     activeFilter === "messages"
       ? allDisplayItems.filter(i =>
@@ -326,7 +333,6 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
           ? allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "event")
           : allDisplayItems;
 
-  // Pill counts
   const msgCount = allDisplayItems.filter(i => i.kind !== "thread" || i.entry.type === "message").length;
   const payCount = allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "payment_request").length;
   const statusCount = allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "event").length;
@@ -375,321 +381,376 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     WebkitBoxOrient: "vertical" as any,
   };
 
+  const paymentEntries = thread.filter(e => e.type === "payment_request") as ThreadPaymentRequest[];
+
   return (
-    <div className="page-container min-[1440px]:h-[calc(100vh-2rem)] min-[1440px]:flex min-[1440px]:flex-col">
+    <div className="page-container flex flex-col gap-5 min-[1440px]:h-[calc(100vh-2rem)] min-[1440px]:overflow-hidden">
 
-      {/* ── Toolbar ── */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 -mt-4 -mx-4 sm:-mt-6 sm:-mx-6 lg:-mt-8 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-2 shrink-0">
-        <button
-          type="button"
-          onClick={() => router.push(backTo ?? `/${userRole}/facility`)}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] rounded"
-          aria-label="Back to maintenance requests"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span className="hidden sm:inline font-medium">Maintenance Requests</span>
-        </button>
+      {/* Header card */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shrink-0">
 
-        {/* Assign FM */}
-        <Popover open={assigneePickerOpen} onOpenChange={(open) => { setAssigneePickerOpen(open); if (open) setPendingAssigneeId(assignee?.id ?? "unassigned"); }}>
+        {/* Top bar */}
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
+          <button
+            type="button"
+            onClick={() => router.push(backTo ?? `/${userRole}/facility`)}
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] rounded"
+            aria-label="Back to maintenance requests"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline font-medium">Maintenance Requests</span>
+          </button>
+
+          <div className="flex-1" />
+
+          {!isApproved && (
+            <Button
+              size="sm"
+              disabled={!canApprove}
+              className="bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50 text-xs"
+              onClick={() => {
+                setStatus("in_progress", `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp.`);
+                appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() });
+              }}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />Approve Request
+            </Button>
+          )}
+
           <Tooltip>
             <TooltipTrigger asChild>
-              <PopoverTrigger asChild>
-                <button type="button" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 px-2.5 py-1.5 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]" aria-label="Assign facility manager">
-                  <Users className="w-4 h-4" />
-                  <span className="hidden sm:inline text-xs">{assignee ? assignee.name.split(" ")[0] : "Assign FM"}</span>
-                </button>
-              </PopoverTrigger>
+              <button
+                type="button"
+                onClick={() => setSidePanelOpen((v) => !v)}
+                className={`flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] ${sidePanelOpen ? "text-gray-700 bg-gray-100" : "text-gray-500"}`}
+                aria-label={sidePanelOpen ? "Hide details" : "Show details"}
+              >
+                <PanelRight className="w-4 h-4" />
+              </button>
             </TooltipTrigger>
-            <TooltipContent>Assign facility manager</TooltipContent>
+            <TooltipContent>{sidePanelOpen ? "Hide details" : "Show details"}</TooltipContent>
           </Tooltip>
-          <PopoverContent align="start" className="w-72 p-0">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-medium text-gray-900">Assign Facility Manager</p>
-            </div>
-            <div className="py-1 max-h-64 overflow-y-auto">
-              <button className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${pendingAssigneeId === "unassigned" ? "font-medium text-gray-900" : "text-gray-700"}`}
-                onClick={() => setPendingAssigneeId("unassigned")}>Unassigned</button>
-              {managers.map((m) => (
-                <button key={m.id} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${pendingAssigneeId === m.id ? "font-medium text-gray-900 bg-orange-50" : "text-gray-700"}`}
-                  onClick={() => setPendingAssigneeId(m.id)}>{m.name}</button>
-              ))}
-            </div>
-            <div className="flex gap-2 px-4 py-3 border-t border-gray-100">
-              <Button variant="outline" size="sm" className="flex-1" onClick={() => setAssigneePickerOpen(false)}>Cancel</Button>
-              <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white" onClick={() => {
-                const previousAssignee = assignee;
-                const nextId = pendingAssigneeId === "unassigned" ? null : pendingAssigneeId;
-                const nextAssignee = nextId ? managers.find((m) => m.id === nextId) ?? null : null;
-                if ((previousAssignee?.id ?? null) === nextId) { setAssigneePickerOpen(false); return; }
-                assignRequestToManager(req.id, nextId);
-                fmStoreTick((n) => n + 1);
-                const now = new Date().toISOString();
-                if (previousAssignee && nextAssignee) {
-                  toast.success(`Reassigned to ${nextAssignee.name}. WhatsApp notification sent.`);
-                  appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Reassigned from ${previousAssignee.name} to ${nextAssignee.name}`, timestamp: now });
-                } else if (nextAssignee) {
-                  toast.success(`Assigned to ${nextAssignee.name}. WhatsApp notification sent.`);
-                  appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${nextAssignee.name}`, timestamp: now });
-                } else {
-                  toast.success("Request unassigned");
-                  appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: now });
-                }
-                setAssigneePickerOpen(false);
-              }}>Save</Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+        </div>
 
-        {/* Toggle priority */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button type="button" onClick={togglePriority}
-              className={`flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] ${isPriority ? "text-[#FF5000]" : "text-gray-600 hover:text-gray-900"}`}
-              aria-label={isPriority ? "Remove Priority" : "Add Priority"}>
-              <Star className={`w-4 h-4 ${isPriority ? "fill-[#FF5000]" : ""}`} />
-              <span className="hidden sm:inline text-xs">Priority</span>
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>{isPriority ? "Remove Priority" : "Add Priority"}</TooltipContent>
-        </Tooltip>
-
-        <div className="flex-1" />
-
-        {/* Approve Request button — hidden once approved */}
-        {!isApproved && (
-          <Button size="sm" disabled={!canApprove}
-            className="bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50 text-xs"
-            onClick={() => {
-              setStatus("in_progress", `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp.`);
-              appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() });
-            }}>
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />Approve Request
-          </Button>
-        )}
-
-        {/* Toggle details panel */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button type="button" onClick={() => setSidePanelOpen((v) => !v)}
-              className={`flex items-center justify-center w-8 h-8 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] ${sidePanelOpen ? "text-gray-700 bg-gray-100" : "text-gray-500"}`}
-              aria-label={sidePanelOpen ? "Hide details" : "Show details"}>
-              <PanelRight className="w-4 h-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>{sidePanelOpen ? "Hide details" : "Show details"}</TooltipContent>
-        </Tooltip>
-      </div>
-
-      {/* Assign-first warning */}
-      {!isApproved && !assignee && (
-        <div className="-mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-amber-50 border-b border-amber-200">
-          <div className="flex items-center gap-2 text-sm text-amber-700 py-2.5">
+        {/* Assign-first warning banner */}
+        {!isApproved && !assignee && (
+          <div className="flex items-center gap-2 text-sm text-amber-700 px-5 py-2.5 bg-amber-50 border-b border-amber-200">
             <AlertCircle className="w-4 h-4 shrink-0" />
             Assign a facility manager before approving this request.
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-100 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 min-[1440px]:shrink-0">
-        {/* Status + badge chips */}
-        <div className="flex items-center gap-2 flex-wrap mb-2">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${(STATUS_CHIP_CLASS as Record<string, string>)[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>
-            {formatStatusLabel(currentStatus)}
-          </span>
-          {isPriority && (
-            <span className="text-xs font-semibold text-[#FF5000] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Star className="w-2.5 h-2.5 fill-[#FF5000]" />Priority
-            </span>
-          )}
-          {req.reopened_at && (
+        {/* Title + priority star */}
+        <div className="px-6 pt-5 pb-4">
+          <div className="flex items-start gap-2 mb-3">
+            <h1 className="text-2xl font-semibold text-gray-900 leading-snug line-clamp-2 flex-1">
+              {req.description}
+            </h1>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 cursor-default">
-                  <RotateCcw className="w-3 h-3" />Reopened
-                </span>
+                <button
+                  type="button"
+                  onClick={togglePriority}
+                  className="shrink-0 mt-0.5 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
+                  aria-label={isPriority ? "Remove priority" : "Mark as priority"}
+                >
+                  <Star className={`w-5 h-5 ${isPriority ? "fill-[#FF5000] text-[#FF5000]" : "text-gray-300"}`} />
+                </button>
               </TooltipTrigger>
-              <TooltipContent>Last reopened on {formatDateTime(req.reopened_at)}{req.notes ? ` — ${req.notes}` : ""}</TooltipContent>
+              <TooltipContent>{isPriority ? "Remove priority" : "Mark as priority"}</TooltipContent>
             </Tooltip>
-          )}
-        </div>
-        {/* 2-line clamped title */}
-        <h1 className="text-xl font-semibold text-gray-900 leading-snug line-clamp-2">{req.description}</h1>
-        {/* Meta row */}
-        <div className="flex items-center gap-x-5 gap-y-2 mt-3 flex-wrap">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Property</span>
-            <span className="text-sm text-gray-700">
-              {req.property_name}{req.property_address ? `, ${req.property_address}` : ""}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${(STATUS_CHIP_CLASS as Record<string, string>)[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>
+              {formatStatusLabel(currentStatus)}
             </span>
+            {isPriority && (
+              <span className="text-xs font-semibold text-[#FF5000] bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 fill-[#FF5000]" />Priority
+              </span>
+            )}
+            {req.reopened_at && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 cursor-default">
+                    <RotateCcw className="w-3 h-3" />Reopened
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Last reopened on {formatDateTime(req.reopened_at)}{req.notes ? ` — ${req.notes}` : ""}</TooltipContent>
+              </Tooltip>
+            )}
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Manager</span>
-            <button type="button"
-              onClick={() => { setAssigneePickerOpen(true); setPendingAssigneeId(assignee?.id ?? "unassigned"); }}
-              className="flex items-center gap-0.5 text-sm font-medium text-gray-700 hover:text-[#FF5000] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5000] rounded">
-              <span className={assignee ? "" : "text-gray-400 font-normal"}>{assignee?.name ?? "Unassigned"}</span>
-              <ChevronDown className="w-3 h-3 text-gray-400" />
-            </button>
+        </div>
+
+        {/* 3-column meta grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 border-t border-gray-100">
+          {/* Col 1: Property */}
+          <div className="px-6 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Property</p>
+            <p className="text-sm font-semibold text-gray-900">{req.property_name}</p>
+            {req.property_address && (
+              <p className="text-xs text-gray-500 mt-0.5">{req.property_address}</p>
+            )}
           </div>
-          {req.walletBalance !== undefined && (
-            <div className="flex items-baseline gap-1.5 ml-auto">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Wallet</span>
-              <span className="text-sm font-semibold text-green-600">{fmtNaira(req.walletBalance)}</span>
-            </div>
-          )}
+
+          {/* Col 2: Facility Manager */}
+          <div className="px-6 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Facility Manager</p>
+            <Popover open={assigneePickerOpen} onOpenChange={(open) => { setAssigneePickerOpen(open); if (open) setPendingAssigneeId(assignee?.id ?? "unassigned"); }}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-[#FF5000] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5000] rounded"
+                >
+                  <span className={assignee ? "text-gray-900" : "text-gray-400 font-normal"}>{assignee?.name ?? "Unassigned"}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-72 p-0">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-900">Assign Facility Manager</p>
+                </div>
+                <div className="py-1 max-h-64 overflow-y-auto">
+                  <button
+                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${pendingAssigneeId === "unassigned" ? "font-medium text-gray-900" : "text-gray-700"}`}
+                    onClick={() => setPendingAssigneeId("unassigned")}
+                  >
+                    Unassigned
+                  </button>
+                  {managers.map((m) => (
+                    <button
+                      key={m.id}
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${pendingAssigneeId === m.id ? "font-medium text-gray-900 bg-orange-50" : "text-gray-700"}`}
+                      onClick={() => setPendingAssigneeId(m.id)}
+                    >
+                      {m.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2 px-4 py-3 border-t border-gray-100">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setAssigneePickerOpen(false)}>Cancel</Button>
+                  <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white" onClick={() => {
+                    const previousAssignee = assignee;
+                    const nextId = pendingAssigneeId === "unassigned" ? null : pendingAssigneeId;
+                    const nextAssignee = nextId ? managers.find((m) => m.id === nextId) ?? null : null;
+                    if ((previousAssignee?.id ?? null) === nextId) { setAssigneePickerOpen(false); return; }
+                    assignRequestToManager(req.id, nextId);
+                    fmStoreTick((n) => n + 1);
+                    const now = new Date().toISOString();
+                    if (previousAssignee && nextAssignee) {
+                      toast.success(`Reassigned to ${nextAssignee.name}. WhatsApp notification sent.`);
+                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Reassigned from ${previousAssignee.name} to ${nextAssignee.name}`, timestamp: now });
+                    } else if (nextAssignee) {
+                      toast.success(`Assigned to ${nextAssignee.name}. WhatsApp notification sent.`);
+                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${nextAssignee.name}`, timestamp: now });
+                    } else {
+                      toast.success("Request unassigned");
+                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: now });
+                    }
+                    setAssigneePickerOpen(false);
+                  }}>Save</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Col 3: Wallet Balance */}
+          <div className="px-6 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Wallet Balance</p>
+            {req.walletBalance !== undefined ? (
+              <p className="text-sm font-semibold text-green-600">{fmtNaira(req.walletBalance)}</p>
+            ) : (
+              <p className="text-sm text-gray-400">N/A</p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── Main content: thread + side panel ── */}
-      <div className="flex flex-1 -mx-4 sm:-mx-6 lg:-mx-8 min-[1440px]:min-h-0 min-[1440px]:overflow-hidden">
+      {/* Main row */}
+      <div className="flex gap-5 min-[1440px]:flex-1 min-[1440px]:min-h-0">
 
-        {/* ── Thread column ── */}
-        <div className="flex-1 min-w-0 flex flex-col min-[1440px]:overflow-hidden">
+        {/* Thread card */}
+        <div className="flex-1 min-w-0 bg-white rounded-xl border border-gray-200 flex flex-col min-h-[500px] min-[1440px]:min-h-0">
 
-          {/* Activity bar */}
-          <div className="shrink-0 flex items-center gap-2 px-4 sm:px-6 lg:px-8 py-2.5 border-b border-gray-100 bg-white flex-wrap">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mr-1">Activity</span>
-            {(["all", "messages", "payments", "status"] as ActiveFilter[]).map((f) => {
-              const cnt = f === "all" ? allDisplayItems.length : f === "messages" ? msgCount : f === "payments" ? payCount : statusCount;
-              const label = f === "all" ? "All" : f === "messages" ? "Messages" : f === "payments" ? "Payments" : "Status";
-              return (
-                <button key={f} type="button"
-                  onClick={() => { setActiveFilter(f); setThreadExpanded(false); }}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] ${activeFilter === f ? "bg-[#FF5000] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"}`}>
-                  {label}
-                  <span className={`text-[10px] font-semibold tabular-nums ${activeFilter === f ? "text-white/80" : "text-gray-400"}`}>{cnt}</span>
-                </button>
-              );
-            })}
+          {/* Thread card header */}
+          <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Activity</span>
+            <div className="bg-gray-100 rounded-lg p-0.5 flex">
+              {(["all", "messages", "payments", "status"] as ActiveFilter[]).map((f) => {
+                const cnt = f === "all" ? allDisplayItems.length : f === "messages" ? msgCount : f === "payments" ? payCount : statusCount;
+                const label = f === "all" ? "All" : f === "messages" ? "Messages" : f === "payments" ? "Payments" : "Status";
+                const isActive = activeFilter === f;
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => { setActiveFilter(f); setThreadExpanded(false); }}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none ${isActive ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                  >
+                    {label}
+                    <span className={`text-[10px] font-semibold tabular-nums ${isActive ? "text-gray-500" : "text-gray-400"}`}>{cnt}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Scrollable thread area */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-5 min-[1440px]:min-h-0">
-            <div className="max-w-[760px] mx-auto space-y-3">
+          {/* Thread card body */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 min-[1440px]:min-h-0">
 
-              {filteredDisplayItems.length === 0 && (
-                <div className="py-12 text-center">
-                  <p className="text-sm text-gray-400">
-                    No {activeFilter === "messages" ? "messages" : activeFilter === "payments" ? "payment requests" : "status updates"} yet.
-                  </p>
-                </div>
-              )}
+            {filteredDisplayItems.length === 0 && (
+              <div className="py-12 text-center">
+                <p className="text-sm text-gray-400">
+                  No {activeFilter === "messages" ? "messages" : activeFilter === "payments" ? "payment requests" : "status updates"} yet.
+                </p>
+              </div>
+            )}
 
-              {renderNodes.map((node) => {
-                if (node.t === "divider") {
-                  return (
-                    <div key={node.key} className="flex items-center gap-3 py-1.5">
+            {renderNodes.map((node) => {
+              if (node.t === "divider") {
+                return (
+                  <div key={node.key} className="py-2">
+                    <div className="flex items-center gap-3 py-3">
                       <div className="flex-1 h-px bg-gray-100" />
-                      <span className="text-[11px] text-gray-400 font-semibold whitespace-nowrap tracking-wide">{node.label}</span>
+                      <span className="text-[11px] font-semibold text-gray-400 px-2.5 py-1 rounded-full bg-white border border-gray-200 tracking-wide whitespace-nowrap">
+                        {node.label}
+                      </span>
                       <div className="flex-1 h-px bg-gray-100" />
                     </div>
-                  );
-                }
-                if (node.t === "collapse") {
-                  return (
-                    <button key="collapse" type="button" onClick={() => setThreadExpanded(true)}
-                      className="flex items-center gap-2 w-full py-2 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]">
+                  </div>
+                );
+              }
+
+              if (node.t === "collapse") {
+                return (
+                  <div key="collapse" className="py-2">
+                    <button
+                      type="button"
+                      onClick={() => setThreadExpanded(true)}
+                      className="rounded-lg border border-gray-200 bg-gray-50 py-2 px-3 text-sm text-gray-500 flex items-center gap-2 w-full hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
+                    >
                       <ChevronDown className="w-4 h-4" />
                       {node.count} earlier update{node.count !== 1 ? "s" : ""}
                     </button>
-                  );
-                }
-                if (node.t === "showless") {
-                  return (
-                    <button key="showless" type="button" onClick={() => setThreadExpanded(false)}
-                      className="flex items-center gap-2 py-1.5 px-3 rounded-lg text-xs text-gray-400 hover:text-gray-600 transition-colors focus:outline-none">
+                  </div>
+                );
+              }
+
+              if (node.t === "showless") {
+                return (
+                  <div key="showless" className="py-2">
+                    <button
+                      type="button"
+                      onClick={() => setThreadExpanded(false)}
+                      className="flex items-center gap-2 py-1.5 px-3 rounded-lg text-xs text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                    >
                       <ChevronUp className="w-3.5 h-3.5" />Show less
                     </button>
-                  );
-                }
-                if (node.t === "item") {
-                  const { item } = node;
-                  const nodeKey = node.key;
+                  </div>
+                );
+              }
 
-                  // Original tenant/FM/resident report
-                  if (item.kind === "original") {
-                    const name = reporterName(req);
-                    const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-                    const roleTag = getRoleTagFromSource(source);
-                    const roleClass = ROLE_TAG_CLASS[roleTag] ?? "bg-gray-100 text-gray-600";
-                    const avatarBg = source === "tenant" ? "bg-blue-100 text-blue-700" : source === "resident" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700";
-                    const body = req.description;
-                    const expanded = expandedMessages.has("original");
-                    return (
-                      <div key={nodeKey} className="flex gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${avatarBg}`}>{initials}</div>
+              if (node.t === "item") {
+                const { item } = node;
+                const nodeKey = node.key;
+
+                if (item.kind === "original") {
+                  const name = reporterName(req);
+                  const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                  const roleTag = getRoleTagFromSource(source);
+                  const roleClass = ROLE_TAG_CLASS[roleTag] ?? "bg-gray-100 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded";
+                  const avatarBg = AVATAR_CLASS[roleTag] ?? "bg-gray-100 text-gray-700";
+                  const body = req.description;
+                  const expanded = expandedMessages.has("original");
+                  return (
+                    <div key={nodeKey} className="py-5 border-b border-gray-100">
+                      <div className="flex gap-3">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${avatarBg}`}>{initials}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className="text-sm font-semibold text-gray-900">{name}</span>
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${roleClass}`}>{roleTag}</span>
+                            <span className={roleClass}>{roleTag}</span>
                             <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(req.date_reported)}</span>
                           </div>
-                          {needsClamp(body) ? (
-                            <>
-                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"
-                                style={!expanded ? clampStyle : undefined}>
-                                {body}
-                              </p>
-                              <button type="button" onClick={() => toggleMessage("original")}
-                                className="text-xs text-[#FF5000] mt-1.5 hover:underline focus:outline-none">
-                                {expanded ? "Show less" : "Show full message"}
-                              </button>
-                            </>
-                          ) : (
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{body}</p>
+                          <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">Original Request</p>
+                          <p
+                            className="text-[15px] leading-6 text-gray-700 whitespace-pre-wrap"
+                            style={needsClamp(body) && !expanded ? clampStyle : undefined}
+                          >
+                            {body}
+                          </p>
+                          {needsClamp(body) && (
+                            <button type="button" onClick={() => toggleMessage("original")} className="text-xs text-[#FF5000] mt-1.5 hover:underline focus:outline-none">
+                              {expanded ? "Show less" : "Show full message"}
+                            </button>
                           )}
                           {origItems.length > 0 && (
                             <div className="mt-3">
-                              {renderAttachmentGroup(origItems, "Original Media", false)}
+                              <p className="text-xs text-gray-400 mt-3 mb-1.5">{origItems.length} attachment{origItems.length !== 1 ? "s" : ""}</p>
+                              <div className="flex flex-wrap gap-2">
+                                {renderAttachmentGroup(origItems, "Original Media", false, "grid-cols-4 gap-2")}
+                              </div>
                             </div>
                           )}
                         </div>
                       </div>
-                    );
-                  }
+                    </div>
+                  );
+                }
 
-                  // Reopened media
-                  if (item.kind === "reopened_media") {
-                    const name = reporterName(req);
-                    const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-                    return (
-                      <div key={nodeKey} className="flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xs font-semibold text-amber-700">{initials}</div>
+                if (item.kind === "reopened_media") {
+                  const name = reporterName(req);
+                  const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                  return (
+                    <div key={nodeKey} className="py-5 border-b border-gray-100">
+                      <div className="flex gap-3">
+                        <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xs font-semibold text-amber-700">{initials}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className="text-sm font-semibold text-gray-900">{name}</span>
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1"><RotateCcw className="w-2.5 h-2.5" />REOPENED</span>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                              <RotateCcw className="w-2.5 h-2.5" />REOPENED
+                            </span>
                             <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(req.reopened_at ?? req.date_reported)}</span>
                           </div>
-                          {req.notes && <p className="text-sm text-gray-700 leading-relaxed mb-2">{req.notes}</p>}
-                          {renderAttachmentGroup(reopenedItems, "Reopened Media", false)}
+                          {req.notes && <p className="text-[15px] leading-6 text-gray-700 mb-2">{req.notes}</p>}
+                          {reopenedItems.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs text-gray-400 mb-1.5">{reopenedItems.length} attachment{reopenedItems.length !== 1 ? "s" : ""}</p>
+                              <div className="flex flex-wrap gap-2">
+                                {renderAttachmentGroup(reopenedItems, "Reopened Media", false, "grid-cols-4 gap-2")}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (item.kind === "thread") {
+                  const entry = item.entry;
+
+                  if (entry.type === "event") {
+                    return (
+                      <div key={nodeKey} className="py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-px bg-gray-100" />
+                          <span className="text-[11px] text-gray-400 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 whitespace-nowrap flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                            {entry.body} · {fmtItemDt(entry.timestamp)}
+                          </span>
+                          <div className="flex-1 h-px bg-gray-100" />
                         </div>
                       </div>
                     );
                   }
 
-                  if (item.kind === "thread") {
-                    const entry = item.entry;
-
-                    // System event — thin centered pill
-                    if (entry.type === "event") {
-                      return (
-                        <div key={nodeKey} className="flex items-center gap-3 py-0.5">
-                          <div className="flex-1 h-px bg-gray-200" />
-                          <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200">
-                            {entry.body} · {fmtItemDt(entry.timestamp)}
-                          </span>
-                          <div className="flex-1 h-px bg-gray-200" />
-                        </div>
-                      );
-                    }
-
-                    // Resolution card
-                    if (entry.type === "resolution") {
-                      return (
-                        <div key={nodeKey} className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+                  if (entry.type === "resolution") {
+                    return (
+                      <div key={nodeKey} className="py-4 border-b border-gray-100">
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
                           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
                             <Check className="w-3.5 h-3.5 text-emerald-700" />
                             <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolved</p>
@@ -700,20 +761,23 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                             <div><p className="text-xs text-gray-500 mb-0.5">Summary</p><p className="text-gray-900 leading-relaxed">{entry.summary}</p></div>
                           </div>
                         </div>
-                      );
-                    }
+                      </div>
+                    );
+                  }
 
-                    // Payment request card
-                    if (entry.type === "payment_request") {
-                      const pyStatus = entry.status;
-                      const pyIsPending = pyStatus === "pending";
-                      const taskId = req.id;
-                      return (
-                        <div key={nodeKey} className="rounded-xl border border-amber-200 bg-white overflow-hidden">
-                          <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50 border-b border-amber-200/70">
+                  if (entry.type === "payment_request") {
+                    const pyStatus = entry.status;
+                    const pyIsPending = pyStatus === "pending";
+                    const taskId = req.id;
+                    return (
+                      <div key={nodeKey} className="py-4 border-b border-gray-100">
+                        <div className="rounded-xl border border-gray-200 overflow-hidden" style={{ borderLeftWidth: "3px", borderLeftColor: "#FF5000" }}>
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200">
                             <div className="flex items-center gap-2">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-700"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
-                              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Payment Request</p>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
+                                <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                              </svg>
+                              <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Payment Request</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-400">{fmtItemDt(entry.timestamp)}</span>
@@ -721,96 +785,132 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                             </div>
                           </div>
                           <div className="px-4 py-3 space-y-2 text-sm">
-                            <div className="flex justify-between"><span className="text-gray-500">Requested</span><span className="font-semibold tabular-nums">{fmtNaira(entry.requestedAmount)}</span></div>
-                            {typeof entry.approvedAmount === "number" && <div className="flex justify-between"><span className="text-gray-500">Approved</span><span className="font-semibold tabular-nums">{fmtNaira(entry.approvedAmount)}</span></div>}
-                            {entry.category && <div className="flex justify-between"><span className="text-gray-500">Category</span><span>{entry.category}</span></div>}
-                            {entry.requestedBy && <div className="flex justify-between"><span className="text-gray-500">Requested by</span><span>{entry.requestedBy}</span></div>}
-                            <div><span className="text-gray-500">Reason</span><p className="text-gray-700 mt-0.5 leading-snug">{entry.reason}</p></div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <p className="text-xs text-gray-400 mb-0.5">Requested</p>
+                                <p className="font-semibold tabular-nums text-gray-900">{fmtNaira(entry.requestedAmount)}</p>
+                              </div>
+                              {typeof entry.approvedAmount === "number" && (
+                                <div>
+                                  <p className="text-xs text-gray-400 mb-0.5">Approved</p>
+                                  <p className="font-semibold tabular-nums text-gray-900">{fmtNaira(entry.approvedAmount)}</p>
+                                </div>
+                              )}
+                            </div>
+                            {entry.category && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Category</span>
+                                <span className="text-gray-900">{entry.category}</span>
+                              </div>
+                            )}
+                            {entry.requestedBy && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Requested by</span>
+                                <span className="text-gray-900">{entry.requestedBy}</span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-gray-500">Reason</span>
+                              <p className="text-gray-700 mt-0.5 leading-snug">{entry.reason}</p>
+                            </div>
                             {entry.attachments && entry.attachments.length > 0 && renderAttachmentGroup(entry.attachments, "Payment Attachments", false, "grid-cols-4 gap-2")}
                           </div>
                           {pyIsPending && (
-                            <div className="flex gap-2 px-4 py-3 border-t border-amber-100">
+                            <div className="flex gap-2 px-4 py-3 border-t border-gray-100">
                               <Button variant="outline" size="sm" className="flex-1 text-xs border-gray-200 text-slate-700 hover:bg-gray-50" onClick={() => { setDeclineModal({ taskId, entry }); setDeclineReason(""); }}>Decline</Button>
                               <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white text-xs" onClick={() => { setApproveModal({ taskId, entry }); setApprovedAmountInput(String(entry.requestedAmount)); }}>Approve Payment</Button>
                             </div>
                           )}
                           {entry.status === "declined" && entry.declinedReason && (
-                            <div className="px-4 py-2.5 border-t border-amber-100 text-xs text-red-600 bg-red-50">Declined: {entry.declinedReason}</div>
+                            <div className="px-4 py-2.5 border-t border-gray-100 text-xs text-red-600 bg-red-50">Declined: {entry.declinedReason}</div>
                           )}
                         </div>
-                      );
-                    }
+                      </div>
+                    );
+                  }
 
-                    // Message bubble
-                    if (entry.type === "message") {
-                      const author = entry.author;
-                      const isLandlord = author === "landlord";
-                      const isTenant = author === "tenant";
-                      const name = isLandlord ? "You" : entry.authorName;
-                      const initials = isLandlord ? "YO" : entry.authorName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-                      const roleTag = isLandlord ? "LANDLORD" : isTenant ? "TENANT" : "FACILITY MANAGER";
-                      const roleClass = ROLE_TAG_CLASS[roleTag] ?? "bg-gray-100 text-gray-600";
-                      const avatarClass = isLandlord ? "bg-[#FF5000] text-white" : isTenant ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700";
-                      const msgExpanded = expandedMessages.has(entry.id);
-                      return (
-                        <div key={nodeKey} className="flex gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${avatarClass}`}>{initials}</div>
+                  if (entry.type === "message") {
+                    const author = entry.author;
+                    const isLandlord = author === "landlord";
+                    const isTenant = author === "tenant";
+                    const name = isLandlord ? "You" : entry.authorName;
+                    const initials = isLandlord ? "YO" : entry.authorName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                    const roleTag = isLandlord ? "LANDLORD" : isTenant ? "TENANT" : "FACILITY MANAGER";
+                    const roleClass = ROLE_TAG_CLASS[roleTag] ?? "bg-gray-100 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded";
+                    const avatarClass = AVATAR_CLASS[roleTag] ?? "bg-gray-100 text-gray-700";
+                    const msgExpanded = expandedMessages.has(entry.id);
+                    return (
+                      <div key={nodeKey} className="py-5 border-b border-gray-100">
+                        <div className="flex gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${avatarClass}`}>{initials}</div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
                               <span className="text-sm font-semibold text-gray-900">{name}</span>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${roleClass}`}>{roleTag}</span>
+                              <span className={roleClass}>{roleTag}</span>
                               <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(entry.timestamp)}</span>
                             </div>
                             {entry.body && (
-                              needsClamp(entry.body) ? (
-                                <>
-                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"
-                                    style={!msgExpanded ? clampStyle : undefined}>
-                                    {entry.body}
-                                  </p>
-                                  <button type="button" onClick={() => toggleMessage(entry.id)}
-                                    className="text-xs text-[#FF5000] mt-1.5 hover:underline focus:outline-none">
+                              <>
+                                <p
+                                  className="text-[15px] leading-6 text-gray-700 whitespace-pre-wrap"
+                                  style={needsClamp(entry.body) && !msgExpanded ? clampStyle : undefined}
+                                >
+                                  {entry.body}
+                                </p>
+                                {needsClamp(entry.body) && (
+                                  <button type="button" onClick={() => toggleMessage(entry.id)} className="text-xs text-[#FF5000] mt-1.5 hover:underline focus:outline-none">
                                     {msgExpanded ? "Show less" : "Show full message"}
                                   </button>
-                                </>
-                              ) : (
-                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{entry.body}</p>
-                              )
+                                )}
+                              </>
                             )}
                             {entry.attachments && entry.attachments.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {entry.attachments.map((att, i) =>
-                                  att.type === "document" ? (
-                                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-700 hover:bg-gray-100">
-                                      <Paperclip className="w-3 h-3 shrink-0" /><span className="truncate max-w-[120px]">{att.name}</span>
-                                    </a>
-                                  ) : (
-                                    <button key={i} type="button"
-                                      onClick={() => setLightbox({ items: entry.attachments!.filter((a) => a.type !== "document").map((a) => ({ url: a.url, type: a.type as "image" | "video" })), index: entry.attachments!.filter((a) => a.type !== "document").findIndex((a) => a.url === att.url) })}
-                                      className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]">
-                                      {att.type === "video" ? (<><video src={att.url} className="w-full h-full object-cover" muted preload="metadata" /><div className="absolute inset-0 flex items-center justify-center bg-black/20"><Play className="w-4 h-4 text-white" /></div></>) : (<img src={att.url} alt={att.name} className="w-full h-full object-cover" />)}
-                                    </button>
-                                  )
-                                )}
-                              </div>
+                              <>
+                                <p className="text-xs text-gray-400 mt-3 mb-1.5">{entry.attachments.length} attachment{entry.attachments.length !== 1 ? "s" : ""}</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {entry.attachments.map((att, i) =>
+                                    att.type === "document" ? (
+                                      <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-700 hover:bg-gray-100">
+                                        <Paperclip className="w-3 h-3 shrink-0" /><span className="truncate max-w-[120px]">{att.name}</span>
+                                      </a>
+                                    ) : (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => setLightbox({ items: entry.attachments!.filter((a) => a.type !== "document").map((a) => ({ url: a.url, type: a.type as "image" | "video" })), index: entry.attachments!.filter((a) => a.type !== "document").findIndex((a) => a.url === att.url) })}
+                                        className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
+                                      >
+                                        {att.type === "video" ? (
+                                          <>
+                                            <video src={att.url} className="w-full h-full object-cover" muted preload="metadata" />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20"><Play className="w-4 h-4 text-white" /></div>
+                                          </>
+                                        ) : (
+                                          <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                                        )}
+                                      </button>
+                                    )
+                                  )}
+                                </div>
+                              </>
                             )}
                           </div>
                         </div>
-                      );
-                    }
+                      </div>
+                    );
                   }
                 }
-                return null;
-              })}
+              }
+              return null;
+            })}
 
-              <div ref={threadEndRef} />
-            </div>
+            <div ref={threadEndRef} />
           </div>
 
           {/* Reply bar */}
-          <div className="shrink-0 border-t border-gray-200 bg-white px-4 sm:px-6 lg:px-8 py-3">
+          <div className="shrink-0 border-t border-gray-100 px-6 py-4">
             {pendingThreadAttachments.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2 max-w-[760px] mx-auto">
+              <div className="flex flex-wrap gap-1.5 mb-2">
                 {pendingThreadAttachments.map((att, i) => (
                   <div key={i} className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-md border border-gray-200 bg-gray-50 text-xs text-gray-600">
                     {att.type === "document" ? <Paperclip className="w-3 h-3 shrink-0" /> : att.type === "video" ? <Play className="w-3 h-3 shrink-0" /> : <ImageIcon className="w-3 h-3 shrink-0" />}
@@ -820,136 +920,158 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                 ))}
               </div>
             )}
-            <div className="max-w-[760px] mx-auto">
-              <div className="flex items-end gap-2 rounded-xl bg-gray-100 px-3 py-2 focus-within:ring-2 focus-within:ring-[#FF5000] focus-within:ring-offset-1 transition-shadow">
-                <input ref={threadFileInputRef} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" className="hidden"
-                  onChange={(e) => { handleThreadFilesSelected(e.target.files); e.target.value = ""; }} />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" onClick={() => threadFileInputRef.current?.click()} className="shrink-0 w-7 h-7 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Attach file">
-                      <Paperclip className="w-4 h-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Attach file</TooltipContent>
-                </Tooltip>
-                <textarea
-                  ref={threadTextareaRef}
-                  rows={1}
-                  value={threadInput}
-                  onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder="Reply to the thread..."
-                  className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none leading-relaxed"
-                  style={{ maxHeight: 120, overflowY: "auto" }}
-                />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" onClick={sendMessage} disabled={!threadInput.trim() && pendingThreadAttachments.length === 0}
-                      className="shrink-0 w-7 h-7 rounded-md bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Send">
-                      <Send className="w-3.5 h-3.5 text-white" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Send</TooltipContent>
-                </Tooltip>
-              </div>
+            <div className="flex items-end gap-2.5 rounded-xl bg-gray-100 px-3 py-2.5 focus-within:ring-2 focus-within:ring-[#FF5000] focus-within:ring-offset-1 transition-shadow">
+              <input type="file" ref={threadFileInputRef} className="hidden" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { handleThreadFilesSelected(e.target.files); e.target.value = ""; }} />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" onClick={() => threadFileInputRef.current?.click()} className="shrink-0 w-7 h-7 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 flex items-center justify-center">
+                    <Paperclip className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Attach file</TooltipContent>
+              </Tooltip>
+              <textarea
+                ref={threadTextareaRef}
+                rows={1}
+                value={threadInput}
+                onChange={e => { setThreadInput(e.target.value); autoResizeThread(); }}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder="Reply to the thread..."
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 resize-none leading-relaxed p-0 border-0 outline-none ring-0 shadow-none focus:ring-0 focus:outline-none focus:border-0 focus:shadow-none"
+                style={{ maxHeight: 120, overflowY: "auto", boxShadow: "none" }}
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" onClick={sendMessage} disabled={!threadInput.trim() && pendingThreadAttachments.length === 0}
+                    className="shrink-0 w-7 h-7 rounded-md bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center" aria-label="Send">
+                    <Send className="w-3.5 h-3.5 text-white" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Send</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
 
-        {/* ── Details panel — desktop ── */}
+        {/* Side panel card — desktop */}
         {sidePanelOpen && (
-          <aside className="hidden lg:flex flex-col w-72 shrink-0 border-l border-gray-100 bg-white min-[1440px]:overflow-y-auto">
-            <div className="p-5 space-y-6">
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Assigned Manager</p>
-                <button type="button"
-                  onClick={() => { setAssigneePickerOpen(true); setPendingAssigneeId(assignee?.id ?? "unassigned"); }}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-left hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] transition-colors">
-                  <span className={assignee ? "text-gray-900 font-medium" : "text-gray-400"}>{assignee?.name ?? "Unassigned"}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                </button>
+          <aside className="hidden lg:flex flex-col w-72 bg-white rounded-xl border border-gray-200 shrink-0 overflow-y-auto">
+            <div className="p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Dates</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Reported</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDateTime(req.date_reported)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
+                  <p className="text-sm font-medium text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
+                </div>
               </div>
-              <div className="h-px bg-gray-100" />
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Dates</p>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-0.5">Reported</p>
-                    <p className="text-sm text-gray-900">{formatDateTime(req.date_reported)}</p>
+            </div>
+
+            {paymentEntries.length > 0 && (
+              <>
+                <div className="border-t border-gray-100" />
+                <div className="p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Payment{paymentEntries.length > 1 ? "s" : ""}</p>
+                  <div className="space-y-2">
+                    {paymentEntries.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between text-sm">
+                        <span className="font-medium tabular-nums text-gray-900">{fmtNaira(p.requestedAmount)}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
+                      </div>
+                    ))}
                   </div>
+                </div>
+              </>
+            )}
+
+            <div className="border-t border-gray-100" />
+            <div className="p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Request Details</p>
+              <div className="space-y-3">
+                {req.issue_category && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-0.5">Last Updated</p>
-                    <p className="text-sm text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
+                    <p className="text-xs text-gray-400 mb-0.5">Category</p>
+                    <p className="text-sm font-medium text-gray-900">{req.issue_category}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Reported By</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-sm font-medium text-gray-900">{reporterName(req)}</p>
+                    <span className={ROLE_TAG_CLASS[getRoleTagFromSource(source)] ?? "bg-gray-100 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded"}>
+                      {getRoleTagFromSource(source)}
+                    </span>
                   </div>
                 </div>
               </div>
-              {(() => {
-                const paymentEntries = thread.filter(e => e.type === "payment_request") as ThreadPaymentRequest[];
-                if (paymentEntries.length === 0) return null;
-                return (
-                  <>
-                    <div className="h-px bg-gray-100" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Payment{paymentEntries.length > 1 ? "s" : ""}</p>
-                      <div className="space-y-2">
-                        {paymentEntries.map((p) => (
-                          <div key={p.id} className="flex items-center justify-between text-sm">
-                            <span className="font-medium tabular-nums">{fmtNaira(p.requestedAmount)}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
             </div>
           </aside>
         )}
+      </div>
 
-        {/* ── Details panel — mobile slide-over ── */}
-        {sidePanelOpen && (
-          <div className="lg:hidden fixed inset-0 z-40">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setSidePanelOpen(false)} />
-            <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl overflow-y-auto">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <p className="text-sm font-semibold text-gray-900">Request Details</p>
-                <button type="button" onClick={() => setSidePanelOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close details"><X className="w-5 h-5" /></button>
-              </div>
-              <div className="p-5 space-y-6">
+      {/* Mobile side panel slide-over */}
+      {sidePanelOpen && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSidePanelOpen(false)} />
+          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <p className="text-sm font-semibold text-gray-900">Request Details</p>
+              <button type="button" onClick={() => setSidePanelOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close details"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Dates</p>
+              <div className="space-y-3 mb-5">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Assigned Manager</p>
-                  <button type="button" onClick={() => { setSidePanelOpen(false); setAssigneePickerOpen(true); setPendingAssigneeId(assignee?.id ?? "unassigned"); }}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-left hover:border-gray-300">
-                    <span className={assignee ? "text-gray-900 font-medium" : "text-gray-400"}>{assignee?.name ?? "Unassigned"}</span>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  </button>
+                  <p className="text-xs text-gray-400 mb-0.5">Reported</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDateTime(req.date_reported)}</p>
                 </div>
-                <div className="space-y-3">
-                  <div><p className="text-xs text-gray-500 mb-0.5">Reported</p><p className="text-sm text-gray-900">{formatDateTime(req.date_reported)}</p></div>
-                  <div><p className="text-xs text-gray-500 mb-0.5">Last Updated</p><p className="text-sm text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p></div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
+                  <p className="text-sm font-medium text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
                 </div>
-                {(() => {
-                  const paymentEntries = thread.filter(e => e.type === "payment_request") as ThreadPaymentRequest[];
-                  if (paymentEntries.length === 0) return null;
-                  return (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-2">Payments</p>
-                      {paymentEntries.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between text-sm mb-2">
-                          <span className="font-medium tabular-nums">{fmtNaira(p.requestedAmount)}</span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+              </div>
+
+              {paymentEntries.length > 0 && (
+                <>
+                  <div className="border-t border-gray-100 mb-5" />
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Payment{paymentEntries.length > 1 ? "s" : ""}</p>
+                  <div className="space-y-2 mb-5">
+                    {paymentEntries.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between text-sm">
+                        <span className="font-medium tabular-nums text-gray-900">{fmtNaira(p.requestedAmount)}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="border-t border-gray-100 mb-5" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Request Details</p>
+              <div className="space-y-3">
+                {req.issue_category && (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Category</p>
+                    <p className="text-sm font-medium text-gray-900">{req.issue_category}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Reported By</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-sm font-medium text-gray-900">{reporterName(req)}</p>
+                    <span className={ROLE_TAG_CLASS[getRoleTagFromSource(source)] ?? "bg-gray-100 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded"}>
+                      {getRoleTagFromSource(source)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        )}
-
-      </div>{/* end main content wrapper */}
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightbox && (
@@ -1006,7 +1128,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
         </div>
       )}
 
-      {/* Approve Payment Request Modal */}
+      {/* Approve Payment Modal */}
       {approveModal && (() => {
         const parsedApprovedAmount = Number(approvedAmountInput.replace(/,/g, ""));
         const isValid = approvedAmountInput.trim() !== "" && Number.isFinite(parsedApprovedAmount) && parsedApprovedAmount > 0;
@@ -1054,7 +1176,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                     Approved Amount <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">₦</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">&#8358;</span>
                     <Input
                       id="approved-amount-detail"
                       value={approvedAmountInput}
@@ -1101,7 +1223,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
         );
       })()}
 
-      {/* Decline Payment Request Modal */}
+      {/* Decline Payment Modal */}
       {declineModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setDeclineModal(null); }}
