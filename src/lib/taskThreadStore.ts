@@ -4,7 +4,7 @@
  * from this store, so messages appear in both views simultaneously.
  */
 
-export type ThreadAuthor = "landlord" | "facility_manager";
+export type ThreadAuthor = "landlord" | "facility_manager" | "tenant";
 
 export interface ThreadMessageAttachment {
   url: string;
@@ -100,6 +100,7 @@ const _threads = new Map<string, ThreadEntry[]>([
       { id: "s1-e003", type: "event", body: "Request approved", timestamp: "2026-07-24T09:10:00.000Z" },
       { id: "s1-m001", type: "message", author: "facility_manager", authorName: "Chukwuemeka Obi", body: "I've received a quotation of ₦145,000 for replacing the compressor.", timestamp: "2026-07-24T09:12:00.000Z" },
       { id: "s1-m002", type: "message", author: "landlord", authorName: "You", body: "Can we get another quotation? That seems high.", timestamp: "2026-07-24T09:14:00.000Z" },
+      { id: "s1-m003", type: "message", author: "tenant" as ThreadAuthor, authorName: "James Okafor", body: "Thank you for the quick update. While the plumber is there, please ask him to check the bathroom tap as well — it has started dripping overnight and I cannot turn it off completely.", timestamp: "2026-07-24T09:20:00.000Z" },
       {
         id: "s1-p001", type: "payment_request", requestedAmount: 145000, amount: "₦145,000",
         requestedBy: "Chukwuemeka Obi", reason: "Replacement of compressor and refrigerant for tenant's air conditioner.",

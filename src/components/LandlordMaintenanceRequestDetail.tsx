@@ -9,14 +9,11 @@ import {
   MOCK_FACILITY_MANAGERS,
   ServiceRequest,
   FacilityManager,
-  ResolutionDetails,
   resolveSource,
   reporterName,
-  SOURCE_LABEL,
   formatDateTime,
   getRelativeTime,
   formatStatusLabel,
-  statusColors,
 } from "@/lib/landlordFacilityTypes";
 import {
   assignRequestToManager,
@@ -37,7 +34,6 @@ import {
   setTaskPriority,
 } from "@/lib/taskThreadStore";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -62,6 +58,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 
+type ActiveFilter = "all" | "messages" | "payments" | "status";
+
 interface Props {
   requestOverride?: ServiceRequest;
   backTo?: string;
@@ -77,15 +75,13 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
   const searchParamId = searchParams.get("id") ?? "";
   const requestId = requestOverride?.id ?? searchParamId;
 
-  // State
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
-  const [resolutionOverrides] = useState<Record<string, ResolutionDetails[]>>({});
   const [lightbox, setLightbox] = useState<{ items: Array<{ url: string; type: "image" | "video" }>; index: number } | null>(null);
   const [declineModal, setDeclineModal] = useState<{ taskId: string; entry: ThreadPaymentRequest } | null>(null);
   const [declineReason, setDeclineReason] = useState("");
   const [approveModal, setApproveModal] = useState<{ taskId: string; entry: ThreadPaymentRequest } | null>(null);
   const [approvedAmountInput, setApprovedAmountInput] = useState("");
-  const [managers, setManagers] = useState<FacilityManager[]>(MOCK_FACILITY_MANAGERS);
+  const [managers] = useState<FacilityManager[]>(MOCK_FACILITY_MANAGERS);
   const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
   const [pendingAssigneeId, setPendingAssigneeId] = useState<string>("unassigned");
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
@@ -94,8 +90,11 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
   const [, threadTick] = useState(0);
   const [threadInput, setThreadInput] = useState("");
   const [pendingThreadAttachments, setPendingThreadAttachments] = useState<ThreadMessageAttachment[]>([]);
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const threadTextareaRef = useRef<HTMLTextAreaElement>(null);
   const threadFileInputRef = useRef<HTMLInputElement>(null);
+  const threadEndRef = useRef<HTMLDivElement>(null);
 
   const autoResizeThread = useCallback(() => {
     const el = threadTextareaRef.current;
@@ -149,12 +148,9 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     }
   };
 
-  // Thread
   const thread = [...getThread(req.id)].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
-
-  const assigneeName = getRequestAssignee(req.id)?.name ?? "Facility Manager";
 
   const sendMessage = () => {
     const body = threadInput.trim();
@@ -187,7 +183,6 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     setPendingThreadAttachments((prev) => [...prev, ...newAttachments]);
   };
 
-  // Attachments
   const allAttachments = req.attachments ?? (req.issue_images ? req.issue_images.map((url) => ({ url, type: "image" as const, group: "original" as const })) : []);
   const origItems = allAttachments.filter((a) => a.group === "original");
   const reopenedItems = allAttachments.filter((a) => a.group === "reopened");
@@ -243,8 +238,6 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     );
   };
 
-  const baseResArr = req.resolutions ?? (req.resolution ? [req.resolution] : []);
-  const resArr = [...baseResArr, ...(resolutionOverrides[req.id] ?? [])];
 
   const PAYMENT_STATUS_BADGE_CLASS: Record<string, string> = {
     pending: "bg-amber-50 text-amber-700 border border-amber-200",
@@ -256,11 +249,35 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     pending: "Pending Approval", approved: "Approved", declined: "Declined", paid: "Paid",
   };
 
-  // Build thread display items and flat render nodes (date dividers + collapse in correct position)
+  const STATUS_CHIP_CLASS: Record<string, string> = {
+    open: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+    in_progress: "bg-blue-50 text-blue-700 border border-blue-200",
+    resolved: "bg-green-50 text-green-700 border border-green-200",
+    reopened: "bg-red-50 text-red-700 border border-red-200",
+    urgent: "bg-red-50 text-red-700 border border-red-200",
+    closed: "bg-gray-100 text-gray-600 border border-gray-200",
+    pending: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+  };
+
+  const ROLE_TAG_CLASS: Record<string, string> = {
+    TENANT: "bg-blue-50 text-blue-700 border border-blue-200",
+    RESIDENT: "bg-purple-50 text-purple-700 border border-purple-200",
+    "FACILITY MANAGER": "bg-orange-50 text-orange-700 border border-orange-200",
+    LANDLORD: "bg-gray-900 text-white",
+  };
+
+  function getRoleTagFromSource(src: string): string {
+    if (src === "tenant") return "TENANT";
+    if (src === "resident") return "RESIDENT";
+    if (src === "facility_manager") return "FACILITY MANAGER";
+    return "LANDLORD";
+  }
+
   type DisplayItem =
     | { kind: "original" }
     | { kind: "reopened_media" }
     | { kind: "thread"; entry: ThreadEntry };
+
   type RenderNode =
     | { t: "divider"; label: string; key: string }
     | { t: "item"; item: DisplayItem; key: string }
@@ -282,7 +299,10 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     const yest = new Date(today); yest.setDate(today.getDate() - 1);
     if (_dayKey(iso) === _dayKey(today.toISOString())) return "Today";
     if (_dayKey(iso) === _dayKey(yest.toISOString())) return "Yesterday";
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    const dow = d.toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase();
+    const day = d.getDate();
+    const month = d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+    return `${dow}, ${day} ${month}`;
   }
   function _itemTs(item: DisplayItem): string {
     if (item.kind === "original") return req!.date_reported;
@@ -294,8 +314,25 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
   if (reopenedItems.length > 0) allDisplayItems.push({ kind: "reopened_media" });
   for (const e of thread) allDisplayItems.push({ kind: "thread", entry: e });
 
+  // Activity filter
+  const filteredDisplayItems: DisplayItem[] =
+    activeFilter === "messages"
+      ? allDisplayItems.filter(i =>
+          i.kind === "original" || i.kind === "reopened_media" || (i.kind === "thread" && i.entry.type === "message")
+        )
+      : activeFilter === "payments"
+        ? allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "payment_request")
+        : activeFilter === "status"
+          ? allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "event")
+          : allDisplayItems;
+
+  // Pill counts
+  const msgCount = allDisplayItems.filter(i => i.kind !== "thread" || i.entry.type === "message").length;
+  const payCount = allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "payment_request").length;
+  const statusCount = allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "event").length;
+
   const TAIL_COUNT = 2;
-  const canCollapse = !threadExpanded && allDisplayItems.length > 1 + TAIL_COUNT;
+  const canCollapse = activeFilter === "all" && !threadExpanded && filteredDisplayItems.length > 1 + TAIL_COUNT;
 
   const renderNodes: RenderNode[] = (() => {
     const nodes: RenderNode[] = [];
@@ -309,26 +346,39 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
       }
       nodes.push({ t: "item", item, key: item.kind === "thread" ? item.entry.id : item.kind });
     }
-    pushItem(allDisplayItems[0]);
+    if (filteredDisplayItems.length === 0) return nodes;
+    pushItem(filteredDisplayItems[0]);
     if (canCollapse) {
-      const middleCount = allDisplayItems.length - 1 - TAIL_COUNT;
+      const middleCount = filteredDisplayItems.length - 1 - TAIL_COUNT;
       nodes.push({ t: "collapse", count: middleCount });
-      for (const itm of allDisplayItems.slice(-TAIL_COUNT)) pushItem(itm);
+      for (const itm of filteredDisplayItems.slice(-TAIL_COUNT)) pushItem(itm);
     } else {
-      for (const itm of allDisplayItems.slice(1)) pushItem(itm);
+      for (const itm of filteredDisplayItems.slice(1)) pushItem(itm);
     }
-    if (threadExpanded && allDisplayItems.length > 1 + TAIL_COUNT) {
+    if (threadExpanded && filteredDisplayItems.length > 1 + TAIL_COUNT) {
       nodes.push({ t: "showless" });
     }
     return nodes;
   })();
 
-  const threadEndRef = useRef<HTMLDivElement>(null);
+  const needsClamp = (body: string) => body.length > 300 || body.includes("\n");
+  const toggleMessage = (id: string) => setExpandedMessages(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const clampStyle: React.CSSProperties = {
+    overflow: "hidden",
+    display: "-webkit-box",
+    WebkitLineClamp: 8,
+    WebkitBoxOrient: "vertical" as any,
+  };
 
   return (
     <div className="page-container min-[1440px]:h-[calc(100vh-2rem)] min-[1440px]:flex min-[1440px]:flex-col">
 
-      {/* ── Gmail-style toolbar ── */}
+      {/* ── Toolbar ── */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-200 -mt-4 -mx-4 sm:-mt-6 sm:-mx-6 lg:-mt-8 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-2 shrink-0">
         <button
           type="button"
@@ -336,10 +386,11 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] rounded"
           aria-label="Back to maintenance requests"
         >
-          <ChevronLeft className="w-4 h-4" /><span className="hidden sm:inline">{backLabel ?? "Back"}</span>
+          <ChevronLeft className="w-4 h-4" />
+          <span className="hidden sm:inline font-medium">Maintenance Requests</span>
         </button>
 
-        {/* Assign FM button */}
+        {/* Assign FM */}
         <Popover open={assigneePickerOpen} onOpenChange={(open) => { setAssigneePickerOpen(open); if (open) setPendingAssigneeId(assignee?.id ?? "unassigned"); }}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -397,7 +448,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
               className={`flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] ${isPriority ? "text-[#FF5000]" : "text-gray-600 hover:text-gray-900"}`}
               aria-label={isPriority ? "Remove Priority" : "Add Priority"}>
               <Star className={`w-4 h-4 ${isPriority ? "fill-[#FF5000]" : ""}`} />
-              <span className="hidden sm:inline text-xs">{isPriority ? "Remove Priority" : "Priority"}</span>
+              <span className="hidden sm:inline text-xs">Priority</span>
             </button>
           </TooltipTrigger>
           <TooltipContent>{isPriority ? "Remove Priority" : "Add Priority"}</TooltipContent>
@@ -405,7 +456,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
 
         <div className="flex-1" />
 
-        {/* Approve button */}
+        {/* Approve Request button — hidden once approved */}
         {!isApproved && (
           <Button size="sm" disabled={!canApprove}
             className="bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50 text-xs"
@@ -440,365 +491,463 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
         </div>
       )}
 
-      {/* ── Subject header ── */}
+      {/* ── Header ── */}
       <div className="bg-white border-b border-gray-100 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 min-[1440px]:shrink-0">
-        <div className="flex items-start gap-3 flex-wrap">
-          <h1 className="text-xl font-semibold text-gray-900 leading-snug flex-1 min-w-0">{req.description}</h1>
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${({ open: "bg-yellow-50 text-yellow-700 border-yellow-200", in_progress: "bg-blue-50 text-blue-700 border-blue-200", resolved: "bg-green-50 text-green-700 border-green-200", reopened: "bg-red-50 text-red-700 border-red-200", urgent: "bg-red-50 text-red-700 border-red-200", closed: "bg-gray-100 text-gray-600 border-gray-200", pending: "bg-yellow-50 text-yellow-700 border-yellow-200" } as Record<string, string>)[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
-              {formatStatusLabel(currentStatus)}
+        {/* Status + badge chips */}
+        <div className="flex items-center gap-2 flex-wrap mb-2">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${(STATUS_CHIP_CLASS as Record<string, string>)[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>
+            {formatStatusLabel(currentStatus)}
+          </span>
+          {isPriority && (
+            <span className="text-xs font-semibold text-[#FF5000] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Star className="w-2.5 h-2.5 fill-[#FF5000]" />Priority
             </span>
-            {isPriority && (
-              <span className="text-xs font-semibold text-[#FF5000] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Star className="w-2.5 h-2.5 fill-[#FF5000]" />Priority
-              </span>
-            )}
-            {req.reopened_at && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 cursor-default">
-                    <RotateCcw className="w-3 h-3" />Reopened
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Last reopened on {formatDateTime(req.reopened_at)}{req.notes ? ` — ${req.notes}` : ""}</TooltipContent>
-              </Tooltip>
-            )}
+          )}
+          {req.reopened_at && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 cursor-default">
+                  <RotateCcw className="w-3 h-3" />Reopened
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Last reopened on {formatDateTime(req.reopened_at)}{req.notes ? ` — ${req.notes}` : ""}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        {/* 2-line clamped title */}
+        <h1 className="text-xl font-semibold text-gray-900 leading-snug line-clamp-2">{req.description}</h1>
+        {/* Meta row */}
+        <div className="flex items-center gap-x-5 gap-y-2 mt-3 flex-wrap">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Property</span>
+            <span className="text-sm text-gray-700">
+              {req.property_name}{req.property_address ? `, ${req.property_address}` : ""}
+            </span>
           </div>
-        </div>
-        <p className="text-sm text-gray-500 mt-1">
-          {req.property_name} · Reported by {SOURCE_LABEL[source]}, {reporterName(req)}
-        </p>
-      </div>
-
-      {/* ── Main content: thread + details panel ── */}
-      <div className="flex flex-1 -mx-4 sm:-mx-6 lg:-mx-8 min-[1440px]:min-h-0 min-[1440px]:overflow-hidden">
-
-      {/* ── Thread column ── */}
-      <div className="flex-1 min-w-0 flex flex-col min-[1440px]:overflow-hidden">
-        {/* Scrollable thread area */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-5 space-y-3 min-[1440px]:min-h-0">
-
-          {renderNodes.map((node) => {
-            if (node.t === "divider") {
-              return (
-                <div key={node.key} className="flex items-center gap-3 py-1.5">
-                  <div className="flex-1 h-px bg-gray-100" />
-                  <span className="text-xs text-gray-400 font-medium whitespace-nowrap">{node.label}</span>
-                  <div className="flex-1 h-px bg-gray-100" />
-                </div>
-              );
-            }
-            if (node.t === "collapse") {
-              return (
-                <button
-                  key="collapse"
-                  type="button"
-                  onClick={() => setThreadExpanded(true)}
-                  className="flex items-center gap-2 w-full py-2 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
-                  aria-label={`Expand ${node.count} earlier updates`}
-                >
-                  <ChevronDown className="w-4 h-4" />
-                  {node.count} earlier update{node.count !== 1 ? "s" : ""}
-                </button>
-              );
-            }
-            if (node.t === "showless") {
-              return (
-                <button key="showless" type="button" onClick={() => setThreadExpanded(false)}
-                  className="flex items-center gap-2 py-1.5 px-3 rounded-lg text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                  <ChevronUp className="w-3.5 h-3.5" />Show less
-                </button>
-              );
-            }
-            if (node.t === "item") {
-              const { item } = node;
-              const nodeKey = node.key;
-              if (item.kind === "original") {
-                const name = reporterName(req);
-                const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-                return (
-                  <div key={nodeKey} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0 text-xs font-semibold text-gray-600">{initials}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className="text-sm font-medium text-gray-900">{name}</span>
-                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{SOURCE_LABEL[source]}</span>
-                        <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(req.date_reported)}</span>
-                      </div>
-                      <p className="text-sm text-gray-700 leading-relaxed">{req.description}</p>
-                      {origItems.length > 0 && (
-                        <div className="mt-3">
-                          {renderAttachmentGroup(origItems, "Original Media", false)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-              if (item.kind === "reopened_media") {
-                const name = reporterName(req);
-                const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-                return (
-                  <div key={nodeKey} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xs font-semibold text-amber-700">{initials}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className="text-sm font-medium text-gray-900">{name}</span>
-                        <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-1"><RotateCcw className="w-2.5 h-2.5" />Reopened</span>
-                        <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(req.reopened_at ?? req.date_reported)}</span>
-                      </div>
-                      {req.notes && <p className="text-sm text-gray-700 leading-relaxed mb-2">{req.notes}</p>}
-                      {renderAttachmentGroup(reopenedItems, "Reopened Media", false)}
-                    </div>
-                  </div>
-                );
-              }
-              if (item.kind === "thread") {
-                const entry = item.entry;
-                if (entry.type === "event") {
-                  return (
-                    <div key={nodeKey} className="flex items-center gap-3 py-0.5">
-                      <div className="flex-1 h-px bg-gray-200" />
-                      <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">{entry.body} · {fmtItemDt(entry.timestamp)}</span>
-                      <div className="flex-1 h-px bg-gray-200" />
-                    </div>
-                  );
-                }
-                if (entry.type === "resolution") {
-                  return (
-                    <div key={nodeKey} className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
-                        <Check className="w-3.5 h-3.5 text-emerald-700" />
-                        <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolved</p>
-                        <span className="text-xs text-emerald-600 ml-auto">{fmtItemDt(entry.timestamp)}</span>
-                      </div>
-                      <div className="px-4 py-3.5 space-y-2 text-sm">
-                        <div><p className="text-xs text-gray-500 mb-0.5">Resolved by</p><p className="text-gray-900">{entry.resolvedBy}</p></div>
-                        <div><p className="text-xs text-gray-500 mb-0.5">Summary</p><p className="text-gray-900 leading-relaxed">{entry.summary}</p></div>
-                      </div>
-                    </div>
-                  );
-                }
-                if (entry.type === "payment_request") {
-                  const pyStatus = entry.status;
-                  const pyIsPending = pyStatus === "pending";
-                  const taskId = req.id;
-                  return (
-                    <div key={nodeKey} className="rounded-xl border border-amber-200 bg-white overflow-hidden">
-                      <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50 border-b border-amber-200/70">
-                        <div className="flex items-center gap-2">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-700"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
-                          <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Payment Request</p>
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[pyStatus] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[pyStatus] ?? pyStatus}</span>
-                      </div>
-                      <div className="px-4 py-3 space-y-2 text-sm">
-                        <div className="flex justify-between"><span className="text-gray-500">Requested</span><span className="font-semibold tabular-nums">{fmtNaira(entry.requestedAmount)}</span></div>
-                        {typeof entry.approvedAmount === "number" && <div className="flex justify-between"><span className="text-gray-500">Approved</span><span className="font-semibold tabular-nums">{fmtNaira(entry.approvedAmount)}</span></div>}
-                        {entry.category && <div className="flex justify-between"><span className="text-gray-500">Category</span><span>{entry.category}</span></div>}
-                        <div><span className="text-gray-500">Reason</span><p className="text-gray-700 mt-0.5 leading-snug">{entry.reason}</p></div>
-                        {entry.attachments && entry.attachments.length > 0 && renderAttachmentGroup(entry.attachments, "Payment Attachments", false, "grid-cols-4 gap-2")}
-                      </div>
-                      {pyIsPending && (
-                        <div className="flex gap-2 px-4 py-3 border-t border-amber-100">
-                          <Button variant="outline" size="sm" className="flex-1 text-xs border-gray-200 text-slate-700 hover:bg-gray-50" onClick={() => { setDeclineModal({ taskId, entry }); setDeclineReason(""); }}>Decline</Button>
-                          <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white text-xs" onClick={() => { setApproveModal({ taskId, entry }); setApprovedAmountInput(String(entry.requestedAmount)); }}>Approve Payment</Button>
-                        </div>
-                      )}
-                      {entry.status === "declined" && entry.declinedReason && (
-                        <div className="px-4 py-2.5 border-t border-amber-100 text-xs text-red-600 bg-red-50">Declined: {entry.declinedReason}</div>
-                      )}
-                    </div>
-                  );
-                }
-                if (entry.type === "message") {
-                  const isLandlord = entry.author === "landlord";
-                  const initials = isLandlord ? "YO" : entry.authorName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-                  const roleLabel = isLandlord ? "Landlord" : "Facility Manager";
-                  return (
-                    <div key={nodeKey} className="flex gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${isLandlord ? "bg-[#FF5000] text-white" : "bg-orange-100 text-[#FF5000]"}`}>{initials}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span className="text-sm font-medium text-gray-900">{isLandlord ? "You" : entry.authorName}</span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{roleLabel}</span>
-                          <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(entry.timestamp)}</span>
-                        </div>
-                        {entry.body && <p className="text-sm text-gray-700 leading-relaxed">{entry.body}</p>}
-                        {entry.attachments && entry.attachments.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {entry.attachments.map((att, i) =>
-                              att.type === "document" ? (
-                                <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-700 hover:bg-gray-100">
-                                  <Paperclip className="w-3 h-3 shrink-0" /><span className="truncate max-w-[120px]">{att.name}</span>
-                                </a>
-                              ) : (
-                                <button key={i} type="button"
-                                  onClick={() => setLightbox({ items: entry.attachments!.filter((a) => a.type !== "document").map((a) => ({ url: a.url, type: a.type as "image" | "video" })), index: entry.attachments!.filter((a) => a.type !== "document").findIndex((a) => a.url === att.url) })}
-                                  className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]">
-                                  {att.type === "video" ? (<><video src={att.url} className="w-full h-full object-cover" muted preload="metadata" /><div className="absolute inset-0 flex items-center justify-center bg-black/20"><Play className="w-4 h-4 text-white" /></div></>) : (<img src={att.url} alt={att.name} className="w-full h-full object-cover" />)}
-                                </button>
-                              )
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-              }
-            }
-            return null;
-          })}
-
-          <div ref={threadEndRef} />
-        </div>
-
-        {/* Reply bar */}
-        <div className="shrink-0 border-t border-gray-200 bg-white px-4 sm:px-6 lg:px-8 py-3">
-          {pendingThreadAttachments.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {pendingThreadAttachments.map((att, i) => (
-                <div key={i} className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-md border border-gray-200 bg-gray-50 text-xs text-gray-600">
-                  {att.type === "document" ? <Paperclip className="w-3 h-3 shrink-0" /> : att.type === "video" ? <Play className="w-3 h-3 shrink-0" /> : <ImageIcon className="w-3 h-3 shrink-0" />}
-                  <span className="truncate max-w-[100px]">{att.name}</span>
-                  <button type="button" onClick={() => setPendingThreadAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-gray-400 hover:text-gray-600 ml-0.5"><X className="w-3 h-3" /></button>
-                </div>
-              ))}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Manager</span>
+            <button type="button"
+              onClick={() => { setAssigneePickerOpen(true); setPendingAssigneeId(assignee?.id ?? "unassigned"); }}
+              className="flex items-center gap-0.5 text-sm font-medium text-gray-700 hover:text-[#FF5000] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5000] rounded">
+              <span className={assignee ? "" : "text-gray-400 font-normal"}>{assignee?.name ?? "Unassigned"}</span>
+              <ChevronDown className="w-3 h-3 text-gray-400" />
+            </button>
+          </div>
+          {req.walletBalance !== undefined && (
+            <div className="flex items-baseline gap-1.5 ml-auto">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Wallet</span>
+              <span className="text-sm font-semibold text-green-600">{fmtNaira(req.walletBalance)}</span>
             </div>
           )}
-          <div className="flex items-end gap-2 rounded-xl bg-gray-100 px-3 py-2 focus-within:ring-2 focus-within:ring-[#FF5000] focus-within:ring-offset-1 transition-shadow">
-            <input ref={threadFileInputRef} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" className="hidden"
-              onChange={(e) => { handleThreadFilesSelected(e.target.files); e.target.value = ""; }} />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" onClick={() => threadFileInputRef.current?.click()} className="shrink-0 w-7 h-7 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Attach file">
-                  <Paperclip className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Attach file</TooltipContent>
-            </Tooltip>
-            <textarea
-              ref={threadTextareaRef}
-              rows={1}
-              value={threadInput}
-              onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder="Add an update"
-              className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none leading-relaxed"
-              style={{ maxHeight: 120, overflowY: "auto" }}
-            />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" onClick={sendMessage} disabled={!threadInput.trim() && pendingThreadAttachments.length === 0}
-                  className="shrink-0 w-7 h-7 rounded-md bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Send">
-                  <Send className="w-3.5 h-3.5 text-white" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Send</TooltipContent>
-            </Tooltip>
-          </div>
         </div>
       </div>
 
-      {/* ── Details panel — desktop ── */}
-      {sidePanelOpen && (
-        <aside className="hidden lg:flex flex-col w-72 shrink-0 border-l border-gray-100 bg-white min-[1440px]:overflow-y-auto">
-          <div className="p-5 space-y-6">
-            {/* Assigned FM */}
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Assigned Manager</p>
-              <button type="button"
-                onClick={() => { setAssigneePickerOpen(true); setPendingAssigneeId(assignee?.id ?? "unassigned"); }}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-left hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] transition-colors">
-                <span className={assignee ? "text-gray-900 font-medium" : "text-gray-400"}>{assignee?.name ?? "Unassigned"}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-              </button>
+      {/* ── Main content: thread + side panel ── */}
+      <div className="flex flex-1 -mx-4 sm:-mx-6 lg:-mx-8 min-[1440px]:min-h-0 min-[1440px]:overflow-hidden">
+
+        {/* ── Thread column ── */}
+        <div className="flex-1 min-w-0 flex flex-col min-[1440px]:overflow-hidden">
+
+          {/* Activity bar */}
+          <div className="shrink-0 flex items-center gap-2 px-4 sm:px-6 lg:px-8 py-2.5 border-b border-gray-100 bg-white flex-wrap">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mr-1">Activity</span>
+            {(["all", "messages", "payments", "status"] as ActiveFilter[]).map((f) => {
+              const cnt = f === "all" ? allDisplayItems.length : f === "messages" ? msgCount : f === "payments" ? payCount : statusCount;
+              const label = f === "all" ? "All" : f === "messages" ? "Messages" : f === "payments" ? "Payments" : "Status";
+              return (
+                <button key={f} type="button"
+                  onClick={() => { setActiveFilter(f); setThreadExpanded(false); }}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] ${activeFilter === f ? "bg-[#FF5000] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800"}`}>
+                  {label}
+                  <span className={`text-[10px] font-semibold tabular-nums ${activeFilter === f ? "text-white/80" : "text-gray-400"}`}>{cnt}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Scrollable thread area */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-5 min-[1440px]:min-h-0">
+            <div className="max-w-[760px] mx-auto space-y-3">
+
+              {filteredDisplayItems.length === 0 && (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-gray-400">
+                    No {activeFilter === "messages" ? "messages" : activeFilter === "payments" ? "payment requests" : "status updates"} yet.
+                  </p>
+                </div>
+              )}
+
+              {renderNodes.map((node) => {
+                if (node.t === "divider") {
+                  return (
+                    <div key={node.key} className="flex items-center gap-3 py-1.5">
+                      <div className="flex-1 h-px bg-gray-100" />
+                      <span className="text-[11px] text-gray-400 font-semibold whitespace-nowrap tracking-wide">{node.label}</span>
+                      <div className="flex-1 h-px bg-gray-100" />
+                    </div>
+                  );
+                }
+                if (node.t === "collapse") {
+                  return (
+                    <button key="collapse" type="button" onClick={() => setThreadExpanded(true)}
+                      className="flex items-center gap-2 w-full py-2 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]">
+                      <ChevronDown className="w-4 h-4" />
+                      {node.count} earlier update{node.count !== 1 ? "s" : ""}
+                    </button>
+                  );
+                }
+                if (node.t === "showless") {
+                  return (
+                    <button key="showless" type="button" onClick={() => setThreadExpanded(false)}
+                      className="flex items-center gap-2 py-1.5 px-3 rounded-lg text-xs text-gray-400 hover:text-gray-600 transition-colors focus:outline-none">
+                      <ChevronUp className="w-3.5 h-3.5" />Show less
+                    </button>
+                  );
+                }
+                if (node.t === "item") {
+                  const { item } = node;
+                  const nodeKey = node.key;
+
+                  // Original tenant/FM/resident report
+                  if (item.kind === "original") {
+                    const name = reporterName(req);
+                    const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                    const roleTag = getRoleTagFromSource(source);
+                    const roleClass = ROLE_TAG_CLASS[roleTag] ?? "bg-gray-100 text-gray-600";
+                    const avatarBg = source === "tenant" ? "bg-blue-100 text-blue-700" : source === "resident" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700";
+                    const body = req.description;
+                    const expanded = expandedMessages.has("original");
+                    return (
+                      <div key={nodeKey} className="flex gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${avatarBg}`}>{initials}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-900">{name}</span>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${roleClass}`}>{roleTag}</span>
+                            <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(req.date_reported)}</span>
+                          </div>
+                          {needsClamp(body) ? (
+                            <>
+                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"
+                                style={!expanded ? clampStyle : undefined}>
+                                {body}
+                              </p>
+                              <button type="button" onClick={() => toggleMessage("original")}
+                                className="text-xs text-[#FF5000] mt-1.5 hover:underline focus:outline-none">
+                                {expanded ? "Show less" : "Show full message"}
+                              </button>
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{body}</p>
+                          )}
+                          {origItems.length > 0 && (
+                            <div className="mt-3">
+                              {renderAttachmentGroup(origItems, "Original Media", false)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Reopened media
+                  if (item.kind === "reopened_media") {
+                    const name = reporterName(req);
+                    const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                    return (
+                      <div key={nodeKey} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xs font-semibold text-amber-700">{initials}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-900">{name}</span>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1"><RotateCcw className="w-2.5 h-2.5" />REOPENED</span>
+                            <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(req.reopened_at ?? req.date_reported)}</span>
+                          </div>
+                          {req.notes && <p className="text-sm text-gray-700 leading-relaxed mb-2">{req.notes}</p>}
+                          {renderAttachmentGroup(reopenedItems, "Reopened Media", false)}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (item.kind === "thread") {
+                    const entry = item.entry;
+
+                    // System event — thin centered pill
+                    if (entry.type === "event") {
+                      return (
+                        <div key={nodeKey} className="flex items-center gap-3 py-0.5">
+                          <div className="flex-1 h-px bg-gray-200" />
+                          <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200">
+                            {entry.body} · {fmtItemDt(entry.timestamp)}
+                          </span>
+                          <div className="flex-1 h-px bg-gray-200" />
+                        </div>
+                      );
+                    }
+
+                    // Resolution card
+                    if (entry.type === "resolution") {
+                      return (
+                        <div key={nodeKey} className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+                          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
+                            <Check className="w-3.5 h-3.5 text-emerald-700" />
+                            <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolved</p>
+                            <span className="text-xs text-emerald-600 ml-auto">{fmtItemDt(entry.timestamp)}</span>
+                          </div>
+                          <div className="px-4 py-3.5 space-y-2 text-sm">
+                            <div><p className="text-xs text-gray-500 mb-0.5">Resolved by</p><p className="text-gray-900">{entry.resolvedBy}</p></div>
+                            <div><p className="text-xs text-gray-500 mb-0.5">Summary</p><p className="text-gray-900 leading-relaxed">{entry.summary}</p></div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Payment request card
+                    if (entry.type === "payment_request") {
+                      const pyStatus = entry.status;
+                      const pyIsPending = pyStatus === "pending";
+                      const taskId = req.id;
+                      return (
+                        <div key={nodeKey} className="rounded-xl border border-amber-200 bg-white overflow-hidden">
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50 border-b border-amber-200/70">
+                            <div className="flex items-center gap-2">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-700"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+                              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Payment Request</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">{fmtItemDt(entry.timestamp)}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[pyStatus] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[pyStatus] ?? pyStatus}</span>
+                            </div>
+                          </div>
+                          <div className="px-4 py-3 space-y-2 text-sm">
+                            <div className="flex justify-between"><span className="text-gray-500">Requested</span><span className="font-semibold tabular-nums">{fmtNaira(entry.requestedAmount)}</span></div>
+                            {typeof entry.approvedAmount === "number" && <div className="flex justify-between"><span className="text-gray-500">Approved</span><span className="font-semibold tabular-nums">{fmtNaira(entry.approvedAmount)}</span></div>}
+                            {entry.category && <div className="flex justify-between"><span className="text-gray-500">Category</span><span>{entry.category}</span></div>}
+                            {entry.requestedBy && <div className="flex justify-between"><span className="text-gray-500">Requested by</span><span>{entry.requestedBy}</span></div>}
+                            <div><span className="text-gray-500">Reason</span><p className="text-gray-700 mt-0.5 leading-snug">{entry.reason}</p></div>
+                            {entry.attachments && entry.attachments.length > 0 && renderAttachmentGroup(entry.attachments, "Payment Attachments", false, "grid-cols-4 gap-2")}
+                          </div>
+                          {pyIsPending && (
+                            <div className="flex gap-2 px-4 py-3 border-t border-amber-100">
+                              <Button variant="outline" size="sm" className="flex-1 text-xs border-gray-200 text-slate-700 hover:bg-gray-50" onClick={() => { setDeclineModal({ taskId, entry }); setDeclineReason(""); }}>Decline</Button>
+                              <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white text-xs" onClick={() => { setApproveModal({ taskId, entry }); setApprovedAmountInput(String(entry.requestedAmount)); }}>Approve Payment</Button>
+                            </div>
+                          )}
+                          {entry.status === "declined" && entry.declinedReason && (
+                            <div className="px-4 py-2.5 border-t border-amber-100 text-xs text-red-600 bg-red-50">Declined: {entry.declinedReason}</div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // Message bubble
+                    if (entry.type === "message") {
+                      const author = entry.author;
+                      const isLandlord = author === "landlord";
+                      const isTenant = author === "tenant";
+                      const name = isLandlord ? "You" : entry.authorName;
+                      const initials = isLandlord ? "YO" : entry.authorName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                      const roleTag = isLandlord ? "LANDLORD" : isTenant ? "TENANT" : "FACILITY MANAGER";
+                      const roleClass = ROLE_TAG_CLASS[roleTag] ?? "bg-gray-100 text-gray-600";
+                      const avatarClass = isLandlord ? "bg-[#FF5000] text-white" : isTenant ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700";
+                      const msgExpanded = expandedMessages.has(entry.id);
+                      return (
+                        <div key={nodeKey} className="flex gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${avatarClass}`}>{initials}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span className="text-sm font-semibold text-gray-900">{name}</span>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${roleClass}`}>{roleTag}</span>
+                              <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(entry.timestamp)}</span>
+                            </div>
+                            {entry.body && (
+                              needsClamp(entry.body) ? (
+                                <>
+                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"
+                                    style={!msgExpanded ? clampStyle : undefined}>
+                                    {entry.body}
+                                  </p>
+                                  <button type="button" onClick={() => toggleMessage(entry.id)}
+                                    className="text-xs text-[#FF5000] mt-1.5 hover:underline focus:outline-none">
+                                    {msgExpanded ? "Show less" : "Show full message"}
+                                  </button>
+                                </>
+                              ) : (
+                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{entry.body}</p>
+                              )
+                            )}
+                            {entry.attachments && entry.attachments.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {entry.attachments.map((att, i) =>
+                                  att.type === "document" ? (
+                                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-700 hover:bg-gray-100">
+                                      <Paperclip className="w-3 h-3 shrink-0" /><span className="truncate max-w-[120px]">{att.name}</span>
+                                    </a>
+                                  ) : (
+                                    <button key={i} type="button"
+                                      onClick={() => setLightbox({ items: entry.attachments!.filter((a) => a.type !== "document").map((a) => ({ url: a.url, type: a.type as "image" | "video" })), index: entry.attachments!.filter((a) => a.type !== "document").findIndex((a) => a.url === att.url) })}
+                                      className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]">
+                                      {att.type === "video" ? (<><video src={att.url} className="w-full h-full object-cover" muted preload="metadata" /><div className="absolute inset-0 flex items-center justify-center bg-black/20"><Play className="w-4 h-4 text-white" /></div></>) : (<img src={att.url} alt={att.name} className="w-full h-full object-cover" />)}
+                                    </button>
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  }
+                }
+                return null;
+              })}
+
+              <div ref={threadEndRef} />
             </div>
+          </div>
 
-            <div className="h-px bg-gray-100" />
-
-            {/* Dates */}
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Dates</p>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">Reported</p>
-                  <p className="text-sm text-gray-900">{formatDateTime(req.date_reported)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">Last Updated</p>
-                  <p className="text-sm text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
-                </div>
+          {/* Reply bar */}
+          <div className="shrink-0 border-t border-gray-200 bg-white px-4 sm:px-6 lg:px-8 py-3">
+            {pendingThreadAttachments.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2 max-w-[760px] mx-auto">
+                {pendingThreadAttachments.map((att, i) => (
+                  <div key={i} className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-md border border-gray-200 bg-gray-50 text-xs text-gray-600">
+                    {att.type === "document" ? <Paperclip className="w-3 h-3 shrink-0" /> : att.type === "video" ? <Play className="w-3 h-3 shrink-0" /> : <ImageIcon className="w-3 h-3 shrink-0" />}
+                    <span className="truncate max-w-[100px]">{att.name}</span>
+                    <button type="button" onClick={() => setPendingThreadAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-gray-400 hover:text-gray-600 ml-0.5"><X className="w-3 h-3" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="max-w-[760px] mx-auto">
+              <div className="flex items-end gap-2 rounded-xl bg-gray-100 px-3 py-2 focus-within:ring-2 focus-within:ring-[#FF5000] focus-within:ring-offset-1 transition-shadow">
+                <input ref={threadFileInputRef} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" className="hidden"
+                  onChange={(e) => { handleThreadFilesSelected(e.target.files); e.target.value = ""; }} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" onClick={() => threadFileInputRef.current?.click()} className="shrink-0 w-7 h-7 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Attach file">
+                      <Paperclip className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Attach file</TooltipContent>
+                </Tooltip>
+                <textarea
+                  ref={threadTextareaRef}
+                  rows={1}
+                  value={threadInput}
+                  onChange={(e) => { setThreadInput(e.target.value); autoResizeThread(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  placeholder="Reply to the thread..."
+                  className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none leading-relaxed"
+                  style={{ maxHeight: 120, overflowY: "auto" }}
+                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" onClick={sendMessage} disabled={!threadInput.trim() && pendingThreadAttachments.length === 0}
+                      className="shrink-0 w-7 h-7 rounded-md bg-[#FF5000] disabled:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Send">
+                      <Send className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Send</TooltipContent>
+                </Tooltip>
               </div>
             </div>
-
-            {/* Payment summary */}
-            {(() => {
-              const paymentEntries = thread.filter(e => e.type === "payment_request") as ThreadPaymentRequest[];
-              if (paymentEntries.length === 0) return null;
-              return (
-                <>
-                  <div className="h-px bg-gray-100" />
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Payment{paymentEntries.length > 1 ? "s" : ""}</p>
-                    <div className="space-y-2">
-                      {paymentEntries.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between text-sm">
-                          <span className="font-medium tabular-nums">{fmtNaira(p.requestedAmount)}</span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
           </div>
-        </aside>
-      )}
+        </div>
 
-      {/* ── Details panel — mobile slide-over ── */}
-      {sidePanelOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSidePanelOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <p className="text-sm font-semibold text-gray-900">Request Details</p>
-              <button type="button" onClick={() => setSidePanelOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close details"><X className="w-5 h-5" /></button>
-            </div>
+        {/* ── Details panel — desktop ── */}
+        {sidePanelOpen && (
+          <aside className="hidden lg:flex flex-col w-72 shrink-0 border-l border-gray-100 bg-white min-[1440px]:overflow-y-auto">
             <div className="p-5 space-y-6">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Assigned Manager</p>
-                <button type="button" onClick={() => { setSidePanelOpen(false); setAssigneePickerOpen(true); setPendingAssigneeId(assignee?.id ?? "unassigned"); }}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-left hover:border-gray-300">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Assigned Manager</p>
+                <button type="button"
+                  onClick={() => { setAssigneePickerOpen(true); setPendingAssigneeId(assignee?.id ?? "unassigned"); }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-left hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] transition-colors">
                   <span className={assignee ? "text-gray-900 font-medium" : "text-gray-400"}>{assignee?.name ?? "Unassigned"}</span>
                   <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                 </button>
               </div>
-              <div className="space-y-3">
-                <div><p className="text-xs text-gray-500 mb-0.5">Reported</p><p className="text-sm text-gray-900">{formatDateTime(req.date_reported)}</p></div>
-                <div><p className="text-xs text-gray-500 mb-0.5">Last Updated</p><p className="text-sm text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p></div>
+              <div className="h-px bg-gray-100" />
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Dates</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-0.5">Reported</p>
+                    <p className="text-sm text-gray-900">{formatDateTime(req.date_reported)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-0.5">Last Updated</p>
+                    <p className="text-sm text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
+                  </div>
+                </div>
               </div>
               {(() => {
                 const paymentEntries = thread.filter(e => e.type === "payment_request") as ThreadPaymentRequest[];
                 if (paymentEntries.length === 0) return null;
                 return (
-                  <div>
-                    <p className="text-xs text-gray-500 mb-2">Payments</p>
-                    {paymentEntries.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between text-sm mb-2">
-                        <span className="font-medium tabular-nums">{fmtNaira(p.requestedAmount)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
+                  <>
+                    <div className="h-px bg-gray-100" />
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Payment{paymentEntries.length > 1 ? "s" : ""}</p>
+                      <div className="space-y-2">
+                        {paymentEntries.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between text-sm">
+                            <span className="font-medium tabular-nums">{fmtNaira(p.requestedAmount)}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  </>
                 );
               })()}
             </div>
+          </aside>
+        )}
+
+        {/* ── Details panel — mobile slide-over ── */}
+        {sidePanelOpen && (
+          <div className="lg:hidden fixed inset-0 z-40">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setSidePanelOpen(false)} />
+            <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl overflow-y-auto">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <p className="text-sm font-semibold text-gray-900">Request Details</p>
+                <button type="button" onClick={() => setSidePanelOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close details"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="p-5 space-y-6">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Assigned Manager</p>
+                  <button type="button" onClick={() => { setSidePanelOpen(false); setAssigneePickerOpen(true); setPendingAssigneeId(assignee?.id ?? "unassigned"); }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-left hover:border-gray-300">
+                    <span className={assignee ? "text-gray-900 font-medium" : "text-gray-400"}>{assignee?.name ?? "Unassigned"}</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div><p className="text-xs text-gray-500 mb-0.5">Reported</p><p className="text-sm text-gray-900">{formatDateTime(req.date_reported)}</p></div>
+                  <div><p className="text-xs text-gray-500 mb-0.5">Last Updated</p><p className="text-sm text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p></div>
+                </div>
+                {(() => {
+                  const paymentEntries = thread.filter(e => e.type === "payment_request") as ThreadPaymentRequest[];
+                  if (paymentEntries.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">Payments</p>
+                      {paymentEntries.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between text-sm mb-2">
+                          <span className="font-medium tabular-nums">{fmtNaira(p.requestedAmount)}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       </div>{/* end main content wrapper */}
 
@@ -863,94 +1012,92 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
         const isValid = approvedAmountInput.trim() !== "" && Number.isFinite(parsedApprovedAmount) && parsedApprovedAmount > 0;
         const amountChanged = parsedApprovedAmount !== approveModal.entry.requestedAmount;
         return (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setApproveModal(null); }}
-          className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
-        >
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
-                </svg>
-                <span className="text-sm font-bold text-gray-900">Approve Payment Request</span>
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setApproveModal(null); }}
+            className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
+          >
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
+                  </svg>
+                  <span className="text-sm font-bold text-gray-900">Approve Payment Request</span>
+                </div>
+                <button onClick={() => setApproveModal(null)} className="text-gray-400 hover:text-gray-600">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
-              <button onClick={() => setApproveModal(null)} className="text-gray-400 hover:text-gray-600">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <div className="bg-gray-50 rounded-xl p-3.5 space-y-2.5 border border-gray-100">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">Property</span>
-                  <span className="text-sm font-medium text-gray-800">{req.property_name}</span>
+              <div className="px-5 py-4 space-y-3">
+                <div className="bg-gray-50 rounded-xl p-3.5 space-y-2.5 border border-gray-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Property</span>
+                    <span className="text-sm font-medium text-gray-800">{req.property_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Requested by</span>
+                    <span className="text-sm font-medium text-gray-800">{approveModal.entry.requestedBy}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Request Date</span>
+                    <span className="text-sm font-medium text-gray-800">{formatDateTime(approveModal.entry.timestamp)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">Requested by</span>
-                  <span className="text-sm font-medium text-gray-800">{approveModal.entry.requestedBy}</span>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-gray-500">Requested Amount</Label>
+                  <div className="h-9 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                    {fmtNaira(approveModal.entry.requestedAmount)}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">Request Date</span>
-                  <span className="text-sm font-medium text-gray-800">{formatDateTime(approveModal.entry.timestamp)}</span>
+                <div className="space-y-1.5">
+                  <Label htmlFor="approved-amount-detail">
+                    Approved Amount <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">₦</span>
+                    <Input
+                      id="approved-amount-detail"
+                      value={approvedAmountInput}
+                      onChange={(e) => setApprovedAmountInput(e.target.value.replace(/[^\d.]/g, ""))}
+                      inputMode="decimal"
+                      className="pl-7"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  {!isValid && (
+                    <p className="text-sm text-red-500">Enter a valid approved amount.</p>
+                  )}
                 </div>
               </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Requested Amount</Label>
-                <div className="h-9 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700">
-                  {fmtNaira(approveModal.entry.requestedAmount)}
-                </div>
+              <div className="flex gap-3 px-5 pb-5 justify-end">
+                <button onClick={() => setApproveModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button
+                  disabled={!isValid}
+                  onClick={() => {
+                    if (!approveModal || !isValid) return;
+                    const now = new Date().toISOString();
+                    updatePaymentRequest(approveModal.taskId, approveModal.entry.id, {
+                      status: "approved",
+                      approvedAmount: parsedApprovedAmount,
+                      approvedBy: "Michael Adeyemi",
+                      approvedAt: now,
+                    });
+                    if (amountChanged) {
+                      appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: `Approved Amount Changed to ${fmtNaira(parsedApprovedAmount)}`, timestamp: now });
+                    }
+                    appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: "Payment Approved", timestamp: now });
+                    toast.success("Payment request approved");
+                    setApproveModal(null);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-sm font-semibold text-white"
+                >
+                  Approve Payment
+                </button>
               </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="approved-amount-detail">
-                  Approved Amount <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">₦</span>
-                  <Input
-                    id="approved-amount-detail"
-                    value={approvedAmountInput}
-                    onChange={(e) => setApprovedAmountInput(e.target.value.replace(/[^\d.]/g, ""))}
-                    inputMode="decimal"
-                    className="pl-7"
-                    placeholder="0.00"
-                  />
-                </div>
-                {!isValid && (
-                  <p className="text-sm text-red-500">Enter a valid approved amount.</p>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-3 px-5 pb-5 justify-end">
-              <button onClick={() => setApproveModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Cancel
-              </button>
-              <button
-                disabled={!isValid}
-                onClick={() => {
-                  if (!approveModal || !isValid) return;
-                  const now = new Date().toISOString();
-                  updatePaymentRequest(approveModal.taskId, approveModal.entry.id, {
-                    status: "approved",
-                    approvedAmount: parsedApprovedAmount,
-                    approvedBy: "Michael Adeyemi",
-                    approvedAt: now,
-                  });
-                  if (amountChanged) {
-                    appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: `Approved Amount Changed to ${fmtNaira(parsedApprovedAmount)}`, timestamp: now });
-                  }
-                  appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: "Payment Approved", timestamp: now });
-                  toast.success("Payment request approved");
-                  setApproveModal(null);
-                }}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-sm font-semibold text-white"
-              >
-                Approve Payment
-              </button>
             </div>
           </div>
-        </div>
         );
       })()}
 

@@ -31,6 +31,8 @@ export interface ServiceRequest {
   request_id: string;
   tenant_name: string;
   property_name: string;
+  property_address?: string;
+  walletBalance?: number;
   issue_category: string;
   description: string;
   status: string;
@@ -189,8 +191,10 @@ export const MOCK_FACILITY_MANAGERS: FacilityManager[] = [
 export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   {
     id: "sr-001", request_id: "SR-001", tenant_name: "James Okafor", reporter_name: "James Okafor", source: "tenant",
-    property_name: "Lekki Phase 1 Duplex", issue_category: "Plumbing",
-    description: "Kitchen sink is leaking and water pools under the cabinet.",
+    property_name: "Lekki Phase 1 Duplex", property_address: "12 Fola Osibo Road, Lekki Phase 1",
+    walletBalance: 340000,
+    issue_category: "Plumbing",
+    description: "I am writing to report several plumbing issues in the apartment that have been building up over the past two weeks and need urgent attention:\n\n1. The kitchen sink drains very slowly and water pools under the cabinet after every use. There appears to be a leak at the pipe joint beneath the sink.\n2. The bathroom tap drips continuously even when fully closed, wasting water and making noise at night.\n3. The shower has very low water pressure, especially in the mornings between 6 AM and 9 AM.\n4. The toilet flush fails on the first press and takes over 30 seconds to refill before it can be used again.\n5. There is a persistent and worsening smell from the kitchen drain that has started affecting the whole apartment.",
     status: "in_progress", date_reported: "2026-04-25T09:30:00.000Z", updated_at: "2026-04-26T11:00:00.000Z",
     tenant_id: "t-001", property_id: "p-001",
     attachments: [
@@ -202,7 +206,9 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
   {
     id: "sr-002", request_id: "SR-002", tenant_name: "Adaeze Nwosu", reporter_name: "Adaeze Nwosu", source: "tenant",
-    property_name: "Ikoyi 2-Bed Apartment", issue_category: "Electrical",
+    property_name: "Ikoyi 2-Bed Apartment", property_address: "5B Bourdillon Road, Ikoyi",
+    walletBalance: 128500,
+    issue_category: "Electrical",
     description: "Living room sockets stopped working after last power outage.",
     status: "in_progress", date_reported: "2026-04-22T14:10:00.000Z", updated_at: "2026-04-27T08:20:00.000Z",
     tenant_id: "t-002", property_id: "p-002",
@@ -212,14 +218,18 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
   {
     id: "sr-003", request_id: "SR-003", tenant_name: "—", reporter_name: "Tobi Adekunle", source: "facility_manager",
-    property_name: "Lekki Phase 1 Duplex", issue_category: "Common Area",
+    property_name: "Lekki Phase 1 Duplex", property_address: "12 Fola Osibo Road, Lekki Phase 1",
+    walletBalance: 340000,
+    issue_category: "Common Area",
     description: "Driveway gate motor is jammed; needs replacement bracket.",
     status: "in_progress", date_reported: "2026-04-26T07:45:00.000Z", updated_at: "2026-04-27T13:00:00.000Z",
     tenant_id: "", property_id: "p-001",
   },
   {
     id: "sr-004", request_id: "SR-004", tenant_name: "—", reporter_name: "Chinwe Obi", source: "facility_manager",
-    property_name: "Ikoyi 2-Bed Apartment", issue_category: "Inspection",
+    property_name: "Ikoyi 2-Bed Apartment", property_address: "5B Bourdillon Road, Ikoyi",
+    walletBalance: 75000,
+    issue_category: "Inspection",
     description: "Quarterly inspection found a cracked tile in the bathroom.",
     status: "resolved", date_reported: "2026-04-18T10:00:00.000Z", updated_at: "2026-04-24T16:30:00.000Z",
     tenant_id: "", property_id: "p-002",
@@ -251,7 +261,9 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
   {
     id: "sr-005", request_id: "SR-005", tenant_name: "Emmanuel Etim", reporter_name: "Emmanuel Etim", source: "tenant" as const,
-    property_name: "Victoria Island Studio", issue_category: "HVAC",
+    property_name: "Victoria Island Studio", property_address: "14 Adeola Odeku Street, V/I",
+    walletBalance: 95000,
+    issue_category: "HVAC",
     description: "Air conditioner not cooling, just blowing warm air.",
     status: "in_progress", date_reported: "2026-04-27T19:05:00.000Z", updated_at: "2026-04-27T21:05:00.000Z",
     tenant_id: "t-003", property_id: "p-003",
@@ -263,7 +275,9 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
   {
     id: "sr-006", request_id: "SR-006", tenant_name: "—", reporter_name: "Tobi Adekunle", source: "facility_manager" as const,
-    property_name: "Lekki Phase 1 Duplex", issue_category: "Electrical",
+    property_name: "Lekki Phase 1 Duplex", property_address: "12 Fola Osibo Road, Lekki Phase 1",
+    walletBalance: 340000,
+    issue_category: "Electrical",
     description: "Generator failed during power outage and building currently has no backup power.",
     status: "in_progress", date_reported: "2026-04-28T09:15:00.000Z", updated_at: "2026-04-28T09:30:00.000Z",
     tenant_id: "", property_id: "p-001",
@@ -273,7 +287,9 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
   {
     id: "sr-007", request_id: "SR-007", tenant_name: "Chidi Okafor", reporter_name: "Chidi Okafor", source: "tenant" as const,
-    property_name: "Greenfield Towers", issue_category: "Plumbing",
+    property_name: "Greenfield Towers", property_address: "22 Admiralty Way, Lekki Phase 1",
+    walletBalance: 520000,
+    issue_category: "Plumbing",
     description: "Major water leakage affecting multiple apartments on floors 3 and 4.",
     status: "open", date_reported: "2026-04-28T07:30:00.000Z", updated_at: "2026-04-28T07:50:00.000Z",
     tenant_id: "t-007", property_id: "p-004",
@@ -288,7 +304,9 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   // Reopened requests
   {
     id: "sr-008", request_id: "SR-008", tenant_name: "James Okafor", reporter_name: "James Okafor", source: "tenant" as const,
-    property_name: "Lekki Phase 1 Duplex", issue_category: "Plumbing",
+    property_name: "Lekki Phase 1 Duplex", property_address: "12 Fola Osibo Road, Lekki Phase 1",
+    walletBalance: 80000,
+    issue_category: "Plumbing",
     description: "Kitchen sink still leaking after repair.",
     status: "reopened", date_reported: "2026-05-10T09:00:00.000Z", updated_at: "2026-05-27T10:15:00.000Z",
     reopened_at: "2026-05-27T10:15:00.000Z", reopenCount: 2,
@@ -317,7 +335,9 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
   {
     id: "sr-009", request_id: "SR-009", tenant_name: "Chidi Okafor", reporter_name: "Chidi Okafor", source: "tenant" as const,
-    property_name: "Greenfield Towers", issue_category: "Electrical",
+    property_name: "Greenfield Towers", property_address: "22 Admiralty Way, Lekki Phase 1",
+    walletBalance: 460000,
+    issue_category: "Electrical",
     description: "Generator still not powering common areas consistently.",
     status: "reopened", date_reported: "2026-05-08T11:30:00.000Z", updated_at: "2026-05-26T16:32:00.000Z",
     reopened_at: "2026-05-26T16:32:00.000Z", reopenCount: 1,
@@ -344,7 +364,9 @@ export const MOCK_SERVICE_REQUESTS: ServiceRequest[] = [
   },
   {
     id: "sr-010", request_id: "SR-010", tenant_name: "Emmanuel Etim", reporter_name: "Emmanuel Etim", source: "tenant" as const,
-    property_name: "Victoria Island Studio", issue_category: "Tiling & Flooring",
+    property_name: "Victoria Island Studio", property_address: "14 Adeola Odeku Street, V/I",
+    walletBalance: 40000,
+    issue_category: "Tiling & Flooring",
     description: "Bathroom tiles replaced but water still seeps through the wall.",
     status: "reopened", date_reported: "2026-05-05T08:00:00.000Z", updated_at: "2026-05-25T09:20:00.000Z",
     reopened_at: "2026-05-25T09:20:00.000Z", reopenCount: 1,
