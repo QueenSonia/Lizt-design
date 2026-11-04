@@ -30,6 +30,7 @@ import {
   getThread,
   makeMsgId,
   fmtNaira,
+  fmtThreadTime,
   subscribeToThreadStore,
   isTaskPriority,
   setTaskPriority,
@@ -38,7 +39,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { RadioGroup } from "./ui/radio-group";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { toast } from "sonner";
 import {
@@ -54,7 +54,6 @@ import {
   RotateCcw,
   Image as ImageIcon,
   Star,
-  Users,
   PanelRight,
   CheckCircle2,
   ChevronUp,
@@ -85,8 +84,9 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
   const [approvedAmountInput, setApprovedAmountInput] = useState("");
   const [managers] = useState<FacilityManager[]>(MOCK_FACILITY_MANAGERS);
   const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
   const [pendingAssigneeId, setPendingAssigneeId] = useState<string>("unassigned");
-  const [sidePanelOpen, setSidePanelOpen] = useState(true);
+  const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [threadExpanded, setThreadExpanded] = useState(false);
   const [, fmStoreTick] = useState(0);
   const [, threadTick] = useState(0);
@@ -94,6 +94,8 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
   const [pendingThreadAttachments, setPendingThreadAttachments] = useState<ThreadMessageAttachment[]>([]);
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+  const [expandedPayments, setExpandedPayments] = useState<Set<string>>(new Set());
+  const [collapsedPayments, setCollapsedPayments] = useState<Set<string>>(new Set());
   const threadTextareaRef = useRef<HTMLTextAreaElement>(null);
   const threadFileInputRef = useRef<HTMLInputElement>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
@@ -185,6 +187,17 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     setPendingThreadAttachments((prev) => [...prev, ...newAttachments]);
   };
 
+  const isPayExpanded = (entry: ThreadPaymentRequest) =>
+    entry.status === "pending" ? !collapsedPayments.has(entry.id) : expandedPayments.has(entry.id);
+
+  const togglePayExpanded = (entry: ThreadPaymentRequest) => {
+    if (entry.status === "pending") {
+      setCollapsedPayments(prev => { const n = new Set(prev); n.has(entry.id) ? n.delete(entry.id) : n.add(entry.id); return n; });
+    } else {
+      setExpandedPayments(prev => { const n = new Set(prev); n.has(entry.id) ? n.delete(entry.id) : n.add(entry.id); return n; });
+    }
+  };
+
   const allAttachments = req.attachments ?? (req.issue_images ? req.issue_images.map((url) => ({ url, type: "image" as const, group: "original" as const })) : []);
   const origItems = allAttachments.filter((a) => a.group === "original");
   const reopenedItems = allAttachments.filter((a) => a.group === "reopened");
@@ -194,32 +207,29 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     items: Array<{ url: string; type: "image" | "video" }>,
     label: string,
     showLabel: boolean = showGroupLabels,
-    gridClassName: string = "grid-cols-4 gap-2 sm:grid-cols-6",
   ) => {
     if (items.length === 0) return null;
     const lightboxItems = items.map((a) => ({ url: a.url, type: a.type }));
-    const MAX_VISIBLE = 4;
+    const MAX_VISIBLE = 5;
     const visible = items.slice(0, MAX_VISIBLE - 1);
     const extra = items.length - visible.length;
     const showExtra = extra > 1;
     const displayItems = showExtra ? visible : items.slice(0, MAX_VISIBLE);
     return (
       <div key={label}>
-        {showLabel && <p className="text-[11px] text-gray-400 font-medium mb-1.5">{label}</p>}
-        <div className={`grid ${gridClassName}`}>
+        {showLabel && <p className="text-xs text-gray-400 font-medium mb-1.5">{label}</p>}
+        <div className="flex flex-wrap gap-1.5">
           {displayItems.map((item, i) => (
             <button
               key={i}
               onClick={() => setLightbox({ items: lightboxItems, index: i })}
-              className="relative rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#FF5000]"
+              className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
             >
               {item.type === "video" ? (
                 <>
                   <video src={item.url} className="w-full h-full object-cover" muted preload="metadata" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
-                      <Play className="w-4 h-4 text-gray-800 ml-0.5" />
-                    </div>
+                    <Play className="w-3.5 h-3.5 text-white" />
                   </div>
                 </>
               ) : (
@@ -230,9 +240,9 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
           {showExtra && (
             <button
               onClick={() => setLightbox({ items: lightboxItems, index: visible.length })}
-              className="rounded-lg border border-gray-200 aspect-square bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#FF5000]"
+              className="w-16 h-16 rounded-lg border border-gray-200 bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
             >
-              +{extra + 1} more
+              +{extra + 1}
             </button>
           )}
         </div>
@@ -247,7 +257,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     paid: "bg-green-50 text-green-700 border border-green-200",
   };
   const PAYMENT_STATUS_LABEL: Record<string, string> = {
-    pending: "Pending Approval", approved: "Approved", declined: "Declined", paid: "Paid",
+    pending: "Pending approval", approved: "Approved", declined: "Declined", paid: "Paid",
   };
 
   const STATUS_CHIP_CLASS: Record<string, string> = {
@@ -286,9 +296,14 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     | { kind: "reopened_media" }
     | { kind: "thread"; entry: ThreadEntry };
 
+  type GroupedItem =
+    | { kind: "single"; item: DisplayItem; key: string; ts: string }
+    | { kind: "event_group"; events: Array<{ body: string; timestamp: string }>; key: string; ts: string };
+
   type RenderNode =
     | { t: "divider"; label: string; key: string }
-    | { t: "item"; item: DisplayItem; key: string }
+    | { t: "single"; item: DisplayItem; key: string }
+    | { t: "event_group"; events: Array<{ body: string; timestamp: string }>; key: string }
     | { t: "collapse"; count: number }
     | { t: "showless" };
 
@@ -307,9 +322,9 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     const yest = new Date(today); yest.setDate(today.getDate() - 1);
     if (_dayKey(iso) === _dayKey(today.toISOString())) return "Today";
     if (_dayKey(iso) === _dayKey(yest.toISOString())) return "Yesterday";
-    const dow = d.toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase();
+    const dow = d.toLocaleDateString("en-GB", { weekday: "short" });
     const day = d.getDate();
-    const month = d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+    const month = d.toLocaleDateString("en-GB", { month: "short" });
     return `${dow}, ${day} ${month}`;
   }
   function _itemTs(item: DisplayItem): string {
@@ -333,35 +348,61 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
           ? allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "event")
           : allDisplayItems;
 
-  const msgCount = allDisplayItems.filter(i => i.kind !== "thread" || i.entry.type === "message").length;
-  const payCount = allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "payment_request").length;
-  const statusCount = allDisplayItems.filter(i => i.kind === "thread" && i.entry.type === "event").length;
+  // Group consecutive events into single lines
+  const groupedDisplayItems: GroupedItem[] = (() => {
+    const result: GroupedItem[] = [];
+    let i = 0;
+    while (i < filteredDisplayItems.length) {
+      const item = filteredDisplayItems[i];
+      if (item.kind === "thread" && item.entry.type === "event") {
+        const evts = [{ body: item.entry.body, timestamp: item.entry.timestamp }];
+        const key = item.entry.id;
+        const ts = item.entry.timestamp;
+        i++;
+        while (i < filteredDisplayItems.length) {
+          const next = filteredDisplayItems[i];
+          if (next.kind === "thread" && next.entry.type === "event") {
+            evts.push({ body: next.entry.body, timestamp: next.entry.timestamp });
+            i++;
+          } else break;
+        }
+        result.push({ kind: "event_group", events: evts, key, ts });
+      } else {
+        result.push({ kind: "single", item, key: item.kind === "thread" ? item.entry.id : item.kind, ts: _itemTs(item) });
+        i++;
+      }
+    }
+    return result;
+  })();
 
   const TAIL_COUNT = 2;
-  const canCollapse = activeFilter === "all" && !threadExpanded && filteredDisplayItems.length > 1 + TAIL_COUNT;
+  const canCollapse = activeFilter === "all" && !threadExpanded && groupedDisplayItems.length > 1 + TAIL_COUNT;
 
   const renderNodes: RenderNode[] = (() => {
     const nodes: RenderNode[] = [];
     let lastDk = "";
-    function pushItem(item: DisplayItem) {
-      const ts = _itemTs(item);
-      const dk = _dayKey(ts);
+    function pushGrouped(gi: GroupedItem) {
+      const dk = _dayKey(gi.ts);
       if (dk !== lastDk) {
-        nodes.push({ t: "divider", label: _dayLabel(ts), key: `d-${dk}` });
+        nodes.push({ t: "divider", label: _dayLabel(gi.ts), key: `d-${dk}` });
         lastDk = dk;
       }
-      nodes.push({ t: "item", item, key: item.kind === "thread" ? item.entry.id : item.kind });
+      if (gi.kind === "event_group") {
+        nodes.push({ t: "event_group", events: gi.events, key: gi.key });
+      } else {
+        nodes.push({ t: "single", item: gi.item, key: gi.key });
+      }
     }
-    if (filteredDisplayItems.length === 0) return nodes;
-    pushItem(filteredDisplayItems[0]);
+    if (groupedDisplayItems.length === 0) return nodes;
+    pushGrouped(groupedDisplayItems[0]);
     if (canCollapse) {
-      const middleCount = filteredDisplayItems.length - 1 - TAIL_COUNT;
+      const middleCount = groupedDisplayItems.length - 1 - TAIL_COUNT;
       nodes.push({ t: "collapse", count: middleCount });
-      for (const itm of filteredDisplayItems.slice(-TAIL_COUNT)) pushItem(itm);
+      for (const gi of groupedDisplayItems.slice(-TAIL_COUNT)) pushGrouped(gi);
     } else {
-      for (const itm of filteredDisplayItems.slice(1)) pushItem(itm);
+      for (const gi of groupedDisplayItems.slice(1)) pushGrouped(gi);
     }
-    if (threadExpanded && filteredDisplayItems.length > 1 + TAIL_COUNT) {
+    if (threadExpanded && groupedDisplayItems.length > 1 + TAIL_COUNT) {
       nodes.push({ t: "showless" });
     }
     return nodes;
@@ -381,33 +422,164 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
     WebkitBoxOrient: "vertical" as any,
   };
 
-  const paymentEntries = thread.filter(e => e.type === "payment_request") as ThreadPaymentRequest[];
+
+  const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+    { value: "open", label: "Open" },
+    { value: "in_progress", label: "In progress" },
+    { value: "resolved", label: "Resolved" },
+    { value: "closed", label: "Closed" },
+  ];
 
   return (
-    <div className="page-container flex flex-col gap-5 min-[1440px]:h-[calc(100vh-2rem)] min-[1440px]:overflow-hidden">
+    <div className="page-container flex flex-col gap-4 min-[1440px]:h-[calc(100vh-2rem)] min-[1440px]:overflow-hidden">
 
-      {/* Header card */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shrink-0">
+      {/* Header — no card border, sits on page background */}
+      <div className="shrink-0">
+        {/* Single row: back, title+star, approve, panel */}
+        <div className="flex items-start gap-3 pb-5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => router.push(backTo ?? `/${userRole}/facility`)}
+                className="shrink-0 mt-1 w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-800 hover:bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
+                aria-label="Maintenance Requests"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Maintenance Requests</TooltipContent>
+          </Tooltip>
 
-        {/* Top bar */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-          <button
-            type="button"
-            onClick={() => router.push(backTo ?? `/${userRole}/facility`)}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] rounded"
-            aria-label="Back to maintenance requests"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span className="hidden sm:inline font-medium">Maintenance Requests</span>
-          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start gap-2">
+              <h1 className="text-2xl font-semibold text-gray-900 leading-snug line-clamp-2 flex-1">
+                {req.description}
+              </h1>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={togglePriority}
+                    className="shrink-0 mt-0.5 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
+                    aria-label={isPriority ? "Remove priority" : "Mark as priority"}
+                  >
+                    <Star className={`w-5 h-5 ${isPriority ? "fill-[#FF5000] text-[#FF5000]" : "text-gray-300 hover:text-gray-400"}`} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{isPriority ? "Remove priority" : "Mark as priority"}</TooltipContent>
+              </Tooltip>
+            </div>
 
-          <div className="flex-1" />
+            {/* Meta one-liner: property, manager dropdown, status chip */}
+            <div className="mt-2 flex items-center gap-x-2 gap-y-1 flex-wrap text-sm text-gray-600">
+              <span className="font-medium text-gray-800">{req.property_name}</span>
+              {req.property_address && (
+                <span className="text-gray-400 text-sm">{req.property_address}</span>
+              )}
+              {req.reopened_at && (
+                <>
+                  <span className="text-gray-200">·</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                    <RotateCcw className="w-3 h-3" />Reopened
+                  </span>
+                </>
+              )}
+              <span className="text-gray-200">·</span>
+              <span className="text-xs text-gray-400">Manager</span>
+              <Popover open={assigneePickerOpen} onOpenChange={(open) => { setAssigneePickerOpen(open); if (open) setPendingAssigneeId(assignee?.id ?? "unassigned"); }}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-0.5 text-sm font-medium text-gray-800 hover:text-[#FF5000] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5000] rounded"
+                  >
+                    <span className={assignee ? "text-gray-800" : "text-gray-400 font-normal"}>{assignee?.name ?? "Unassigned"}</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-72 p-0">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">Assign facility manager</p>
+                  </div>
+                  <div className="py-1 max-h-64 overflow-y-auto">
+                    <button
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${pendingAssigneeId === "unassigned" ? "font-medium text-gray-900" : "text-gray-700"}`}
+                      onClick={() => setPendingAssigneeId("unassigned")}
+                    >
+                      Unassigned
+                    </button>
+                    {managers.map((m) => (
+                      <button
+                        key={m.id}
+                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${pendingAssigneeId === m.id ? "font-medium text-gray-900 bg-orange-50" : "text-gray-700"}`}
+                        onClick={() => setPendingAssigneeId(m.id)}
+                      >
+                        {m.name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 px-4 py-3 border-t border-gray-100">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setAssigneePickerOpen(false)}>Cancel</Button>
+                    <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white" onClick={() => {
+                      const previousAssignee = assignee;
+                      const nextId = pendingAssigneeId === "unassigned" ? null : pendingAssigneeId;
+                      const nextAssignee = nextId ? managers.find((m) => m.id === nextId) ?? null : null;
+                      if ((previousAssignee?.id ?? null) === nextId) { setAssigneePickerOpen(false); return; }
+                      assignRequestToManager(req.id, nextId);
+                      fmStoreTick((n) => n + 1);
+                      const now = new Date().toISOString();
+                      if (previousAssignee && nextAssignee) {
+                        toast.success(`Reassigned to ${nextAssignee.name}. WhatsApp notification sent.`);
+                        appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Reassigned from ${previousAssignee.name} to ${nextAssignee.name}`, timestamp: now });
+                      } else if (nextAssignee) {
+                        toast.success(`Assigned to ${nextAssignee.name}. WhatsApp notification sent.`);
+                        appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${nextAssignee.name}`, timestamp: now });
+                      } else {
+                        toast.success("Request unassigned");
+                        appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: now });
+                      }
+                      setAssigneePickerOpen(false);
+                    }}>Save</Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
+              <span className="text-gray-200">·</span>
+              <Popover open={statusPickerOpen} onOpenChange={setStatusPickerOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5000] ${(STATUS_CHIP_CLASS as Record<string, string>)[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}
+                  >
+                    {formatStatusLabel(currentStatus)}
+                    <ChevronDown className="w-3 h-3 ml-0.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-44 p-1">
+                  {STATUS_OPTIONS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => {
+                        setStatus(value, `Status changed to ${label}`);
+                        appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Status changed to ${label}`, timestamp: new Date().toISOString() });
+                        setStatusPickerOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50 transition-colors ${currentStatus.toLowerCase() === value ? "font-semibold text-gray-900" : "text-gray-700"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Right side buttons */}
           {!isApproved && (
             <Button
               size="sm"
               disabled={!canApprove}
-              className="bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50 text-xs"
+              className="shrink-0 mt-0.5 bg-[#FF5000] hover:bg-[#e04600] text-white disabled:opacity-50 text-xs"
               onClick={() => {
                 setStatus("in_progress", `Request approved. ${assignee?.name ?? "Facility manager"} notified on WhatsApp.`);
                 appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Request approved${assignee ? ` — ${assignee.name} notified` : ""}`, timestamp: new Date().toISOString() });
@@ -422,7 +594,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
               <button
                 type="button"
                 onClick={() => setSidePanelOpen((v) => !v)}
-                className={`flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] ${sidePanelOpen ? "text-gray-700 bg-gray-100" : "text-gray-500"}`}
+                className={`shrink-0 mt-0.5 flex items-center justify-center w-9 h-9 rounded-lg hover:bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] ${sidePanelOpen ? "text-gray-700 bg-white shadow-sm" : "text-gray-400"}`}
                 aria-label={sidePanelOpen ? "Hide details" : "Show details"}
               >
                 <PanelRight className="w-4 h-4" />
@@ -432,153 +604,27 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
           </Tooltip>
         </div>
 
-        {/* Assign-first warning banner */}
+        {/* Assign-first warning */}
         {!isApproved && !assignee && (
-          <div className="flex items-center gap-2 text-sm text-amber-700 px-5 py-2.5 bg-amber-50 border-b border-amber-200">
+          <div className="flex items-center gap-2 text-sm text-amber-700 px-4 py-2.5 bg-amber-50 rounded-xl border border-amber-200 mb-4">
             <AlertCircle className="w-4 h-4 shrink-0" />
             Assign a facility manager before approving this request.
           </div>
         )}
 
-        {/* Title + priority star */}
-        <div className="px-6 pt-5 pb-4">
-          <div className="flex items-start gap-2 mb-3">
-            <h1 className="text-2xl font-semibold text-gray-900 leading-snug line-clamp-2 flex-1">
-              {req.description}
-            </h1>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={togglePriority}
-                  className="shrink-0 mt-0.5 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
-                  aria-label={isPriority ? "Remove priority" : "Mark as priority"}
-                >
-                  <Star className={`w-5 h-5 ${isPriority ? "fill-[#FF5000] text-[#FF5000]" : "text-gray-300"}`} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>{isPriority ? "Remove priority" : "Mark as priority"}</TooltipContent>
-            </Tooltip>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${(STATUS_CHIP_CLASS as Record<string, string>)[currentStatus.toLowerCase()] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>
-              {formatStatusLabel(currentStatus)}
-            </span>
-            {isPriority && (
-              <span className="text-xs font-semibold text-[#FF5000] bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <Star className="w-2.5 h-2.5 fill-[#FF5000]" />Priority
-              </span>
-            )}
-            {req.reopened_at && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 cursor-default">
-                    <RotateCcw className="w-3 h-3" />Reopened
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Last reopened on {formatDateTime(req.reopened_at)}{req.notes ? ` — ${req.notes}` : ""}</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        </div>
-
-        {/* 3-column meta grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 border-t border-gray-100">
-          {/* Col 1: Property */}
-          <div className="px-6 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Property</p>
-            <p className="text-sm font-semibold text-gray-900">{req.property_name}</p>
-            {req.property_address && (
-              <p className="text-xs text-gray-500 mt-0.5">{req.property_address}</p>
-            )}
-          </div>
-
-          {/* Col 2: Facility Manager */}
-          <div className="px-6 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Facility Manager</p>
-            <Popover open={assigneePickerOpen} onOpenChange={(open) => { setAssigneePickerOpen(open); if (open) setPendingAssigneeId(assignee?.id ?? "unassigned"); }}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-[#FF5000] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5000] rounded"
-                >
-                  <span className={assignee ? "text-gray-900" : "text-gray-400 font-normal"}>{assignee?.name ?? "Unassigned"}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-72 p-0">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">Assign Facility Manager</p>
-                </div>
-                <div className="py-1 max-h-64 overflow-y-auto">
-                  <button
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${pendingAssigneeId === "unassigned" ? "font-medium text-gray-900" : "text-gray-700"}`}
-                    onClick={() => setPendingAssigneeId("unassigned")}
-                  >
-                    Unassigned
-                  </button>
-                  {managers.map((m) => (
-                    <button
-                      key={m.id}
-                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${pendingAssigneeId === m.id ? "font-medium text-gray-900 bg-orange-50" : "text-gray-700"}`}
-                      onClick={() => setPendingAssigneeId(m.id)}
-                    >
-                      {m.name}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2 px-4 py-3 border-t border-gray-100">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setAssigneePickerOpen(false)}>Cancel</Button>
-                  <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white" onClick={() => {
-                    const previousAssignee = assignee;
-                    const nextId = pendingAssigneeId === "unassigned" ? null : pendingAssigneeId;
-                    const nextAssignee = nextId ? managers.find((m) => m.id === nextId) ?? null : null;
-                    if ((previousAssignee?.id ?? null) === nextId) { setAssigneePickerOpen(false); return; }
-                    assignRequestToManager(req.id, nextId);
-                    fmStoreTick((n) => n + 1);
-                    const now = new Date().toISOString();
-                    if (previousAssignee && nextAssignee) {
-                      toast.success(`Reassigned to ${nextAssignee.name}. WhatsApp notification sent.`);
-                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Reassigned from ${previousAssignee.name} to ${nextAssignee.name}`, timestamp: now });
-                    } else if (nextAssignee) {
-                      toast.success(`Assigned to ${nextAssignee.name}. WhatsApp notification sent.`);
-                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: `Assigned to ${nextAssignee.name}`, timestamp: now });
-                    } else {
-                      toast.success("Request unassigned");
-                      appendThreadEntry(req.id, { id: makeMsgId(), type: "event", body: "Facility manager unassigned", timestamp: now });
-                    }
-                    setAssigneePickerOpen(false);
-                  }}>Save</Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Col 3: Wallet Balance */}
-          <div className="px-6 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Wallet Balance</p>
-            {req.walletBalance !== undefined ? (
-              <p className="text-sm font-semibold text-green-600">{fmtNaira(req.walletBalance)}</p>
-            ) : (
-              <p className="text-sm text-gray-400">N/A</p>
-            )}
-          </div>
-        </div>
+        {/* Thin divider below header */}
+        <div className="h-px bg-gray-200" />
       </div>
 
-      {/* Main row */}
-      <div className="flex gap-5 min-[1440px]:flex-1 min-[1440px]:min-h-0">
-
-        {/* Thread card */}
-        <div className="flex-1 min-w-0 bg-white rounded-xl border border-gray-200 flex flex-col min-h-[500px] min-[1440px]:min-h-0">
+      {/* Main area — thread card is the single bordered card */}
+      <div className="flex-1 min-[1440px]:flex-1 min-[1440px]:min-h-0">
+        <div className="bg-white rounded-xl border border-gray-200 flex flex-col min-h-[500px] min-[1440px]:h-full min-[1440px]:min-h-0">
 
           {/* Thread card header */}
-          <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Activity</span>
-            <div className="bg-gray-100 rounded-lg p-0.5 flex">
+          <div className="shrink-0 flex items-center justify-between px-6 py-3.5 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-800">Activity</span>
+            <div className="flex items-center gap-5">
               {(["all", "messages", "payments", "status"] as ActiveFilter[]).map((f) => {
-                const cnt = f === "all" ? allDisplayItems.length : f === "messages" ? msgCount : f === "payments" ? payCount : statusCount;
                 const label = f === "all" ? "All" : f === "messages" ? "Messages" : f === "payments" ? "Payments" : "Status";
                 const isActive = activeFilter === f;
                 return (
@@ -586,18 +632,17 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                     key={f}
                     type="button"
                     onClick={() => { setActiveFilter(f); setThreadExpanded(false); }}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none ${isActive ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    className={`text-sm pb-0.5 transition-colors focus:outline-none ${isActive ? "font-semibold text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"}`}
                   >
                     {label}
-                    <span className={`text-[10px] font-semibold tabular-nums ${isActive ? "text-gray-500" : "text-gray-400"}`}>{cnt}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Thread card body */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 min-[1440px]:min-h-0">
+          {/* Thread body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 min-[1440px]:min-h-0">
 
             {filteredDisplayItems.length === 0 && (
               <div className="py-12 text-center">
@@ -608,30 +653,46 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
             )}
 
             {renderNodes.map((node) => {
+
+              // Date divider — quiet: muted text with lines on each side, no pill
               if (node.t === "divider") {
                 return (
-                  <div key={node.key} className="py-2">
-                    <div className="flex items-center gap-3 py-3">
-                      <div className="flex-1 h-px bg-gray-100" />
-                      <span className="text-[11px] font-semibold text-gray-400 px-2.5 py-1 rounded-full bg-white border border-gray-200 tracking-wide whitespace-nowrap">
-                        {node.label}
-                      </span>
-                      <div className="flex-1 h-px bg-gray-100" />
-                    </div>
+                  <div key={node.key} className="flex items-center gap-3 py-3 my-1">
+                    <div className="flex-1 h-px bg-gray-100" />
+                    <span className="text-xs text-gray-400 whitespace-nowrap">{node.label}</span>
+                    <div className="flex-1 h-px bg-gray-100" />
                   </div>
                 );
               }
 
+              // Grouped system events — one plain muted line with dots
+              if (node.t === "event_group") {
+                return (
+                  <div key={node.key} className="py-2 text-center">
+                    <span className="text-xs text-gray-400">
+                      {node.events.map((e, i) => (
+                        <React.Fragment key={i}>
+                          {i > 0 && <span className="mx-1.5 text-gray-300">·</span>}
+                          {e.body}{" "}
+                          <span className="text-gray-300">{fmtThreadTime(e.timestamp)}</span>
+                        </React.Fragment>
+                      ))}
+                    </span>
+                  </div>
+                );
+              }
+
+              // Collapse button — plain text link with chevron
               if (node.t === "collapse") {
                 return (
-                  <div key="collapse" className="py-2">
+                  <div key="collapse" className="py-1 pl-12">
                     <button
                       type="button"
                       onClick={() => setThreadExpanded(true)}
-                      className="rounded-lg border border-gray-200 bg-gray-50 py-2 px-3 text-sm text-gray-500 flex items-center gap-2 w-full hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
+                      className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] rounded"
                     >
-                      <ChevronDown className="w-4 h-4" />
-                      {node.count} earlier update{node.count !== 1 ? "s" : ""}
+                      <ChevronDown className="w-3.5 h-3.5" />
+                      Show {node.count} earlier update{node.count !== 1 ? "s" : ""}
                     </button>
                   </div>
                 );
@@ -639,11 +700,11 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
 
               if (node.t === "showless") {
                 return (
-                  <div key="showless" className="py-2">
+                  <div key="showless" className="py-1 pl-12">
                     <button
                       type="button"
                       onClick={() => setThreadExpanded(false)}
-                      className="flex items-center gap-2 py-1.5 px-3 rounded-lg text-xs text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                      className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
                     >
                       <ChevronUp className="w-3.5 h-3.5" />Show less
                     </button>
@@ -651,10 +712,11 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                 );
               }
 
-              if (node.t === "item") {
+              if (node.t === "single") {
                 const { item } = node;
                 const nodeKey = node.key;
 
+                // Original request message
                 if (item.kind === "original") {
                   const name = reporterName(req);
                   const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -673,7 +735,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                             <span className={roleClass}>{roleTag}</span>
                             <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(req.date_reported)}</span>
                           </div>
-                          <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">Original Request</p>
+                          <p className="text-xs text-gray-400 mb-2">Original request</p>
                           <p
                             className="text-[15px] leading-6 text-gray-700 whitespace-pre-wrap"
                             style={needsClamp(body) && !expanded ? clampStyle : undefined}
@@ -687,10 +749,8 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                           )}
                           {origItems.length > 0 && (
                             <div className="mt-3">
-                              <p className="text-xs text-gray-400 mt-3 mb-1.5">{origItems.length} attachment{origItems.length !== 1 ? "s" : ""}</p>
-                              <div className="flex flex-wrap gap-2">
-                                {renderAttachmentGroup(origItems, "Original Media", false, "grid-cols-4 gap-2")}
-                              </div>
+                              <p className="text-xs text-gray-400 mb-1.5">{origItems.length} attachment{origItems.length !== 1 ? "s" : ""}</p>
+                              {renderAttachmentGroup(origItems, "Original media", false)}
                             </div>
                           )}
                         </div>
@@ -699,6 +759,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                   );
                 }
 
+                // Reopened media
                 if (item.kind === "reopened_media") {
                   const name = reporterName(req);
                   const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -709,8 +770,8 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className="text-sm font-semibold text-gray-900">{name}</span>
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                              <RotateCcw className="w-2.5 h-2.5" />REOPENED
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1">
+                              <RotateCcw className="w-2.5 h-2.5" />Reopened
                             </span>
                             <span className="text-xs text-gray-400 ml-auto">{fmtItemDt(req.reopened_at ?? req.date_reported)}</span>
                           </div>
@@ -718,9 +779,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                           {reopenedItems.length > 0 && (
                             <div className="mt-3">
                               <p className="text-xs text-gray-400 mb-1.5">{reopenedItems.length} attachment{reopenedItems.length !== 1 ? "s" : ""}</p>
-                              <div className="flex flex-wrap gap-2">
-                                {renderAttachmentGroup(reopenedItems, "Reopened Media", false, "grid-cols-4 gap-2")}
-                              </div>
+                              {renderAttachmentGroup(reopenedItems, "Reopened media", false)}
                             </div>
                           )}
                         </div>
@@ -732,103 +791,113 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                 if (item.kind === "thread") {
                   const entry = item.entry;
 
-                  if (entry.type === "event") {
-                    return (
-                      <div key={nodeKey} className="py-2">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-px bg-gray-100" />
-                          <span className="text-[11px] text-gray-400 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 whitespace-nowrap flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                            {entry.body} · {fmtItemDt(entry.timestamp)}
-                          </span>
-                          <div className="flex-1 h-px bg-gray-100" />
-                        </div>
-                      </div>
-                    );
-                  }
-
+                  // Resolution
                   if (entry.type === "resolution") {
                     return (
                       <div key={nodeKey} className="py-4 border-b border-gray-100">
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 overflow-hidden">
                           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-emerald-200/70 bg-emerald-50">
                             <Check className="w-3.5 h-3.5 text-emerald-700" />
-                            <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">Resolved</p>
+                            <p className="text-xs font-semibold text-emerald-800">Resolved</p>
                             <span className="text-xs text-emerald-600 ml-auto">{fmtItemDt(entry.timestamp)}</span>
                           </div>
                           <div className="px-4 py-3.5 space-y-2 text-sm">
-                            <div><p className="text-xs text-gray-500 mb-0.5">Resolved by</p><p className="text-gray-900">{entry.resolvedBy}</p></div>
-                            <div><p className="text-xs text-gray-500 mb-0.5">Summary</p><p className="text-gray-900 leading-relaxed">{entry.summary}</p></div>
+                            <div><p className="text-xs text-gray-400 mb-0.5">Resolved by</p><p className="text-gray-900">{entry.resolvedBy}</p></div>
+                            <div><p className="text-xs text-gray-400 mb-0.5">Summary</p><p className="text-gray-900 leading-relaxed">{entry.summary}</p></div>
                           </div>
                         </div>
                       </div>
                     );
                   }
 
+                  // Payment request — compact/expandable
                   if (entry.type === "payment_request") {
                     const pyStatus = entry.status;
                     const pyIsPending = pyStatus === "pending";
+                    const pyExpanded = isPayExpanded(entry);
                     const taskId = req.id;
                     return (
-                      <div key={nodeKey} className="py-4 border-b border-gray-100">
-                        <div className="rounded-xl border border-gray-200 overflow-hidden" style={{ borderLeftWidth: "3px", borderLeftColor: "#FF5000" }}>
-                          <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-                            <div className="flex items-center gap-2">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
+                      <div key={nodeKey} className="py-3 border-b border-gray-100">
+                        <div className={`rounded-xl overflow-hidden transition-colors ${pyExpanded ? "bg-gray-50" : "hover:bg-gray-50/60"}`}>
+                          {/* Compact row — always visible */}
+                          <button
+                            type="button"
+                            onClick={() => togglePayExpanded(entry)}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000] rounded-xl"
+                          >
+                            <span className="w-7 h-7 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF5000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
                               </svg>
-                              <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Payment Request</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-400">{fmtItemDt(entry.timestamp)}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[pyStatus] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[pyStatus] ?? pyStatus}</span>
-                            </div>
-                          </div>
-                          <div className="px-4 py-3 space-y-2 text-sm">
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <p className="text-xs text-gray-400 mb-0.5">Requested</p>
-                                <p className="font-semibold tabular-nums text-gray-900">{fmtNaira(entry.requestedAmount)}</p>
-                              </div>
-                              {typeof entry.approvedAmount === "number" && (
+                            </span>
+                            <span className="flex-1 min-w-0 text-sm text-gray-700 truncate">
+                              Payment request
+                              <span className="text-gray-400 mx-1">·</span>
+                              <span className="font-medium text-gray-900">{fmtNaira(entry.requestedAmount)}</span>
+                              {entry.category && <><span className="text-gray-400 mx-1">·</span><span className="text-gray-500">{entry.category}</span></>}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${PAYMENT_STATUS_BADGE_CLASS[pyStatus] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>
+                              {PAYMENT_STATUS_LABEL[pyStatus] ?? pyStatus}
+                            </span>
+                            <span className="text-xs text-gray-400 shrink-0 hidden sm:block">{fmtItemDt(entry.timestamp)}</span>
+                            {pyExpanded
+                              ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              : <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                          </button>
+
+                          {/* Expanded details */}
+                          {pyExpanded && (
+                            <div className="px-3.5 pb-3.5 pt-1 space-y-2.5 text-sm border-t border-gray-100 mt-0.5">
+                              <div className="grid grid-cols-2 gap-3 pt-2">
                                 <div>
-                                  <p className="text-xs text-gray-400 mb-0.5">Approved</p>
-                                  <p className="font-semibold tabular-nums text-gray-900">{fmtNaira(entry.approvedAmount)}</p>
+                                  <p className="text-xs text-gray-400 mb-0.5">Requested</p>
+                                  <p className="font-semibold tabular-nums text-gray-900">{fmtNaira(entry.requestedAmount)}</p>
+                                </div>
+                                {typeof entry.approvedAmount === "number" && (
+                                  <div>
+                                    <p className="text-xs text-gray-400 mb-0.5">Approved</p>
+                                    <p className="font-semibold tabular-nums text-gray-900">{fmtNaira(entry.approvedAmount)}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {entry.requestedBy && (
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Requested by</span>
+                                  <span className="text-gray-900">{entry.requestedBy}</span>
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-gray-400 mb-0.5">Reason</p>
+                                <p className="text-gray-700 leading-snug">{entry.reason}</p>
+                              </div>
+                              {entry.attachments && entry.attachments.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-gray-400 mb-1.5">{entry.attachments.length} attachment{entry.attachments.length !== 1 ? "s" : ""}</p>
+                                  {renderAttachmentGroup(entry.attachments, "Attachments", false)}
+                                </div>
+                              )}
+                              {entry.status === "declined" && entry.declinedReason && (
+                                <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">Declined: {entry.declinedReason}</p>
+                              )}
+                              {pyIsPending && (
+                                <div>
+                                  <div className="flex gap-2 pt-1">
+                                    <Button variant="outline" size="sm" className="flex-1 text-xs border-gray-200 text-slate-700 hover:bg-gray-100" onClick={() => { setDeclineModal({ taskId, entry }); setDeclineReason(""); }}>Decline</Button>
+                                    <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white text-xs" onClick={() => { setApproveModal({ taskId, entry }); setApprovedAmountInput(String(entry.requestedAmount)); }}>Approve payment</Button>
+                                  </div>
+                                  {req.walletBalance !== undefined && (
+                                    <p className="text-xs text-gray-400 mt-2">Wallet balance {fmtNaira(req.walletBalance)}</p>
+                                  )}
                                 </div>
                               )}
                             </div>
-                            {entry.category && (
-                              <div className="flex justify-between">
-                                <span className="text-gray-500">Category</span>
-                                <span className="text-gray-900">{entry.category}</span>
-                              </div>
-                            )}
-                            {entry.requestedBy && (
-                              <div className="flex justify-between">
-                                <span className="text-gray-500">Requested by</span>
-                                <span className="text-gray-900">{entry.requestedBy}</span>
-                              </div>
-                            )}
-                            <div>
-                              <span className="text-gray-500">Reason</span>
-                              <p className="text-gray-700 mt-0.5 leading-snug">{entry.reason}</p>
-                            </div>
-                            {entry.attachments && entry.attachments.length > 0 && renderAttachmentGroup(entry.attachments, "Payment Attachments", false, "grid-cols-4 gap-2")}
-                          </div>
-                          {pyIsPending && (
-                            <div className="flex gap-2 px-4 py-3 border-t border-gray-100">
-                              <Button variant="outline" size="sm" className="flex-1 text-xs border-gray-200 text-slate-700 hover:bg-gray-50" onClick={() => { setDeclineModal({ taskId, entry }); setDeclineReason(""); }}>Decline</Button>
-                              <Button size="sm" className="flex-1 bg-[#FF5000] hover:bg-[#e04600] text-white text-xs" onClick={() => { setApproveModal({ taskId, entry }); setApprovedAmountInput(String(entry.requestedAmount)); }}>Approve Payment</Button>
-                            </div>
-                          )}
-                          {entry.status === "declined" && entry.declinedReason && (
-                            <div className="px-4 py-2.5 border-t border-gray-100 text-xs text-red-600 bg-red-50">Declined: {entry.declinedReason}</div>
                           )}
                         </div>
                       </div>
                     );
                   }
 
+                  // Thread message
                   if (entry.type === "message") {
                     const author = entry.author;
                     const isLandlord = author === "landlord";
@@ -865,9 +934,9 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                               </>
                             )}
                             {entry.attachments && entry.attachments.length > 0 && (
-                              <>
-                                <p className="text-xs text-gray-400 mt-3 mb-1.5">{entry.attachments.length} attachment{entry.attachments.length !== 1 ? "s" : ""}</p>
-                                <div className="flex flex-wrap gap-2">
+                              <div className="mt-3">
+                                <p className="text-xs text-gray-400 mb-1.5">{entry.attachments.length} attachment{entry.attachments.length !== 1 ? "s" : ""}</p>
+                                <div className="flex flex-wrap gap-1.5">
                                   {entry.attachments.map((att, i) =>
                                     att.type === "document" ? (
                                       <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-700 hover:bg-gray-100">
@@ -878,12 +947,12 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                                         key={i}
                                         type="button"
                                         onClick={() => setLightbox({ items: entry.attachments!.filter((a) => a.type !== "document").map((a) => ({ url: a.url, type: a.type as "image" | "video" })), index: entry.attachments!.filter((a) => a.type !== "document").findIndex((a) => a.url === att.url) })}
-                                        className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
+                                        className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5000]"
                                       >
                                         {att.type === "video" ? (
                                           <>
                                             <video src={att.url} className="w-full h-full object-cover" muted preload="metadata" />
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20"><Play className="w-4 h-4 text-white" /></div>
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20"><Play className="w-3.5 h-3.5 text-white" /></div>
                                           </>
                                         ) : (
                                           <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
@@ -892,7 +961,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                                     )
                                   )}
                                 </div>
-                              </>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -901,13 +970,14 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                   }
                 }
               }
+
               return null;
             })}
 
             <div ref={threadEndRef} />
           </div>
 
-          {/* Reply bar */}
+          {/* Reply bar — single rounded container, pinned inside thread card */}
           <div className="shrink-0 border-t border-gray-100 px-6 py-4">
             {pendingThreadAttachments.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -937,7 +1007,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                 onChange={e => { setThreadInput(e.target.value); autoResizeThread(); }}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder="Reply to the thread..."
-                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 resize-none leading-relaxed p-0 border-0 outline-none ring-0 shadow-none focus:ring-0 focus:outline-none focus:border-0 focus:shadow-none"
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 resize-none leading-relaxed border-0 outline-none ring-0 shadow-none focus:ring-0 focus:outline-none focus:border-0 focus:shadow-none p-0"
                 style={{ maxHeight: 120, overflowY: "auto", boxShadow: "none" }}
               />
               <Tooltip>
@@ -952,122 +1022,52 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
             </div>
           </div>
         </div>
-
-        {/* Side panel card — desktop */}
-        {sidePanelOpen && (
-          <aside className="hidden lg:flex flex-col w-72 bg-white rounded-xl border border-gray-200 shrink-0 overflow-y-auto">
-            <div className="p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Dates</p>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Reported</p>
-                  <p className="text-sm font-medium text-gray-900">{formatDateTime(req.date_reported)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
-                  <p className="text-sm font-medium text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
-                </div>
-              </div>
-            </div>
-
-            {paymentEntries.length > 0 && (
-              <>
-                <div className="border-t border-gray-100" />
-                <div className="p-5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Payment{paymentEntries.length > 1 ? "s" : ""}</p>
-                  <div className="space-y-2">
-                    {paymentEntries.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between text-sm">
-                        <span className="font-medium tabular-nums text-gray-900">{fmtNaira(p.requestedAmount)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="border-t border-gray-100" />
-            <div className="p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Request Details</p>
-              <div className="space-y-3">
-                {req.issue_category && (
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Category</p>
-                    <p className="text-sm font-medium text-gray-900">{req.issue_category}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Reported By</p>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-sm font-medium text-gray-900">{reporterName(req)}</p>
-                    <span className={ROLE_TAG_CLASS[getRoleTagFromSource(source)] ?? "bg-gray-100 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded"}>
-                      {getRoleTagFromSource(source)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
-        )}
       </div>
 
-      {/* Mobile side panel slide-over */}
+      {/* Details drawer — slide-over on all screen sizes, closed by default */}
       {sidePanelOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSidePanelOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <p className="text-sm font-semibold text-gray-900">Request Details</p>
-              <button type="button" onClick={() => setSidePanelOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close details"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-40">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setSidePanelOpen(false)} />
+          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl flex flex-col overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <p className="text-sm font-semibold text-gray-900">Request details</p>
+              <button type="button" onClick={() => setSidePanelOpen(false)} className="text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="Close details">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Dates</p>
-              <div className="space-y-3 mb-5">
+
+            <div className="p-5 flex-1">
+              {/* Dates */}
+              <p className="text-xs text-gray-400 mb-3">Dates</p>
+              <div className="space-y-3 mb-6">
                 <div>
                   <p className="text-xs text-gray-400 mb-0.5">Reported</p>
                   <p className="text-sm font-medium text-gray-900">{formatDateTime(req.date_reported)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Last Updated</p>
+                  <p className="text-xs text-gray-400 mb-0.5">Last updated</p>
                   <p className="text-sm font-medium text-gray-900">{getRelativeTime(req.updated_at || req.updatedAt)}</p>
                 </div>
               </div>
 
-              {paymentEntries.length > 0 && (
+              {/* Category */}
+              {req.issue_category && (
                 <>
                   <div className="border-t border-gray-100 mb-5" />
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Payment{paymentEntries.length > 1 ? "s" : ""}</p>
-                  <div className="space-y-2 mb-5">
-                    {paymentEntries.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between text-sm">
-                        <span className="font-medium tabular-nums text-gray-900">{fmtNaira(p.requestedAmount)}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${PAYMENT_STATUS_BADGE_CLASS[p.status] ?? "bg-gray-100 text-gray-600 border border-gray-200"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-xs text-gray-400 mb-3">Category</p>
+                  <p className="text-sm font-medium text-gray-900 mb-6">{req.issue_category}</p>
                 </>
               )}
 
+              {/* Property history link */}
               <div className="border-t border-gray-100 mb-5" />
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">Request Details</p>
-              <div className="space-y-3">
-                {req.issue_category && (
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Category</p>
-                    <p className="text-sm font-medium text-gray-900">{req.issue_category}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">Reported By</p>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-sm font-medium text-gray-900">{reporterName(req)}</p>
-                    <span className={ROLE_TAG_CLASS[getRoleTagFromSource(source)] ?? "bg-gray-100 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded"}>
-                      {getRoleTagFromSource(source)}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <a
+                href={`/${userRole}/facility?property=${encodeURIComponent(req.property_name ?? "")}`}
+                className="inline-flex items-center gap-1.5 text-sm text-[#FF5000] hover:underline focus:outline-none"
+              >
+                View property history
+                <ChevronRight className="w-3.5 h-3.5" />
+              </a>
             </div>
           </div>
         </div>
@@ -1075,48 +1075,26 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
 
       {/* Lightbox */}
       {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
-          onClick={() => setLightbox(null)}
-        >
-          <button
-            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none"
-            onClick={() => setLightbox(null)}
-          >
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" onClick={() => setLightbox(null)}>
+          <button className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none" onClick={() => setLightbox(null)}>
             <X className="w-5 h-5" />
           </button>
           {lightbox.items.length > 1 && (
-            <button
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none"
-              onClick={(e) => { e.stopPropagation(); setLightbox((lb) => lb ? { ...lb, index: (lb.index - 1 + lb.items.length) % lb.items.length } : null); }}
-            >
+            <button className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none"
+              onClick={(e) => { e.stopPropagation(); setLightbox((lb) => lb ? { ...lb, index: (lb.index - 1 + lb.items.length) % lb.items.length } : null); }}>
               <ChevronLeft className="w-6 h-6" />
             </button>
           )}
-          <div
-            className="max-w-[90vw] max-h-[85vh] flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="max-w-[90vw] max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             {lightbox.items[lightbox.index].type === "video" ? (
-              <video
-                src={lightbox.items[lightbox.index].url}
-                controls
-                autoPlay
-                className="max-w-full max-h-[80vh] rounded-lg"
-              />
+              <video src={lightbox.items[lightbox.index].url} controls autoPlay className="max-w-full max-h-[80vh] rounded-lg" />
             ) : (
-              <img
-                src={lightbox.items[lightbox.index].url}
-                alt={`Attachment ${lightbox.index + 1}`}
-                className="max-w-full max-h-[80vh] object-contain rounded-lg"
-              />
+              <img src={lightbox.items[lightbox.index].url} alt={`Attachment ${lightbox.index + 1}`} className="max-w-full max-h-[80vh] object-contain rounded-lg" />
             )}
           </div>
           {lightbox.items.length > 1 && (
-            <button
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none"
-              onClick={(e) => { e.stopPropagation(); setLightbox((lb) => lb ? { ...lb, index: (lb.index + 1) % lb.items.length } : null); }}
-            >
+            <button className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white focus:outline-none"
+              onClick={(e) => { e.stopPropagation(); setLightbox((lb) => lb ? { ...lb, index: (lb.index + 1) % lb.items.length } : null); }}>
               <ChevronRight className="w-6 h-6" />
             </button>
           )}
@@ -1134,17 +1112,14 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
         const isValid = approvedAmountInput.trim() !== "" && Number.isFinite(parsedApprovedAmount) && parsedApprovedAmount > 0;
         const amountChanged = parsedApprovedAmount !== approveModal.entry.requestedAmount;
         return (
-          <div
-            onClick={(e) => { if (e.target === e.currentTarget) setApproveModal(null); }}
-            className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
-          >
+          <div onClick={(e) => { if (e.target === e.currentTarget) setApproveModal(null); }} className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5">
             <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="18"/>
                   </svg>
-                  <span className="text-sm font-bold text-gray-900">Approve Payment Request</span>
+                  <span className="text-sm font-bold text-gray-900">Approve payment request</span>
                 </div>
                 <button onClick={() => setApproveModal(null)} className="text-gray-400 hover:text-gray-600">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1161,19 +1136,19 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                     <span className="text-sm font-medium text-gray-800">{approveModal.entry.requestedBy}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-400">Request Date</span>
+                    <span className="text-xs text-gray-400">Request date</span>
                     <span className="text-sm font-medium text-gray-800">{formatDateTime(approveModal.entry.timestamp)}</span>
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-500">Requested Amount</Label>
+                  <Label className="text-xs text-gray-500">Requested amount</Label>
                   <div className="h-9 flex items-center px-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700">
                     {fmtNaira(approveModal.entry.requestedAmount)}
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="approved-amount-detail">
-                    Approved Amount <span className="text-red-500">*</span>
+                    Approved amount <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">&#8358;</span>
@@ -1192,9 +1167,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                 </div>
               </div>
               <div className="flex gap-3 px-5 pb-5 justify-end">
-                <button onClick={() => setApproveModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  Cancel
-                </button>
+                <button onClick={() => setApproveModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                 <button
                   disabled={!isValid}
                   onClick={() => {
@@ -1207,15 +1180,15 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                       approvedAt: now,
                     });
                     if (amountChanged) {
-                      appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: `Approved Amount Changed to ${fmtNaira(parsedApprovedAmount)}`, timestamp: now });
+                      appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: `Approved amount changed to ${fmtNaira(parsedApprovedAmount)}`, timestamp: now });
                     }
-                    appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: "Payment Approved", timestamp: now });
+                    appendThreadEntry(approveModal.taskId, { id: makeMsgId(), type: "event", body: "Payment approved", timestamp: now });
                     toast.success("Payment request approved");
                     setApproveModal(null);
                   }}
                   className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-sm font-semibold text-white"
                 >
-                  Approve Payment
+                  Approve payment
                 </button>
               </div>
             </div>
@@ -1225,25 +1198,22 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
 
       {/* Decline Payment Modal */}
       {declineModal && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setDeclineModal(null); }}
-          className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5"
-        >
+        <div onClick={(e) => { if (e.target === e.currentTarget) setDeclineModal(null); }} className="fixed inset-0 bg-black/50 z-[1400] flex items-center justify-center p-5">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <span className="text-sm font-bold text-gray-900">Decline Payment Request</span>
+              <span className="text-sm font-bold text-gray-900">Decline payment request</span>
               <button onClick={() => setDeclineModal(null)} className="text-gray-400 hover:text-gray-600 flex items-center">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
             <div className="px-5 py-4 space-y-3">
               <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 flex justify-between items-center">
-                <span className="text-xs text-gray-400">Requested Amount</span>
+                <span className="text-xs text-gray-400">Requested amount</span>
                 <span className="text-sm font-bold text-gray-900 tabular-nums">{fmtNaira(declineModal.entry.requestedAmount)}</span>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-2">
-                  Reason for Decline <span className="text-gray-400 font-normal">(Optional)</span>
+                  Reason for decline <span className="text-gray-400 font-normal">(Optional)</span>
                 </label>
                 <textarea
                   value={declineReason}
@@ -1255,9 +1225,7 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
               </div>
             </div>
             <div className="flex gap-3 px-5 pb-5 justify-end">
-              <button onClick={() => setDeclineModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Cancel
-              </button>
+              <button onClick={() => setDeclineModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
               <button
                 onClick={() => {
                   if (!declineModal) return;
@@ -1267,14 +1235,14 @@ export default function LandlordMaintenanceRequestDetail({ requestOverride, back
                     declinedReason: declineReason.trim() || undefined,
                     declinedAt: now,
                   });
-                  appendThreadEntry(declineModal.taskId, { id: makeMsgId(), type: "event", body: "Payment Declined", timestamp: now });
+                  appendThreadEntry(declineModal.taskId, { id: makeMsgId(), type: "event", body: "Payment declined", timestamp: now });
                   toast.success("Payment request declined");
                   setDeclineModal(null);
                   setDeclineReason("");
                 }}
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-semibold text-white"
               >
-                Decline Request
+                Decline request
               </button>
             </div>
           </div>
