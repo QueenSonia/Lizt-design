@@ -1,234 +1,587 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
+  ResponsiveContainer, LineChart, Line,
+  CartesianGrid, XAxis, YAxis, Tooltip, Legend,
 } from "recharts";
-import { getPeriod, getAccountType, subscribeToAnalyticsFilters } from "@/lib/analyticsDateStore";
 import {
-  getOverviewStats,
-  getRentSeries,
-  getLatePayments,
-  OVERDUE_TENANCIES,
-  fmtCompact,
-  fmtM,
-} from "./analyticsData";
+  getPeriod, getAccountType, subscribeToAnalyticsFilters,
+} from "@/lib/analyticsDateStore";
+import {
+  getRentPageStats, getRentSeries,
+  getOverdueByAge, getPaymentMethods, getLandlordTable,
+  fmtCompact, fmtNum, fmtPct,
+  type LandlordRow,
+} from "@/lib/analytics-mock";
 import { PKAnalyticsHeader } from "./PKAnalyticsHeader";
 
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse bg-slate-100 rounded ${className}`} />;
+// ── Filter subscription ────────────────────────────────────────────────────────
+
+function useAnalyticsFilters() {
+  const [, tick] = useState(0);
+  useEffect(() => subscribeToAnalyticsFilters(() => tick((n) => n + 1)), []);
+  return { period: getPeriod(), filter: getAccountType() };
 }
 
-export default function PKRentPayments() {
-  const [filterTick, setFilterTick] = useState(0);
-  const [loading, setLoading] = useState(true);
+// ── Delta badge ────────────────────────────────────────────────────────────────
 
-  useEffect(() => subscribeToAnalyticsFilters(() => setFilterTick((n) => n + 1)), []);
-  useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
-  }, [filterTick]);
+type DeltaMode = "positive-good" | "negative-good" | "neutral" | "pp";
 
-  const period = getPeriod();
-  const filter = getAccountType();
-  const stats  = getOverviewStats(period, filter);
-  const series = getRentSeries(period, filter);
-  const late   = getLatePayments(period, filter);
-  const collRate = ((stats.rentCollected / stats.rentExpected) * 100).toFixed(1);
+function DeltaBadge({ value, mode }: { value: number; mode: DeltaMode }) {
+  let color: string;
+  if (mode === "neutral") {
+    color = "#5B6475";
+  } else if (mode === "pp") {
+    color = value >= 0 ? "#1F7A4D" : "#C0392B";
+  } else if (mode === "positive-good") {
+    color = value >= 0 ? "#1F7A4D" : "#C0392B";
+  } else {
+    // negative-good: down is good
+    color = value <= 0 ? "#1F7A4D" : "#C0392B";
+  }
+
+  let label: string;
+  if (mode === "pp") {
+    label = `${value >= 0 ? "+" : ""}${value}pp`;
+  } else {
+    label = `${value >= 0 ? "+" : ""}${value}%`;
+  }
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1280px] mx-auto">
-      <PKAnalyticsHeader title="Rent and Payments" subtitle="Collection performance and arrears" />
+    <span style={{ fontSize: 12, fontWeight: 500, color }}>
+      {label}
+    </span>
+  );
+}
 
-      {/* KPI row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {[
-          { label: "Collected",       value: fmtCompact(stats.rentCollected) },
-          { label: "Expected",        value: fmtCompact(stats.rentExpected)  },
-          { label: "Collection rate", value: `${collRate}%`                  },
-          { label: "Late payments",   value: late.count.toString()           },
-        ].map(({ label, value }) => (
-          <div key={label} className="bg-white border border-slate-200 rounded-xl p-4">
-            {loading ? (
-              <><Skeleton className="h-3 w-20 mb-2" /><Skeleton className="h-7 w-28" /></>
-            ) : (
-              <>
-                <div className="text-[11px] text-slate-500 mb-1">{label}</div>
-                <div className="text-xl font-bold text-slate-900 tabular-nums">{value}</div>
-              </>
-            )}
-          </div>
-        ))}
+// ── Stat card ──────────────────────────────────────────────────────────────────
+
+function StatCard({
+  label,
+  value,
+  delta,
+  deltaMode,
+}: {
+  label: string;
+  value: string;
+  delta: number;
+  deltaMode: DeltaMode;
+}) {
+  return (
+    <div
+      style={{
+        backgroundColor: "#fff",
+        border: "1px solid #E6E8EE",
+        borderRadius: 16,
+        padding: 28,
+      }}
+    >
+      <div style={{ fontSize: 12, color: "#5B6475", marginBottom: 8 }}>{label}</div>
+      <div
+        style={{
+          fontSize: 32,
+          fontWeight: 700,
+          color: "#0E1330",
+          fontVariantNumeric: "tabular-nums",
+          lineHeight: 1.1,
+          marginBottom: 6,
+        }}
+      >
+        {value}
       </div>
+      <DeltaBadge value={delta} mode={deltaMode} />
+    </div>
+  );
+}
 
-      {/* Collected vs Expected chart */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold text-slate-900">Collected vs expected</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Rent per period</p>
-          {!loading && (
-            <div className="mt-2">
-              <span className="text-xl font-bold text-slate-900">{collRate}% collection rate</span>
-              <span className="text-xs text-slate-400 ml-2">
-                {fmtCompact(stats.rentCollected)} of {fmtCompact(stats.rentExpected)}
-              </span>
-            </div>
-          )}
+// ── Main component ─────────────────────────────────────────────────────────────
+
+export default function PKRentPayments() {
+  const { period, filter } = useAnalyticsFilters();
+
+  // Sort state for landlord table
+  const [sortCol, setSortCol] = useState<keyof LandlordRow>("rate");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  function toggleSort(col: keyof LandlordRow) {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("desc");
+    }
+  }
+
+  const stats = getRentPageStats(period, filter);
+  const series = getRentSeries(period, filter);
+  const overdueByAge = getOverdueByAge(period, filter);
+  const paymentMethods = getPaymentMethods(period, filter);
+
+  const sortedTable = [...getLandlordTable(period, filter)].sort((a, b) => {
+    const aVal = a[sortCol];
+    const bVal = b[sortCol];
+    if (typeof aVal === "string") {
+      return sortDir === "asc"
+        ? aVal.localeCompare(bVal as string)
+        : (bVal as string).localeCompare(aVal);
+    }
+    return sortDir === "asc"
+      ? (aVal as number) - (bVal as number)
+      : (bVal as number) - (aVal as number);
+  });
+
+  const overdueTotal = overdueByAge.reduce((s, b) => s + b.amount, 0);
+
+  const overdueBarColors: Record<string, string> = {
+    "0 to 30 days":  "#5B6475",
+    "31 to 60 days": "#EA5B25",
+    "61 to 90 days": "#C0392B",
+    "90+ days":      "#0E1330",
+  };
+
+  const pmBarColors: Record<string, string> = {
+    "Bank transfer": "#EA5B25",
+    "Card":          "#C9CED8",
+    "Cash":          "#E6E8EE",
+  };
+
+  function sortIndicator(col: keyof LandlordRow) {
+    if (sortCol !== col) return null;
+    return (
+      <span style={{ color: "#EA5B25", marginLeft: 4 }}>
+        {sortDir === "asc" ? "↑" : "↓"}
+      </span>
+    );
+  }
+
+  const thStyle: React.CSSProperties = {
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    color: "#5B6475",
+    backgroundColor: "#F6F7F9",
+    borderBottom: "1px solid #E6E8EE",
+    padding: "10px 16px",
+    fontWeight: 600,
+    whiteSpace: "nowrap",
+    cursor: "pointer",
+    userSelect: "none",
+  };
+
+  return (
+    <div
+      style={{
+        backgroundColor: "#F6F7F9",
+        minHeight: "100%",
+        padding: "40px",
+        fontFamily: "var(--font-inter), Inter, sans-serif",
+      }}
+    >
+      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+        <PKAnalyticsHeader
+          title="Rent and Payments"
+          subtitle="Collection performance and payment arrears"
+        />
+
+        {/* ── Row 1: 4 stat cards ────────────────────────────────────────────── */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 20,
+          }}
+        >
+          <StatCard
+            label="Rent collected"
+            value={fmtCompact(stats.collected)}
+            delta={stats.collectedDelta}
+            deltaMode="positive-good"
+          />
+          <StatCard
+            label="Rent expected"
+            value={fmtCompact(stats.expected)}
+            delta={stats.expectedDelta}
+            deltaMode="neutral"
+          />
+          <StatCard
+            label="Collection rate"
+            value={fmtPct(stats.collectionRate)}
+            delta={stats.rateDelta}
+            deltaMode="pp"
+          />
+          <StatCard
+            label="Total overdue"
+            value={fmtCompact(stats.totalOverdue)}
+            delta={stats.overdueDelta}
+            deltaMode="negative-good"
+          />
         </div>
-        {loading ? (
-          <Skeleton className="h-64 w-full" />
-        ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={series} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-              <YAxis
-                tickFormatter={(v: number) => fmtM(v)}
-                tick={{ fontSize: 10, fill: "#94A3B8" }}
-                axisLine={false}
-                tickLine={false}
-                width={52}
-              />
-              <Tooltip
-                formatter={(v: number, name: string) => [fmtM(v), name === "collected" ? "Collected" : "Expected"]}
-                contentStyle={{ fontSize: 11, borderRadius: 6, border: "1px solid #E2E8F0" }}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                formatter={(name: string) => (name === "collected" ? "Collected" : "Expected")}
-              />
-              <Bar dataKey="collected" fill="#FF5000" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="expected"  fill="#CBD5E1" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
 
-      {/* Late payments + collection rate */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">Late payments</h2>
-          <p className="text-xs text-slate-400 mb-4">
-            {loading ? <Skeleton className="h-3 w-32 inline-block" /> : `${late.count} payments, ${fmtCompact(late.totalAmount)} outstanding`}
-          </p>
-          {loading ? (
-            <div className="space-y-3">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : (
-            <ul className="space-y-3">
-              {late.aging.map((b) => {
-                const pct = (b.amount / late.totalAmount) * 100;
+        {/* ── Collected vs Expected chart ───────────────────────────────────── */}
+        <div style={{ marginTop: 48 }}>
+          <div
+            style={{
+              backgroundColor: "#fff",
+              border: "1px solid #E6E8EE",
+              borderRadius: 16,
+              padding: 28,
+            }}
+          >
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#0E1330" }}>
+                Collected vs expected
+              </div>
+              <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>
+                Rent per period
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={series} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                <CartesianGrid
+                  vertical={false}
+                  stroke="#EDEEF1"
+                  strokeDasharray="3 3"
+                />
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#5B6475" }}
+                />
+                <YAxis
+                  tickFormatter={(v: number) => fmtCompact(v)}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#5B6475" }}
+                  width={60}
+                />
+                <Tooltip
+                  contentStyle={{
+                    border: "1px solid #E6E8EE",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  formatter={(value: number) => [fmtCompact(value)]}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="collected"
+                  name="Collected"
+                  stroke="#EA5B25"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="expected"
+                  name="Expected"
+                  stroke="#C9CED8"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* ── Two side-by-side cards ─────────────────────────────────────────── */}
+        <div
+          style={{
+            marginTop: 48,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 20,
+          }}
+        >
+          {/* Card A: Overdue by age */}
+          <div
+            style={{
+              backgroundColor: "#fff",
+              border: "1px solid #E6E8EE",
+              borderRadius: 16,
+              padding: 28,
+            }}
+          >
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#0E1330" }}>
+                Overdue by age
+              </div>
+              <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>
+                Outstanding rent by days overdue
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {overdueByAge.map((bucket) => {
+                const widthPct =
+                  overdueTotal > 0 ? (bucket.amount / overdueTotal) * 100 : 0;
+                const barColor =
+                  overdueBarColors[bucket.label] ?? "#5B6475";
                 return (
-                  <li key={b.label}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-700">{b.label}</span>
-                      <span className="text-slate-500">
-                        {b.count} tenants · <span className="font-semibold text-slate-900">{fmtCompact(b.amount)}</span>
+                  <div key={bucket.label}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: 13, color: "#0E1330", fontWeight: 500 }}>
+                        {bucket.label}
+                      </span>
+                      <span style={{ fontSize: 12, color: "#5B6475" }}>
+                        {fmtCompact(bucket.amount)}{" "}
+                        <span style={{ color: "#5B6475" }}>
+                          · {bucket.count} tenants
+                        </span>
                       </span>
                     </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      style={{
+                        height: 6,
+                        backgroundColor: "#EDEEF1",
+                        borderRadius: 999,
+                        overflow: "hidden",
+                      }}
+                    >
                       <div
-                        className={`h-full rounded-full ${
-                          b.label.startsWith("30+") ? "bg-slate-700" :
-                          b.label.startsWith("8")   ? "bg-slate-500" : "bg-slate-300"
-                        }`}
-                        style={{ width: `${pct}%` }}
+                        style={{
+                          height: "100%",
+                          width: `${widthPct}%`,
+                          backgroundColor: barColor,
+                          borderRadius: 999,
+                        }}
                       />
                     </div>
-                  </li>
+                  </div>
                 );
               })}
-            </ul>
-          )}
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col">
-          <h2 className="text-sm font-semibold text-slate-900 mb-1">Collection rate</h2>
-          <p className="text-xs text-slate-400 mb-6">Share of expected rent actually collected</p>
-          {loading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <Skeleton className="h-32 w-32 rounded-full" />
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <div className="relative size-32">
-                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#F1F5F9" strokeWidth="12" />
-                  <circle
-                    cx="50" cy="50" r="40" fill="none"
-                    stroke="#FF5000" strokeWidth="12"
-                    strokeDasharray={`${(parseFloat(collRate) / 100) * 251.3} 251.3`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-slate-900">{collRate}%</span>
-                  <span className="text-[10px] text-slate-400">collected</span>
-                </div>
-              </div>
-              <div className="flex gap-6 text-xs text-slate-500">
-                <div className="text-center">
-                  <div className="font-semibold text-slate-900 text-sm">{fmtCompact(stats.rentCollected)}</div>
-                  <div>Collected</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-slate-400 text-sm">{fmtCompact(stats.rentExpected - stats.rentCollected)}</div>
-                  <div>Outstanding</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Most overdue table */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Most overdue tenancies</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Sorted by days overdue</p>
-        </div>
-        {loading ? (
-          <div className="p-5 space-y-3">{[1,2,3,4].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
-        ) : OVERDUE_TENANCIES.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-400">No overdue tenancies.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-[10px] uppercase tracking-wide text-slate-400 bg-slate-50 border-b border-slate-100">
-                  <th className="px-5 py-2.5 font-semibold">Tenant</th>
-                  <th className="px-4 py-2.5 font-semibold">Property</th>
-                  <th className="px-4 py-2.5 font-semibold text-right">Amount</th>
-                  <th className="px-4 py-2.5 font-semibold text-right">Days overdue</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {OVERDUE_TENANCIES.map((t) => (
-                  <tr key={t.tenant} className="hover:bg-slate-50/50">
-                    <td className="px-5 py-3 font-medium text-slate-900 text-xs">{t.tenant}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{t.property}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-900 text-xs tabular-nums">
-                      {fmtCompact(t.amount)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                        t.daysOverdue >= 60 ? "bg-slate-900 text-white" :
-                        t.daysOverdue >= 30 ? "bg-slate-700 text-white" :
-                        t.daysOverdue >= 14 ? "bg-slate-200 text-slate-800" : "bg-slate-100 text-slate-600"
-                      }`}>{t.daysOverdue}d</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
-        )}
+
+          {/* Card B: Payment methods */}
+          <div
+            style={{
+              backgroundColor: "#fff",
+              border: "1px solid #E6E8EE",
+              borderRadius: 16,
+              padding: 28,
+            }}
+          >
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#0E1330" }}>
+                Payment methods
+              </div>
+              <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>
+                How tenants are paying rent
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {paymentMethods.map((pm) => {
+                const barColor = pmBarColors[pm.method] ?? "#C9CED8";
+                return (
+                  <div key={pm.method}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: 13, color: "#0E1330", fontWeight: 500 }}>
+                        {pm.method}
+                      </span>
+                      <span style={{ fontSize: 12, color: "#5B6475", fontWeight: 600 }}>
+                        {pm.pct}%
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 6,
+                        backgroundColor: "#EDEEF1",
+                        borderRadius: 999,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${pm.pct}%`,
+                          backgroundColor: barColor,
+                          borderRadius: 999,
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: 11, color: "#5B6475", marginTop: 4 }}>
+                      {fmtNum(pm.count)} transactions
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Landlords by collection rate table ───────────────────────────── */}
+        <div style={{ marginTop: 48 }}>
+          <div
+            style={{
+              backgroundColor: "#fff",
+              border: "1px solid #E6E8EE",
+              borderRadius: 16,
+              overflow: "hidden",
+            }}
+          >
+            {/* Section header */}
+            <div
+              style={{
+                padding: "24px 28px 20px",
+                borderBottom: "1px solid #E6E8EE",
+              }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#0E1330" }}>
+                Landlords by collection rate
+              </div>
+              <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>
+                Sorted by collection performance
+              </div>
+            </div>
+
+            {/* Table */}
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontFamily: "var(--font-inter), Inter, sans-serif",
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th
+                      style={{ ...thStyle, textAlign: "left" }}
+                      onClick={() => toggleSort("name")}
+                    >
+                      Landlord{sortIndicator("name")}
+                    </th>
+                    <th
+                      style={{ ...thStyle, textAlign: "right" }}
+                      onClick={() => toggleSort("properties")}
+                    >
+                      Properties{sortIndicator("properties")}
+                    </th>
+                    <th
+                      style={{ ...thStyle, textAlign: "right" }}
+                      onClick={() => toggleSort("expected")}
+                    >
+                      Expected{sortIndicator("expected")}
+                    </th>
+                    <th
+                      style={{ ...thStyle, textAlign: "right" }}
+                      onClick={() => toggleSort("collected")}
+                    >
+                      Collected{sortIndicator("collected")}
+                    </th>
+                    <th
+                      style={{ ...thStyle, textAlign: "right" }}
+                      onClick={() => toggleSort("rate")}
+                    >
+                      Rate{sortIndicator("rate")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedTable.map((row, i) => {
+                    const rateColor =
+                      row.rate >= 95
+                        ? "#1F7A4D"
+                        : row.rate < 85
+                        ? "#C0392B"
+                        : "#0E1330";
+                    return (
+                      <tr
+                        key={row.name}
+                        style={{
+                          borderTop: i > 0 ? "1px solid #F0F1F3" : undefined,
+                          transition: "background 0.1s",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLTableRowElement).style.backgroundColor =
+                            "rgba(0,0,0,0.015)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLTableRowElement).style.backgroundColor =
+                            "transparent";
+                        }}
+                      >
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            fontSize: 13,
+                            color: "#0E1330",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {row.name}
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            fontSize: 12,
+                            color: "#5B6475",
+                            textAlign: "right",
+                          }}
+                        >
+                          {row.properties}
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            fontSize: 12,
+                            color: "#5B6475",
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {fmtCompact(row.expected)}
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            fontSize: 12,
+                            color: "#0E1330",
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {fmtCompact(row.collected)}
+                        </td>
+                        <td
+                          style={{
+                            padding: "12px 16px",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: rateColor,
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {row.rate.toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

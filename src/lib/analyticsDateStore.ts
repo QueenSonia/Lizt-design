@@ -35,7 +35,7 @@ function write(key: string, value: unknown): void {
 }
 
 export function getPeriod(): Period {
-  return read<Period>(PERIOD_KEY, "monthly");
+  return read<Period>(PERIOD_KEY, "yearly");
 }
 
 export function setPeriod(period: Period): void {
