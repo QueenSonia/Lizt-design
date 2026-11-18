@@ -314,22 +314,22 @@ export function getRentPageStats(period: Period, filter: AccountType): RentPageS
 
 const BASE_OVERDUE_BY_AGE: Record<Period, Array<{ label: string; amount: number; count: number }>> = {
   weekly: [
-    { label: "0 to 30 days",  amount: 3_600_000,  count: 10 },
-    { label: "31 to 60 days", amount: 4_500_000,  count: 8  },
-    { label: "61 to 90 days", amount: 2_100_000,  count: 3  },
-    { label: "90+ days",      amount: 400_000,    count: 1  },
+    { label: "Up to 30 days",  amount: 3_600_000,  count: 10 },
+    { label: "31 to 60 days",  amount: 4_500_000,  count: 8  },
+    { label: "61 to 90 days",  amount: 2_100_000,  count: 3  },
+    { label: "Over 90 days",   amount: 400_000,    count: 1  },
   ],
   monthly: [
-    { label: "0 to 30 days",  amount: 14_200_000, count: 38 },
-    { label: "31 to 60 days", amount: 18_100_000, count: 31 },
-    { label: "61 to 90 days", amount: 7_400_000,  count: 12 },
-    { label: "90+ days",      amount: 2_600_000,  count: 6  },
+    { label: "Up to 30 days",  amount: 14_200_000, count: 38 },
+    { label: "31 to 60 days",  amount: 18_100_000, count: 31 },
+    { label: "61 to 90 days",  amount: 7_400_000,  count: 12 },
+    { label: "Over 90 days",   amount: 2_600_000,  count: 6  },
   ],
   yearly: [
-    { label: "0 to 30 days",  amount: 84_200_000,  count: 141 },
-    { label: "31 to 60 days", amount: 127_400_000, count: 83  },
-    { label: "61 to 90 days", amount: 98_600_000,  count: 44  },
-    { label: "90+ days",      amount: 73_900_000,  count: 24  },
+    { label: "Up to 30 days",  amount: 84_200_000,  count: 141 },
+    { label: "31 to 60 days",  amount: 127_400_000, count: 83  },
+    { label: "61 to 90 days",  amount: 98_600_000,  count: 44  },
+    { label: "Over 90 days",   amount: 73_900_000,  count: 24  },
   ],
 };
 
@@ -342,84 +342,6 @@ export function getOverdueByAge(period: Period, filter: AccountType) {
   }));
 }
 
-const BASE_PAYMENT_METHODS: Record<Period, Array<{ method: string; count: number; pct: number }>> = {
-  weekly: [
-    { method: "Bank transfer", count: 1312, pct: 68.2 },
-    { method: "Card",          count: 464,  pct: 24.1 },
-    { method: "Cash",          count: 148,  pct: 7.7  },
-  ],
-  monthly: [
-    { method: "Bank transfer", count: 5241, pct: 67.8 },
-    { method: "Card",          count: 1864, pct: 24.1 },
-    { method: "Cash",          count: 627,  pct: 8.1  },
-  ],
-  yearly: [
-    { method: "Bank transfer", count: 62841, pct: 68.4 },
-    { method: "Card",          count: 22140, pct: 24.1 },
-    { method: "Cash",          count: 6904,  pct: 7.5  },
-  ],
-};
-
-export function getPaymentMethods(period: Period, filter: AccountType) {
-  const m = RENT_MULT[filter];
-  return BASE_PAYMENT_METHODS[period].map((d) => ({
-    method: d.method,
-    count:  Math.round(d.count * m),
-    pct:    d.pct,
-  }));
-}
-
-export type LandlordRow = {
-  name:       string;
-  properties: number;
-  expected:   number;
-  collected:  number;
-  rate:       number;
-};
-
-const BASE_LANDLORD_TABLE: Record<Period, LandlordRow[]> = {
-  weekly: [
-    { name: "Biodun Adeleke",          properties: 48, expected: 4_820_000,  collected: 4_561_000, rate: 94.6 },
-    { name: "Emeka Okafor",            properties: 35, expected: 3_500_000,  collected: 3_241_000, rate: 92.6 },
-    { name: "Funmilayo Okonjo",        properties: 29, expected: 2_900_000,  collected: 2_820_000, rate: 97.2 },
-    { name: "Taiwo Adeyemi",           properties: 24, expected: 2_400_000,  collected: 2_160_000, rate: 90.0 },
-    { name: "Chukwuemeka Nwachukwu",   properties: 21, expected: 2_100_000,  collected: 1_940_000, rate: 92.4 },
-    { name: "Yetunde Fashola",         properties: 18, expected: 1_800_000,  collected: 1_760_000, rate: 97.8 },
-    { name: "Obinna Eze",              properties: 15, expected: 1_500_000,  collected: 1_320_000, rate: 88.0 },
-    { name: "Ngozi Amaechi",           properties: 12, expected: 1_200_000,  collected: 1_140_000, rate: 95.0 },
-  ],
-  monthly: [
-    { name: "Biodun Adeleke",          properties: 48, expected: 19_280_000, collected: 18_250_000, rate: 94.6 },
-    { name: "Emeka Okafor",            properties: 35, expected: 14_000_000, collected: 12_964_000, rate: 92.6 },
-    { name: "Funmilayo Okonjo",        properties: 29, expected: 11_600_000, collected: 11_283_000, rate: 97.2 },
-    { name: "Taiwo Adeyemi",           properties: 24, expected: 9_600_000,  collected: 8_640_000,  rate: 90.0 },
-    { name: "Chukwuemeka Nwachukwu",   properties: 21, expected: 8_400_000,  collected: 7_762_000,  rate: 92.4 },
-    { name: "Yetunde Fashola",         properties: 18, expected: 7_200_000,  collected: 7_042_000,  rate: 97.8 },
-    { name: "Obinna Eze",              properties: 15, expected: 6_000_000,  collected: 5_280_000,  rate: 88.0 },
-    { name: "Ngozi Amaechi",           properties: 12, expected: 4_800_000,  collected: 4_560_000,  rate: 95.0 },
-  ],
-  yearly: [
-    { name: "Biodun Adeleke",          properties: 48, expected: 241_000_000, collected: 228_000_000, rate: 94.6 },
-    { name: "Emeka Okafor",            properties: 35, expected: 175_000_000, collected: 162_000_000, rate: 92.6 },
-    { name: "Funmilayo Okonjo",        properties: 29, expected: 145_000_000, collected: 141_000_000, rate: 97.2 },
-    { name: "Taiwo Adeyemi",           properties: 24, expected: 120_000_000, collected: 108_000_000, rate: 90.0 },
-    { name: "Chukwuemeka Nwachukwu",   properties: 21, expected: 105_000_000, collected: 97_000_000,  rate: 92.4 },
-    { name: "Yetunde Fashola",         properties: 18, expected: 90_000_000,  collected: 88_000_000,  rate: 97.8 },
-    { name: "Obinna Eze",              properties: 15, expected: 75_000_000,  collected: 66_000_000,  rate: 88.0 },
-    { name: "Ngozi Amaechi",           properties: 12, expected: 60_000_000,  collected: 57_000_000,  rate: 95.0 },
-  ],
-};
-
-export function getLandlordTable(period: Period, filter: AccountType): LandlordRow[] {
-  const m = RENT_MULT[filter];
-  return BASE_LANDLORD_TABLE[period].map((d) => ({
-    name:       d.name,
-    properties: d.properties,
-    expected:   Math.round(d.expected  * m),
-    collected:  Math.round(d.collected * m),
-    rate:       d.rate,
-  }));
-}
 
 // ── OCCUPANCY PAGE ─────────────────────────────────────────────────────────────
 
