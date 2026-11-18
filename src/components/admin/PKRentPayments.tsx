@@ -3,13 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ResponsiveContainer, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, LabelList,
+  XAxis, YAxis, CartesianGrid, Tooltip,
 } from "recharts";
 import {
   getPeriod, getAccountType, subscribeToAnalyticsFilters,
 } from "@/lib/analyticsDateStore";
 import {
-  getRentPageStats, getRentSeries, getOverdueByAge,
+  getRentPageStats,
   fmtCompact, fmtPct,
   getUpcomingRentDue, getPaymentTiming, getOldestUnpaid, getRentByLocation,
   getRecoveredAfterReminders, getTenantCreditScores, getCreditScoreDistribution,
@@ -63,33 +63,6 @@ function StatCard({ label, value, delta, deltaMode }: {
         {value}
       </div>
       <DeltaBadge value={delta} mode={deltaMode} />
-    </div>
-  );
-}
-
-// ── Bar chart custom tooltip ───────────────────────────────────────────────────
-
-function RentBarTooltip({ active, payload, label }: {
-  active?: boolean;
-  payload?: Array<{ dataKey: string; value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  const collected = payload.find((p) => p.dataKey === "collected")?.value ?? 0;
-  const gap       = payload.find((p) => p.dataKey === "gap")?.value ?? 0;
-  const expected  = collected + gap;
-  const rate      = expected > 0 ? ((collected / expected) * 100).toFixed(1) : "0.0";
-  return (
-    <div style={{
-      backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 8,
-      padding: "10px 14px", fontSize: 12,
-      fontFamily: "var(--font-inter), Inter, sans-serif",
-    }}>
-      <div style={{ fontWeight: 600, color: "#0E1330", marginBottom: 6 }}>{label}</div>
-      <div style={{ color: "#EA5B25", marginBottom: 2 }}>Collected: {fmtCompact(collected)}</div>
-      <div style={{ color: "#5B6475", marginBottom: 2 }}>Expected: {fmtCompact(expected)}</div>
-      <div style={{ color: "#C0392B", marginBottom: 4 }}>Shortfall: {fmtCompact(gap)}</div>
-      <div style={{ color: "#0E1330", fontWeight: 500 }}>Rate: {rate}%</div>
     </div>
   );
 }
@@ -404,12 +377,9 @@ function TenantDrawer({ tenant, onClose }: { tenant: TenantCreditScore | null; o
 export default function PKRentPayments() {
   const { period, filter } = useAnalyticsFilters();
 
-  // Existing data
   const stats        = getRentPageStats(period, filter);
-  const series       = getRentSeries(period, filter);
-  const overdueByAge = getOverdueByAge(period, filter);
 
-  // New data
+  // Section data
   const upcoming    = getUpcomingRentDue(filter);
   const timing      = getPaymentTiming(period, filter);
   const oldestUnpaid = getOldestUnpaid(filter);
@@ -417,19 +387,6 @@ export default function PKRentPayments() {
   const recovered   = getRecoveredAfterReminders(period, filter);
   const creditDist  = getCreditScoreDistribution(filter);
   const allScores   = getTenantCreditScores(filter);
-
-  // Chart data
-  const chartData = series.map((d) => ({
-    label:     d.label,
-    collected: d.collected,
-    gap:       Math.max(0, d.expected - d.collected),
-    rate:      d.expected > 0
-      ? parseFloat(((d.collected / d.expected) * 100).toFixed(1))
-      : 0,
-  }));
-
-  const overdueTotal = overdueByAge.reduce((s, b) => s + b.amount, 0);
-  const chartMinWidth = Math.max(520, series.length * 68);
 
   // Upcoming drawer state
   const [upcomingOpen, setUpcomingOpen] = useState(false);
@@ -540,71 +497,6 @@ export default function PKRentPayments() {
           <StatCard label="Total overdue"   value={fmtCompact(stats.totalOverdue)}           delta={stats.overdueDelta}   deltaMode="negative-good" />
         </div>
 
-        {/* Bar chart: Rent collected */}
-        <div style={{ marginTop: 48 }}>
-          <div style={{ backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 16, padding: 28 }}>
-
-            {/* Card header row */}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#0E1330" }}>Rent collected</div>
-                <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>Against what was expected each period</div>
-              </div>
-              {/* Legend */}
-              <div style={{ display: "flex", gap: 16, flexShrink: 0, marginLeft: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: "#EA5B25" }} />
-                  <span style={{ fontSize: 12, color: "#5B6475" }}>Collected</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: "#E6E8EE" }} />
-                  <span style={{ fontSize: 12, color: "#5B6475" }}>Expected</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Horizontally scrollable on mobile */}
-            <div style={{ overflowX: "auto" }}>
-              <div style={{ minWidth: chartMinWidth }}>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart
-                    data={chartData}
-                    barCategoryGap="55%"
-                    margin={{ top: 24, right: 8, bottom: 0, left: 8 }}
-                  >
-                    <CartesianGrid vertical={false} stroke="#EDEEF1" />
-                    <XAxis
-                      dataKey="label"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: "#5B6475" }}
-                      dy={6}
-                    />
-                    <YAxis
-                      tickFormatter={(v: number) => fmtCompact(v)}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: "#5B6475" }}
-                      width={56}
-                      tickCount={5}
-                    />
-                    <Tooltip content={<RentBarTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
-                    <Bar dataKey="collected" stackId="a" fill="#EA5B25" isAnimationActive={false} />
-                    <Bar dataKey="gap" stackId="a" fill="#E6E8EE" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-                      <LabelList
-                        dataKey="rate"
-                        position="top"
-                        style={{ fontSize: 10, fill: "#5B6475" }}
-                        formatter={(v: unknown) => `${v}%`}
-                      />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Section A+B: Upcoming rent due + Payment timing */}
         <div
           className="grid-cols-1 md:grid-cols-2"
@@ -705,54 +597,6 @@ export default function PKRentPayments() {
                   {timing.avgDaysLateOnly.toFixed(1)} days
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Overdue by age: full width */}
-        <div style={{ marginTop: 48 }}>
-          <div style={{ backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 16, padding: 28 }}>
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#0E1330" }}>Overdue by age</div>
-              <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>
-                Share of total overdue rent by how long it has been unpaid
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {overdueByAge.map((bucket, idx) => {
-                const sharePct  = overdueTotal > 0 ? (bucket.amount / overdueTotal) * 100 : 0;
-                const isLast    = idx === overdueByAge.length - 1;
-                const barColor  = isLast ? "#C0392B" : "#EA5B25";
-                return (
-                  <div key={bucket.label} style={{ display: "grid", gridTemplateColumns: "180px 1fr 160px", alignItems: "center", gap: 20 }}>
-
-                    {/* Left: label + count */}
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0E1330" }}>{bucket.label}</div>
-                      <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>{bucket.count} tenants</div>
-                    </div>
-
-                    {/* Middle: bar track */}
-                    <div style={{ height: 6, backgroundColor: "#EDEEF1", borderRadius: 3, overflow: "hidden" }}>
-                      <div style={{
-                        height: "100%",
-                        width: `${Math.max(sharePct, 1)}%`,
-                        backgroundColor: barColor,
-                        borderRadius: 3,
-                      }} />
-                    </div>
-
-                    {/* Right: amount + share */}
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0E1330" }}>{fmtCompact(bucket.amount)}</div>
-                      <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>
-                        {sharePct.toFixed(1)}% of overdue
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>
