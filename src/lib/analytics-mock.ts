@@ -965,3 +965,384 @@ export function getTenantPeriodLabel(period: Period): string {
   if (period === "monthly") return "over the last 6 months";
   return "over the last 12 months";
 }
+
+// ── RENT PAGE EXTENSIONS ──────────────────────────────────────────────────────
+
+// Location and monthly rent for the 60 sample tenants
+const TENANT_LOCATION: Record<string, string> = {
+  t01:"Ikeja", t02:"Magodo", t03:"Lekki",  t04:"Ajah",           t05:"Surulere",
+  t06:"Yaba",  t07:"Lekki",  t08:"Yaba",   t09:"Victoria Island", t10:"Magodo",
+  t11:"Ikeja", t12:"Ikeja",  t13:"Magodo", t14:"Ajah",            t15:"Victoria Island",
+  t16:"Lekki", t17:"Victoria Island", t18:"Magodo", t19:"Ikeja",  t20:"Ikeja",
+  t21:"Surulere", t22:"Ikeja", t23:"Ajah", t24:"Magodo",          t25:"Yaba",
+  t26:"Ikeja", t27:"Victoria Island", t28:"Lekki", t29:"Magodo",  t30:"Surulere",
+  t31:"Yaba",  t32:"Ikeja",  t33:"Lekki",  t34:"Ikeja",           t35:"Lekki",
+  t36:"Magodo",t37:"Victoria Island", t38:"Magodo", t39:"Ajah",   t40:"Lekki",
+  t41:"Yaba",  t42:"Ikeja",  t43:"Ikeja",  t44:"Lekki",           t45:"Ikeja",
+  t46:"Victoria Island", t47:"Surulere", t48:"Magodo", t49:"Magodo", t50:"Yaba",
+  t51:"Lekki", t52:"Ikeja",  t53:"Ikeja",  t54:"Ikeja",            t55:"Yaba",
+  t56:"Ajah",  t57:"Yaba",   t58:"Victoria Island", t59:"Magodo", t60:"Surulere",
+};
+
+const TENANT_MONTHLY_RENT: Record<string, number> = {
+  t01:1_900_000, t02:1_200_000, t03:2_100_000, t04:650_000,  t05:480_000,
+  t06:320_000,   t07:180_000,   t08:400_000,   t09:220_000,  t10:280_000,
+  t11:150_000,   t12:290_000,   t13:90_000,    t14:270_000,  t15:360_000,
+  t16:350_000,   t17:420_000,   t18:310_000,   t19:300_000,  t20:250_000,
+  t21:380_000,   t22:200_000,   t23:240_000,   t24:320_000,  t25:340_000,
+  t26:280_000,   t27:400_000,   t28:360_000,   t29:290_000,  t30:350_000,
+  t31:220_000,   t32:260_000,   t33:300_000,   t34:270_000,  t35:320_000,
+  t36:310_000,   t37:410_000,   t38:280_000,   t39:230_000,  t40:370_000,
+  t41:340_000,   t42:220_000,   t43:240_000,   t44:300_000,  t45:270_000,
+  t46:390_000,   t47:350_000,   t48:310_000,   t49:290_000,  t50:330_000,
+  t51:355_000,   t52:210_000,   t53:230_000,   t54:240_000,  t55:220_000,
+  t56:230_000,   t57:320_000,   t58:430_000,   t59:300_000,  t60:370_000,
+};
+
+const TENANT_DAYS_OVERDUE: Record<string, number> = {
+  t01:62, t02:48, t03:35, t04:48, t05:48,
+  t06:48, t07:48, t08:48, t09:48, t11:48,
+  t13:48, t14:48,
+};
+
+// ── UPCOMING RENT DUE ─────────────────────────────────────────────────────────
+
+export type UpcomingWeekRow = { label: string; dateRange: string; amount: number; count: number };
+export type UpcomingDueTenant = { id: string; name: string; property: string; amount: number; dueDate: string };
+
+const UPCOMING_BASE = {
+  all:      { total: 268_400_000, count: 1_192 },
+  landlord: { total: 228_200_000, count: 1_013 },
+  pm:       { total:  40_200_000, count:   179 },
+};
+
+const UPCOMING_WEEKS: Record<AccountType, UpcomingWeekRow[]> = {
+  all: [
+    { label: "Week 1", dateRange: "Nov 18 to 24", amount:  54_200_000, count: 238 },
+    { label: "Week 2", dateRange: "Nov 25 to Dec 1", amount: 72_600_000, count: 318 },
+    { label: "Week 3", dateRange: "Dec 2 to 8",   amount:  81_400_000, count: 357 },
+    { label: "Week 4", dateRange: "Dec 9 to 15",  amount:  60_200_000, count: 279 },
+  ],
+  landlord: [
+    { label: "Week 1", dateRange: "Nov 18 to 24", amount:  46_100_000, count: 202 },
+    { label: "Week 2", dateRange: "Nov 25 to Dec 1", amount: 61_700_000, count: 270 },
+    { label: "Week 3", dateRange: "Dec 2 to 8",   amount:  69_200_000, count: 304 },
+    { label: "Week 4", dateRange: "Dec 9 to 15",  amount:  51_200_000, count: 237 },
+  ],
+  pm: [
+    { label: "Week 1", dateRange: "Nov 18 to 24", amount:   8_100_000, count: 36 },
+    { label: "Week 2", dateRange: "Nov 25 to Dec 1", amount: 10_900_000, count: 48 },
+    { label: "Week 3", dateRange: "Dec 2 to 8",   amount:  12_200_000, count: 53 },
+    { label: "Week 4", dateRange: "Dec 9 to 15",  amount:   9_000_000, count: 42 },
+  ],
+};
+
+const UPCOMING_TENANT_IDS = [
+  { id: "t35", dueDate: "2026-11-20" },
+  { id: "t16", dueDate: "2026-11-22" },
+  { id: "t44", dueDate: "2026-11-25" },
+  { id: "t37", dueDate: "2026-11-28" },
+  { id: "t51", dueDate: "2026-12-01" },
+  { id: "t17", dueDate: "2026-12-01" },
+  { id: "t47", dueDate: "2026-12-04" },
+  { id: "t22", dueDate: "2026-12-08" },
+  { id: "t34", dueDate: "2026-12-12" },
+  { id: "t50", dueDate: "2026-12-15" },
+];
+
+export function getUpcomingRentDue(filter: AccountType): {
+  total: number; tenancyCount: number;
+  weeks: UpcomingWeekRow[];
+  soonest: UpcomingDueTenant[];
+} {
+  const base = UPCOMING_BASE[filter];
+  const soonest: UpcomingDueTenant[] = UPCOMING_TENANT_IDS
+    .map(({ id, dueDate }) => {
+      const def = TENANT_DEFS.find((d) => d.id === id);
+      if (!def) return null;
+      if (filter !== "all" && def.acct !== filter) return null;
+      return {
+        id, name: def.name, property: def.property,
+        amount: TENANT_MONTHLY_RENT[id] ?? 200_000,
+        dueDate,
+      };
+    })
+    .filter((x): x is UpcomingDueTenant => x !== null)
+    .slice(0, 10);
+  return {
+    total: base.total,
+    tenancyCount: base.count,
+    weeks: UPCOMING_WEEKS[filter],
+    soonest,
+  };
+}
+
+// ── PAYMENT TIMING ────────────────────────────────────────────────────────────
+
+export type PaymentTimingData = {
+  early:   { count: number; pct: number };
+  onTime:  { count: number; pct: number };
+  late:    { count: number; pct: number };
+  avgDaysAfterDue: number;
+  avgDaysLateOnly: number;
+};
+
+const BASE_TIMING: Record<Period, { earlyPct: number; onTimePct: number; latePct: number; avgAfterDue: number; avgLateOnly: number }> = {
+  weekly:  { earlyPct: 5.1, onTimePct: 42.0, latePct: 52.9, avgAfterDue: 4.2, avgLateOnly: 8.1 },
+  monthly: { earlyPct: 5.4, onTimePct: 44.1, latePct: 50.5, avgAfterDue: 3.8, avgLateOnly: 7.6 },
+  yearly:  { earlyPct: 5.8, onTimePct: 45.2, latePct: 49.0, avgAfterDue: 3.5, avgLateOnly: 7.2 },
+};
+
+export function getPaymentTiming(period: Period, filter: AccountType): PaymentTimingData {
+  const base = BASE_TIMING[period];
+  const tenants = getTenantPaymentStats(period, filter);
+  const monthsInPeriod = period === "weekly" ? 2 : period === "monthly" ? 6 : 12;
+  const totalPayments = Math.round(tenants.length * monthsInPeriod * 0.92);
+  return {
+    early:  { count: Math.round(totalPayments * base.earlyPct  / 100), pct: base.earlyPct  },
+    onTime: { count: Math.round(totalPayments * base.onTimePct / 100), pct: base.onTimePct },
+    late:   { count: Math.round(totalPayments * base.latePct   / 100), pct: base.latePct   },
+    avgDaysAfterDue: base.avgAfterDue,
+    avgDaysLateOnly: base.avgLateOnly,
+  };
+}
+
+// ── OLDEST UNPAID ACCOUNTS ────────────────────────────────────────────────────
+
+export type UnpaidAccountRow = {
+  id: string; name: string; property: string; landlord: string; location: string;
+  amountOverdue: number; daysOverdue: number;
+};
+
+export function getOldestUnpaid(filter: AccountType): UnpaidAccountRow[] {
+  return TENANT_DEFS
+    .filter((d) => d.balanceOwed > 0 && (filter === "all" || d.acct === filter))
+    .map((d) => ({
+      id: d.id, name: d.name, property: d.property, landlord: d.landlord,
+      location: TENANT_LOCATION[d.id] ?? "Lagos",
+      amountOverdue: d.balanceOwed,
+      daysOverdue: TENANT_DAYS_OVERDUE[d.id] ?? (d.unpaidLast > 1 ? 78 : 48),
+    }))
+    .sort((a, b) => b.daysOverdue - a.daysOverdue || b.amountOverdue - a.amountOverdue)
+    .slice(0, 10);
+}
+
+// ── RENT BY LOCATION ──────────────────────────────────────────────────────────
+
+export type RentByLocationRow = { location: string; collected: number; expected: number; rate: number };
+
+const BASE_LOCATION_RENT: Record<Period, RentByLocationRow[]> = {
+  yearly: [
+    { location: "Ajah",           collected: 268_000_000, expected: 320_000_000, rate: 83.8 },
+    { location: "Yaba",           collected: 162_000_000, expected: 192_000_000, rate: 84.4 },
+    { location: "Surulere",       collected: 148_000_000, expected: 164_000_000, rate: 90.2 },
+    { location: "Ikeja",          collected: 540_000_000, expected: 586_000_000, rate: 92.1 },
+    { location: "Magodo",         collected: 460_000_000, expected: 479_000_000, rate: 96.0 },
+    { location: "Lekki",          collected: 760_000_000, expected: 793_000_000, rate: 95.8 },
+    { location: "Victoria Island",collected: 620_000_000, expected: 638_000_000, rate: 97.2 },
+  ],
+  monthly: [
+    { location: "Ajah",           collected:  25_200_000, expected:  30_100_000, rate: 83.7 },
+    { location: "Yaba",           collected:  15_200_000, expected:  18_000_000, rate: 84.4 },
+    { location: "Surulere",       collected:  13_800_000, expected:  15_300_000, rate: 90.2 },
+    { location: "Ikeja",          collected:  50_600_000, expected:  54_900_000, rate: 92.2 },
+    { location: "Magodo",         collected:  43_000_000, expected:  44_800_000, rate: 96.0 },
+    { location: "Lekki",          collected:  71_000_000, expected:  74_200_000, rate: 95.7 },
+    { location: "Victoria Island",collected:  58_000_000, expected:  59_700_000, rate: 97.2 },
+  ],
+  weekly: [
+    { location: "Ajah",           collected:   6_200_000, expected:   7_400_000, rate: 83.8 },
+    { location: "Yaba",           collected:   3_700_000, expected:   4_400_000, rate: 84.1 },
+    { location: "Surulere",       collected:   3_400_000, expected:   3_700_000, rate: 91.9 },
+    { location: "Ikeja",          collected:  12_400_000, expected:  13_500_000, rate: 91.9 },
+    { location: "Magodo",         collected:  10_600_000, expected:  11_000_000, rate: 96.4 },
+    { location: "Lekki",          collected:  17_500_000, expected:  18_300_000, rate: 95.6 },
+    { location: "Victoria Island",collected:  14_300_000, expected:  14_700_000, rate: 97.3 },
+  ],
+};
+
+export function getRentByLocation(period: Period, filter: AccountType): RentByLocationRow[] {
+  const m = RENT_MULT[filter];
+  return BASE_LOCATION_RENT[period].map((d) => {
+    const col = Math.round(d.collected * m);
+    const exp = Math.round(d.expected  * m);
+    return { location: d.location, collected: col, expected: exp, rate: parseFloat(((col / exp) * 100).toFixed(1)) };
+  });
+}
+
+// ── RECOVERED AFTER REMINDERS ─────────────────────────────────────────────────
+
+export type RecoveryTrendPoint = { label: string; recovered: number };
+
+const BASE_RECOVERY: Record<Period, {
+  recovered: number; reminders: number; recoveryRate: number; avgDays: number;
+  trend: RecoveryTrendPoint[];
+}> = {
+  weekly: {
+    recovered: 8_200_000, reminders: 324, recoveryRate: 61.4, avgDays: 3.2,
+    trend: [
+      { label: "Sep 29", recovered: 7_100_000 },
+      { label: "Oct 6",  recovered: 7_800_000 },
+      { label: "Oct 13", recovered: 8_400_000 },
+      { label: "Oct 20", recovered: 7_600_000 },
+      { label: "Oct 27", recovered: 8_900_000 },
+      { label: "Nov 3",  recovered: 8_200_000 },
+    ],
+  },
+  monthly: {
+    recovered: 32_600_000, reminders: 1_438, recoveryRate: 63.8, avgDays: 3.1,
+    trend: [
+      { label: "May", recovered: 28_400_000 },
+      { label: "Jun", recovered: 30_100_000 },
+      { label: "Jul", recovered: 31_800_000 },
+      { label: "Aug", recovered: 29_600_000 },
+      { label: "Sep", recovered: 33_200_000 },
+      { label: "Oct", recovered: 32_600_000 },
+    ],
+  },
+  yearly: {
+    recovered: 96_200_000, reminders: 43_284, recoveryRate: 65.2, avgDays: 2.9,
+    trend: [
+      { label: "2021", recovered:  71_000_000 },
+      { label: "2022", recovered:  78_500_000 },
+      { label: "2023", recovered:  84_200_000 },
+      { label: "2024", recovered:  88_900_000 },
+      { label: "2025", recovered:  92_400_000 },
+      { label: "2026", recovered:  96_200_000 },
+    ],
+  },
+};
+
+export function getRecoveredAfterReminders(period: Period, filter: AccountType): {
+  totalRecovered: number; remindersCount: number;
+  recoveryRate: number; avgDaysAfterReminder: number;
+  trend: RecoveryTrendPoint[];
+} {
+  const m    = RENT_MULT[filter];
+  const base = BASE_RECOVERY[period];
+  return {
+    totalRecovered:    Math.round(base.recovered  * m),
+    remindersCount:    Math.round(base.reminders  * m),
+    recoveryRate:      base.recoveryRate,
+    avgDaysAfterReminder: base.avgDays,
+    trend: base.trend.map((t) => ({ label: t.label, recovered: Math.round(t.recovered * m) })),
+  };
+}
+
+// ── TENANT CREDIT SCORES ──────────────────────────────────────────────────────
+
+export type CreditScoreBand = "Excellent" | "Good" | "Fair" | "Poor" | "Very poor";
+
+export type TenantCreditScore = {
+  id: string; name: string; property: string; landlord: string; location: string;
+  score: number; band: CreditScoreBand; change3m: number;
+  paymentHistoryPts: number; latenessPts: number; arrearsPts: number; consistencyPts: number;
+  onTimeRate: number; avgDaysLate: number; balanceOwed: number; paymentsCount: number;
+  payments: TenantPaymentRecord[];
+};
+
+function bandFor(score: number): CreditScoreBand {
+  if (score >= 750) return "Excellent";
+  if (score >= 650) return "Good";
+  if (score >= 550) return "Fair";
+  if (score >= 450) return "Poor";
+  return "Very poor";
+}
+
+function computeScore(stats: TenantPaymentStats, monthlyRent: number, monthIndices: number[]): {
+  score: number; band: CreditScoreBand;
+  paymentHistoryPts: number; latenessPts: number; arrearsPts: number; consistencyPts: number;
+} {
+  const histFrac = stats.onTimeRate / 100;
+
+  const lateFrac = Math.max(0, 1 - stats.avgDaysLate / 30);
+
+  const maxArrears = Math.max(1, monthlyRent * 2);
+  const arrearsFrac = Math.max(0, 1 - stats.balanceOwed / maxArrears);
+
+  const subset = monthIndices.map((i) => stats.payments[i]);
+  let missed = 0;
+  let streak = 0;
+  let streakCount = 0;
+  for (const p of subset) {
+    if (!p.paidDate) { missed++; streak = 0; continue; }
+    const dl = daysLateForRecord(p) ?? 0;
+    if (dl > 0) { streak++; if (streak >= 2) streakCount++; }
+    else streak = 0;
+  }
+  const consFrac = Math.max(0, 1 - missed / 12 - streakCount / 6);
+
+  const weighted = 0.50 * histFrac + 0.20 * lateFrac + 0.20 * arrearsFrac + 0.10 * consFrac;
+  const score = Math.round(300 + 550 * Math.min(1, Math.max(0, weighted)));
+
+  return {
+    score,
+    band: bandFor(score),
+    paymentHistoryPts: Math.round(histFrac    * 275),
+    latenessPts:       Math.round(lateFrac    * 110),
+    arrearsPts:        Math.round(arrearsFrac * 110),
+    consistencyPts:    Math.round(consFrac    *  55),
+  };
+}
+
+export function getTenantCreditScores(filter: AccountType): TenantCreditScore[] {
+  const allIndices12 = [0,1,2,3,4,5,6,7,8,9,10,11];
+  const allIndices9  = [0,1,2,3,4,5,6,7,8];
+  return TENANT_DEFS
+    .filter((d) => filter === "all" || d.acct === filter)
+    .map((def) => {
+      const idx    = TENANT_DEFS.indexOf(def);
+      const stats  = deriveStats(def, idx, allIndices12);
+      const stats9 = deriveStats(def, idx, allIndices9);
+      const rent   = TENANT_MONTHLY_RENT[def.id] ?? 200_000;
+      const cur    = computeScore(stats,  rent, allIndices12);
+      const prev   = computeScore(stats9, rent, allIndices9);
+      return {
+        id: def.id, name: def.name, property: def.property,
+        landlord: def.landlord, location: TENANT_LOCATION[def.id] ?? "Lagos",
+        score: cur.score, band: cur.band, change3m: cur.score - prev.score,
+        paymentHistoryPts: cur.paymentHistoryPts,
+        latenessPts:       cur.latenessPts,
+        arrearsPts:        cur.arrearsPts,
+        consistencyPts:    cur.consistencyPts,
+        onTimeRate:   stats.onTimeRate,
+        avgDaysLate:  stats.avgDaysLate,
+        balanceOwed:  def.balanceOwed,
+        paymentsCount:stats.paymentsCount,
+        payments:     stats.payments,
+      };
+    });
+}
+
+export function getCreditScoreDistribution(filter: AccountType): {
+  average: number;
+  bands: Array<{ band: CreditScoreBand; count: number; pct: number; color: string }>;
+} {
+  const scores = getTenantCreditScores(filter);
+  if (scores.length === 0) {
+    const bandDefs: Array<{ band: CreditScoreBand; color: string }> = [
+      { band: "Excellent", color: "#3D8A5E" },
+      { band: "Good",      color: "#6DAE87" },
+      { band: "Fair",      color: "#C9856A" },
+      { band: "Poor",      color: "#A05040" },
+      { band: "Very poor", color: "#7A2828" },
+    ];
+    return { average: 0, bands: bandDefs.map((b) => ({ ...b, count: 0, pct: 0 })) };
+  }
+  const avg = Math.round(scores.reduce((s, t) => s + t.score, 0) / scores.length);
+  const total = scores.length;
+  const bandOrder: Array<{ band: CreditScoreBand; color: string }> = [
+    { band: "Excellent", color: "#3D8A5E" },
+    { band: "Good",      color: "#6DAE87" },
+    { band: "Fair",      color: "#C9856A" },
+    { band: "Poor",      color: "#A05040" },
+    { band: "Very poor", color: "#7A2828" },
+  ];
+  return {
+    average: avg,
+    bands: bandOrder.map((b) => {
+      const count = scores.filter((s) => s.band === b.band).length;
+      return { band: b.band, count, pct: parseFloat(((count / total) * 100).toFixed(1)), color: b.color };
+    }),
+  };
+}
