@@ -3,13 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ResponsiveContainer, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip,
+  XAxis, YAxis, CartesianGrid, Tooltip, LabelList,
 } from "recharts";
 import {
   getPeriod, getAccountType, subscribeToAnalyticsFilters,
 } from "@/lib/analyticsDateStore";
 import {
-  getRentPageStats,
+  getRentPageStats, getRentSeries,
   fmtCompact, fmtPct,
   getUpcomingRentDue, getPaymentTiming, getOldestUnpaid, getRentByLocation,
   getRecoveredAfterReminders, getTenantCreditScores, getCreditScoreDistribution,
@@ -63,6 +63,33 @@ function StatCard({ label, value, delta, deltaMode }: {
         {value}
       </div>
       <DeltaBadge value={delta} mode={deltaMode} />
+    </div>
+  );
+}
+
+// ── Bar chart custom tooltip ───────────────────────────────────────────────────
+
+function RentBarTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: Array<{ dataKey: string; value: number }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const collected = payload.find((p) => p.dataKey === "collected")?.value ?? 0;
+  const gap       = payload.find((p) => p.dataKey === "gap")?.value ?? 0;
+  const expected  = collected + gap;
+  const rate      = expected > 0 ? ((collected / expected) * 100).toFixed(1) : "0.0";
+  return (
+    <div style={{
+      backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 8,
+      padding: "10px 14px", fontSize: 12,
+      fontFamily: "var(--font-inter), Inter, sans-serif",
+    }}>
+      <div style={{ fontWeight: 600, color: "#0E1330", marginBottom: 6 }}>{label}</div>
+      <div style={{ color: "#EA5B25", marginBottom: 2 }}>Collected: {fmtCompact(collected)}</div>
+      <div style={{ color: "#5B6475", marginBottom: 2 }}>Expected: {fmtCompact(expected)}</div>
+      <div style={{ color: "#C0392B", marginBottom: 4 }}>Shortfall: {fmtCompact(gap)}</div>
+      <div style={{ color: "#0E1330", fontWeight: 500 }}>Rate: {rate}%</div>
     </div>
   );
 }
@@ -378,6 +405,17 @@ export default function PKRentPayments() {
   const { period, filter } = useAnalyticsFilters();
 
   const stats        = getRentPageStats(period, filter);
+  const series       = getRentSeries(period, filter);
+
+  const chartData = series.map((d) => ({
+    label:     d.label,
+    collected: d.collected,
+    gap:       Math.max(0, d.expected - d.collected),
+    rate:      d.expected > 0
+      ? parseFloat(((d.collected / d.expected) * 100).toFixed(1))
+      : 0,
+  }));
+  const chartMinWidth = Math.max(520, series.length * 68);
 
   // Section data
   const upcoming    = getUpcomingRentDue(filter);
@@ -495,6 +533,44 @@ export default function PKRentPayments() {
           <StatCard label="Rent expected"   value={fmtCompact(stats.expected)}               delta={stats.expectedDelta}  deltaMode="neutral" />
           <StatCard label="Collection rate" value={fmtPct(stats.collectionRate)}             delta={stats.rateDelta}      deltaMode="pp" />
           <StatCard label="Total overdue"   value={fmtCompact(stats.totalOverdue)}           delta={stats.overdueDelta}   deltaMode="negative-good" />
+        </div>
+
+        {/* Bar chart: Rent collected */}
+        <div style={{ marginTop: 48 }}>
+          <div style={{ backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 16, padding: 28 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "#0E1330" }}>Rent collected</div>
+                <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>Against what was expected each period</div>
+              </div>
+              <div style={{ display: "flex", gap: 16, flexShrink: 0, marginLeft: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: "#EA5B25" }} />
+                  <span style={{ fontSize: 12, color: "#5B6475" }}>Collected</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: "#E6E8EE" }} />
+                  <span style={{ fontSize: 12, color: "#5B6475" }}>Expected</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <div style={{ minWidth: chartMinWidth }}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={chartData} barCategoryGap="55%" margin={{ top: 24, right: 8, bottom: 0, left: 8 }}>
+                    <CartesianGrid vertical={false} stroke="#EDEEF1" />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#5B6475" }} dy={6} />
+                    <YAxis tickFormatter={(v: number) => fmtCompact(v)} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#5B6475" }} width={56} tickCount={5} />
+                    <Tooltip content={<RentBarTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+                    <Bar dataKey="collected" stackId="a" fill="#EA5B25" isAnimationActive={false} />
+                    <Bar dataKey="gap" stackId="a" fill="#E6E8EE" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="rate" position="top" style={{ fontSize: 10, fill: "#5B6475" }} formatter={(v: unknown) => `${v}%`} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Section A+B: Upcoming rent due + Payment timing */}
