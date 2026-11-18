@@ -808,3 +808,238 @@ export const HIGHLIGHT_REOPENED = {
     { name: "Jide Akinola",  reopened: 15 },
   ],
 };
+
+// ── TENANT PAYMENT DATA ───────────────────────────────────────────────────────
+
+const MONTHS_12 = [
+  { label: "Nov 2025", due: "2025-11-01" },
+  { label: "Dec 2025", due: "2025-12-01" },
+  { label: "Jan 2026", due: "2026-01-01" },
+  { label: "Feb 2026", due: "2026-02-01" },
+  { label: "Mar 2026", due: "2026-03-01" },
+  { label: "Apr 2026", due: "2026-04-01" },
+  { label: "May 2026", due: "2026-05-01" },
+  { label: "Jun 2026", due: "2026-06-01" },
+  { label: "Jul 2026", due: "2026-07-01" },
+  { label: "Aug 2026", due: "2026-08-01" },
+  { label: "Sep 2026", due: "2026-09-01" },
+  { label: "Oct 2026", due: "2026-10-01" },
+];
+
+export type TenantPaymentRecord = {
+  month:    string;
+  dueDate:  string;
+  paidDate: string | null;
+};
+
+export type TenantPaymentStats = {
+  id:            string;
+  name:          string;
+  property:      string;
+  landlord:      string;
+  balanceOwed:   number;
+  onTimeRate:    number;
+  avgDaysLate:   number;
+  paymentsCount: number;
+  group:         "always" | "mostly" | "often" | "chronic";
+  payments:      TenantPaymentRecord[];
+};
+
+export type PaymentReliabilityData = {
+  overallOnTimeRate: number;
+  always:  { count: number; pct: number };
+  mostly:  { count: number; pct: number };
+  often:   { count: number; pct: number };
+  chronic: { count: number; pct: number };
+};
+
+function seededFrac(a: number, b: number): number {
+  const x = Math.abs(Math.sin(a * 127.1 + b * 311.7) * 43758.5453);
+  return x - Math.floor(x);
+}
+
+function isoAddDays(iso: string, days: number): string {
+  const d = new Date(iso + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+type TenantDef = {
+  id:          string;
+  name:        string;
+  property:    string;
+  landlord:    string;
+  acct:        "landlord" | "pm";
+  balanceOwed: number;
+  probOnTime:  number;
+  unpaidLast:  number;
+};
+
+const TENANT_DEFS: TenantDef[] = [
+  // Chronically late (<40%)
+  { id:"t01", name:"Tunde Akinwale",      property:"Royal Gardens, Unit 1",     landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:3_800_000, probOnTime:0.17, unpaidLast:2 },
+  { id:"t02", name:"Emeka Chukwu",         property:"Cedar Park, Unit 3B",       landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:1_200_000, probOnTime:0.25, unpaidLast:1 },
+  { id:"t03", name:"Fatima Bello",         property:"Ocean View, Unit 5A",       landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:2_100_000, probOnTime:0.20, unpaidLast:1 },
+  { id:"t04", name:"Olawale Adeyemi",      property:"Palm Grove, Unit 2C",       landlord:"Taiwo Adeyemi",         acct:"landlord", balanceOwed:  650_000, probOnTime:0.33, unpaidLast:1 },
+  { id:"t05", name:"Grace Nwankwo",        property:"Surulere Court, Unit 1",    landlord:"Yetunde Fashola",       acct:"pm",       balanceOwed:  480_000, probOnTime:0.30, unpaidLast:1 },
+  // Often late (40-69%)
+  { id:"t06", name:"Kemi Ibrahim",         property:"Maple Court, Unit 8D",      landlord:"Obinna Eze",            acct:"landlord", balanceOwed:  320_000, probOnTime:0.50, unpaidLast:1 },
+  { id:"t07", name:"Chidi Obi",            property:"Sapphire Heights, Unit 2A", landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:  180_000, probOnTime:0.55, unpaidLast:1 },
+  { id:"t08", name:"Nkechi Obasi",         property:"Crystal Heights, Unit 3",   landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:  400_000, probOnTime:0.47, unpaidLast:1 },
+  { id:"t09", name:"Rotimi Fola",          property:"Sunrise Estate, Unit 2B",   landlord:"Taiwo Adeyemi",         acct:"landlord", balanceOwed:  220_000, probOnTime:0.60, unpaidLast:1 },
+  { id:"t10", name:"Adaeze Nnaji",         property:"Parkview Estate, Unit 4",   landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.42, unpaidLast:0 },
+  { id:"t11", name:"Muyiwa Dada",          property:"Lagos Heights, Unit 7",     landlord:"Chukwuemeka Nwachukwu", acct:"pm",       balanceOwed:  150_000, probOnTime:0.58, unpaidLast:1 },
+  { id:"t12", name:"Chisom Okonkwo",       property:"Royal Gardens, Unit 4",     landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.45, unpaidLast:0 },
+  { id:"t13", name:"Bola Tijani",          property:"Cedar Park, Unit 1A",       landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:   90_000, probOnTime:0.63, unpaidLast:1 },
+  { id:"t14", name:"Ikenna Mba",           property:"Palm Grove, Unit 5",        landlord:"Taiwo Adeyemi",         acct:"landlord", balanceOwed:  270_000, probOnTime:0.48, unpaidLast:1 },
+  { id:"t15", name:"Funke Ayoola",         property:"Sunrise Estate, Unit 6B",   landlord:"Taiwo Adeyemi",         acct:"landlord", balanceOwed:        0, probOnTime:0.65, unpaidLast:0 },
+  // Mostly on time (70-89%)
+  { id:"t16", name:"Yemi Bankole",         property:"Lekki Gardens, Unit 3",     landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:        0, probOnTime:0.75, unpaidLast:0 },
+  { id:"t17", name:"Toyin Adewale",        property:"Victoria Homes, Unit 2",    landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.80, unpaidLast:0 },
+  { id:"t18", name:"Seun Fashola",         property:"Cedar Park, Unit 5B",       landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.78, unpaidLast:0 },
+  { id:"t19", name:"Sola Alabi",           property:"Royal Gardens, Unit 2",     landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.83, unpaidLast:0 },
+  { id:"t20", name:"Chukwu Okafor",        property:"Ikeja Villas, Unit 1",      landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.72, unpaidLast:0 },
+  { id:"t21", name:"Amara Nwosu",          property:"Sunset Villas, Unit 2A",    landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.85, unpaidLast:0 },
+  { id:"t22", name:"Dipo Adeola",          property:"Lagos Heights, Unit 3",     landlord:"Chukwuemeka Nwachukwu", acct:"pm",       balanceOwed:        0, probOnTime:0.77, unpaidLast:0 },
+  { id:"t23", name:"Lola Ogun",            property:"Palm Grove, Unit 3A",       landlord:"Taiwo Adeyemi",         acct:"landlord", balanceOwed:        0, probOnTime:0.73, unpaidLast:0 },
+  { id:"t24", name:"Remi Coker",           property:"Cedar Park, Unit 2",        landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.82, unpaidLast:0 },
+  { id:"t25", name:"Ifeanyi Nze",          property:"Crystal Heights, Unit 1",   landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:        0, probOnTime:0.87, unpaidLast:0 },
+  { id:"t26", name:"Ngozi Mba",            property:"Royal Gardens, Unit 6",     landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.74, unpaidLast:0 },
+  { id:"t27", name:"Tola Fashola",         property:"Victoria Homes, Unit 4",    landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.79, unpaidLast:0 },
+  { id:"t28", name:"Kayode Adeoba",        property:"Lekki Gardens, Unit 5",     landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:        0, probOnTime:0.84, unpaidLast:0 },
+  { id:"t29", name:"Adunola Ojo",          property:"Parkview Estate, Unit 2",   landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.76, unpaidLast:0 },
+  { id:"t30", name:"Chinedu Obi",          property:"Sunset Villas, Unit 4",     landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.81, unpaidLast:0 },
+  { id:"t31", name:"Folake Bello",         property:"Maple Court, Unit 2A",      landlord:"Obinna Eze",            acct:"landlord", balanceOwed:        0, probOnTime:0.86, unpaidLast:0 },
+  { id:"t32", name:"Tobi Adeyemi",         property:"Ikeja Villas, Unit 3",      landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.71, unpaidLast:0 },
+  { id:"t33", name:"Chiamaka Eze",         property:"Sapphire Heights, Unit 1",  landlord:"Funmilayo Okonjo",      acct:"pm",       balanceOwed:        0, probOnTime:0.88, unpaidLast:0 },
+  // Always on time (>=90%)
+  { id:"t34", name:"Biodun Adeleke Jr",    property:"Royal Gardens, Unit 3",     landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.95, unpaidLast:0 },
+  { id:"t35", name:"Funmi Okafor",         property:"Lekki Heights, Unit 1",     landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.92, unpaidLast:0 },
+  { id:"t36", name:"Temi Williams",        property:"Cedar Park, Unit 4A",       landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.97, unpaidLast:0 },
+  { id:"t37", name:"Taiwo Coker",          property:"Victoria Homes, Unit 1",    landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.93, unpaidLast:0 },
+  { id:"t38", name:"Chukwudi Nweze",       property:"Parkview Estate, Unit 1",   landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.90, unpaidLast:0 },
+  { id:"t39", name:"Ada Obi",             property:"Palm Grove, Unit 1B",       landlord:"Taiwo Adeyemi",         acct:"landlord", balanceOwed:        0, probOnTime:0.96, unpaidLast:0 },
+  { id:"t40", name:"Emeka Johnson",        property:"Lekki Gardens, Unit 2",     landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:        0, probOnTime:0.91, unpaidLast:0 },
+  { id:"t41", name:"Sade Coker",           property:"Crystal Heights, Unit 2",   landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:        0, probOnTime:0.98, unpaidLast:0 },
+  { id:"t42", name:"Femi Adeola",          property:"Lagos Heights, Unit 1",     landlord:"Chukwuemeka Nwachukwu", acct:"pm",       balanceOwed:        0, probOnTime:0.94, unpaidLast:0 },
+  { id:"t43", name:"Nkechi Williams",      property:"Ikeja Villas, Unit 2",      landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.90, unpaidLast:0 },
+  { id:"t44", name:"Yetunde Okonkwo",      property:"Sapphire Heights, Unit 3",  landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:        0, probOnTime:0.95, unpaidLast:0 },
+  { id:"t45", name:"Kayode Bankole",       property:"Royal Gardens, Unit 5",     landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.93, unpaidLast:0 },
+  { id:"t46", name:"Damilola Nwosu",       property:"Victoria Homes, Unit 3",    landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.92, unpaidLast:0 },
+  { id:"t47", name:"Chidi Fashola",        property:"Sunset Villas, Unit 1",     landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.97, unpaidLast:0 },
+  { id:"t48", name:"Amaka Eze",           property:"Cedar Park, Unit 6",        landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.91, unpaidLast:0 },
+  { id:"t49", name:"Tosin Adeyemi",        property:"Parkview Estate, Unit 3",   landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.96, unpaidLast:0 },
+  { id:"t50", name:"Remi Bankole",         property:"Crystal Heights, Unit 4",   landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:        0, probOnTime:0.90, unpaidLast:0 },
+  { id:"t51", name:"Lola Okafor",          property:"Lekki Gardens, Unit 4",     landlord:"Funmilayo Okonjo",      acct:"landlord", balanceOwed:        0, probOnTime:0.94, unpaidLast:0 },
+  { id:"t52", name:"Yemi Fashola",         property:"Lagos Heights, Unit 2",     landlord:"Chukwuemeka Nwachukwu", acct:"pm",       balanceOwed:        0, probOnTime:0.98, unpaidLast:0 },
+  { id:"t53", name:"Ifeyinwa Mba",         property:"Royal Gardens, Unit 7",     landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.93, unpaidLast:0 },
+  { id:"t54", name:"Toyin Nze",           property:"Ikeja Villas, Unit 4",      landlord:"Emeka Okafor",          acct:"landlord", balanceOwed:        0, probOnTime:0.91, unpaidLast:0 },
+  { id:"t55", name:"Biodun Coker",         property:"Maple Court, Unit 1",       landlord:"Yetunde Fashola",       acct:"landlord", balanceOwed:        0, probOnTime:0.95, unpaidLast:0 },
+  { id:"t56", name:"Ngozi Obi",           property:"Palm Grove, Unit 4B",       landlord:"Taiwo Adeyemi",         acct:"pm",       balanceOwed:        0, probOnTime:0.92, unpaidLast:0 },
+  { id:"t57", name:"Chiamaka Bankole",     property:"Crystal Heights, Unit 5",   landlord:"Funmilayo Okonjo",      acct:"pm",       balanceOwed:        0, probOnTime:0.96, unpaidLast:0 },
+  { id:"t58", name:"Chukwu Adeola",        property:"Victoria Homes, Unit 5",    landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.90, unpaidLast:0 },
+  { id:"t59", name:"Femi Nwosu",           property:"Cedar Park, Unit 7",        landlord:"Biodun Adeleke",        acct:"landlord", balanceOwed:        0, probOnTime:0.97, unpaidLast:0 },
+  { id:"t60", name:"Ada Fashola",          property:"Sunset Villas, Unit 5",     landlord:"Emeka Okafor",          acct:"pm",       balanceOwed:        0, probOnTime:0.94, unpaidLast:0 },
+];
+
+function buildPayments(tenantIdx: number, def: TenantDef): TenantPaymentRecord[] {
+  return MONTHS_12.map((m, mIdx) => {
+    if (mIdx >= 12 - def.unpaidLast) {
+      return { month: m.label, dueDate: m.due, paidDate: null };
+    }
+    const r = seededFrac(tenantIdx, mIdx);
+    if (r < def.probOnTime) {
+      return { month: m.label, dueDate: m.due, paidDate: m.due };
+    }
+    const daysLate = 1 + Math.floor(seededFrac(tenantIdx + 100, mIdx) * 44);
+    return { month: m.label, dueDate: m.due, paidDate: isoAddDays(m.due, daysLate) };
+  });
+}
+
+function daysLateForRecord(r: TenantPaymentRecord): number | null {
+  if (!r.paidDate) return null;
+  const due  = new Date(r.dueDate  + "T12:00:00Z");
+  const paid = new Date(r.paidDate + "T12:00:00Z");
+  return Math.max(0, Math.round((paid.getTime() - due.getTime()) / 86_400_000));
+}
+
+function getMonthIndices(period: Period): number[] {
+  if (period === "weekly")  return [10, 11];
+  if (period === "monthly") return [6, 7, 8, 9, 10, 11];
+  return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+}
+
+function deriveStats(def: TenantDef, tenantIdx: number, monthIndices: number[]): TenantPaymentStats {
+  const allPayments = buildPayments(tenantIdx, def);
+  const subset      = monthIndices.map((i) => allPayments[i]);
+
+  let onTimeCount  = 0;
+  let lateCount    = 0;
+  let totalDaysLate = 0;
+
+  for (const r of subset) {
+    if (r.paidDate === null) continue;
+    const dl = daysLateForRecord(r);
+    if (dl === 0)      onTimeCount++;
+    else if (dl! > 0) { lateCount++; totalDaysLate += dl!; }
+  }
+
+  const paidCount  = onTimeCount + lateCount;
+  const onTimeRate = paidCount > 0
+    ? parseFloat(((onTimeCount / paidCount) * 100).toFixed(1))
+    : 0;
+  const avgDaysLate = lateCount > 0
+    ? parseFloat((totalDaysLate / lateCount).toFixed(1))
+    : 0;
+
+  const group: TenantPaymentStats["group"] =
+    onTimeRate >= 90 ? "always" :
+    onTimeRate >= 70 ? "mostly" :
+    onTimeRate >= 40 ? "often"  : "chronic";
+
+  return {
+    id: def.id, name: def.name, property: def.property,
+    landlord: def.landlord, balanceOwed: def.balanceOwed,
+    onTimeRate, avgDaysLate, paymentsCount: paidCount, group,
+    payments: allPayments,
+  };
+}
+
+export function getTenantPaymentStats(period: Period, filter: AccountType): TenantPaymentStats[] {
+  const monthIndices = getMonthIndices(period);
+  return TENANT_DEFS
+    .filter((def) => filter === "all" || def.acct === filter)
+    .map((def) => deriveStats(def, TENANT_DEFS.indexOf(def), monthIndices))
+    .filter((s) => s.paymentsCount > 0);
+}
+
+export function getPaymentReliabilityData(period: Period, filter: AccountType): PaymentReliabilityData {
+  const stats = getTenantPaymentStats(period, filter);
+  if (stats.length === 0) {
+    return { overallOnTimeRate: 0,
+      always: {count:0,pct:0}, mostly: {count:0,pct:0},
+      often:  {count:0,pct:0}, chronic:{count:0,pct:0} };
+  }
+  const total   = stats.length;
+  const always  = stats.filter((s) => s.group === "always").length;
+  const mostly  = stats.filter((s) => s.group === "mostly").length;
+  const often   = stats.filter((s) => s.group === "often").length;
+  const chronic = stats.filter((s) => s.group === "chronic").length;
+  const overallOnTimeRate = parseFloat(
+    (stats.reduce((sum, s) => sum + s.onTimeRate, 0) / total).toFixed(1)
+  );
+  const p = (n: number) => parseFloat(((n / total) * 100).toFixed(1));
+  return {
+    overallOnTimeRate,
+    always:  { count: always,  pct: p(always)  },
+    mostly:  { count: mostly,  pct: p(mostly)  },
+    often:   { count: often,   pct: p(often)   },
+    chronic: { count: chronic, pct: p(chronic) },
+  };
+}
+
+export function getTenantPeriodLabel(period: Period): string {
+  if (period === "weekly")  return "over the last 2 months";
+  if (period === "monthly") return "over the last 6 months";
+  return "over the last 12 months";
+}

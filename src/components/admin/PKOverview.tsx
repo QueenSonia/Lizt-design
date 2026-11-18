@@ -16,6 +16,7 @@ import {
   HIGHLIGHT_OVERDUE, HIGHLIGHT_VACANT, HIGHLIGHT_REOPENED,
 } from "@/lib/analytics-mock";
 import { PKAnalyticsHeader } from "./PKAnalyticsHeader";
+import TenantPaymentsSection from "./TenantPaymentsSection";
 import { useRouter } from "next/navigation";
 
 // ── Y-axis auto-domain ────────────────────────────────────────────────────────
@@ -565,6 +566,9 @@ export default function PKOverview() {
             />
           </div>
         </div>
+
+        {/* Tenant payments section */}
+        <TenantPaymentsSection />
       </div>
 
       {/* Trend modal portal */}
