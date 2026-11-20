@@ -1346,3 +1346,155 @@ export function getCreditScoreDistribution(filter: AccountType): {
     }),
   };
 }
+
+// ── DEFAULT RATE ──────────────────────────────────────────────────────────────
+
+export const DEFAULT_GRACE_DAYS  = 7;
+export const TARGET_DEFAULT_RATE = 5.0;
+
+export type DefaultRatePoint = {
+  label:       string;
+  rate:        number;
+  defaulted:   number;
+  classified:  number;
+  inProgress?: boolean;
+};
+
+export type DefaultRateStats = {
+  currentRate:       number;
+  changePp:          number;
+  defaultedCount:    number;
+  amountInDefault:   number;
+  tenantsInDefault:  number;
+  unclassifiedCount: number;
+};
+
+export type TenantDefaultRow = {
+  id:              string;
+  name:            string;
+  property:        string;
+  landlord:        string;
+  defaults:        number;
+  amountInDefault: number;
+  longestDelay:    number;
+};
+
+const DEFAULT_WEEKLY_SERIES: DefaultRatePoint[] = [
+  { label: "4 Sep",  rate: 7.2, defaulted: 16, classified: 222 },
+  { label: "11 Sep", rate: 7.0, defaulted: 15, classified: 214 },
+  { label: "18 Sep", rate: 6.8, defaulted: 14, classified: 206 },
+  { label: "25 Sep", rate: 6.9, defaulted: 15, classified: 217 },
+  { label: "2 Oct",  rate: 6.7, defaulted: 14, classified: 209 },
+  { label: "9 Oct",  rate: 6.5, defaulted: 14, classified: 215 },
+  { label: "16 Oct", rate: 6.6, defaulted: 14, classified: 212 },
+  { label: "23 Oct", rate: 6.4, defaulted: 13, classified: 203 },
+  { label: "30 Oct", rate: 6.3, defaulted: 13, classified: 206 },
+  { label: "6 Nov",  rate: 6.4, defaulted: 14, classified: 219 },
+  { label: "13 Nov", rate: 6.2, defaulted: 13, classified: 210 },
+  { label: "20 Nov", rate: 6.1, defaulted:  8, classified: 131, inProgress: true },
+];
+
+const DEFAULT_MONTHLY_SERIES: DefaultRatePoint[] = [
+  { label: "Nov '25", rate: 7.8, defaulted:  72, classified:  922 },
+  { label: "Dec '25", rate: 7.5, defaulted:  68, classified:  907 },
+  { label: "Jan '26", rate: 7.3, defaulted:  66, classified:  904 },
+  { label: "Feb '26", rate: 7.1, defaulted:  63, classified:  888 },
+  { label: "Mar '26", rate: 7.0, defaulted:  62, classified:  886 },
+  { label: "Apr '26", rate: 6.8, defaulted:  61, classified:  897 },
+  { label: "May '26", rate: 6.6, defaulted:  59, classified:  893 },
+  { label: "Jun '26", rate: 6.5, defaulted:  58, classified:  893 },
+  { label: "Jul '26", rate: 6.4, defaulted:  57, classified:  891 },
+  { label: "Aug '26", rate: 6.3, defaulted:  56, classified:  889 },
+  { label: "Sep '26", rate: 6.5, defaulted:  58, classified:  893 },
+  { label: "Oct '26", rate: 6.5, defaulted:  38, classified:  585, inProgress: true },
+];
+
+const DEFAULT_YEARLY_SERIES: DefaultRatePoint[] = [
+  { label: "2022", rate: 11.2, defaulted: 1250, classified: 11160 },
+  { label: "2023", rate:  9.8, defaulted: 1120, classified: 11428 },
+  { label: "2024", rate:  8.4, defaulted:  990, classified: 11785 },
+  { label: "2025", rate:  7.1, defaulted:  850, classified: 11972 },
+  { label: "2026", rate:  6.5, defaulted:  620, classified:  9538, inProgress: true },
+];
+
+const DEFAULT_STATS_BASE: Record<Period, DefaultRateStats> = {
+  weekly:  { currentRate: 6.2, changePp: -0.2, defaultedCount:  13, amountInDefault:  11_400_000, tenantsInDefault: 11, unclassifiedCount:  18 },
+  monthly: { currentRate: 6.5, changePp:  0.2, defaultedCount:  58, amountInDefault:  51_200_000, tenantsInDefault: 15, unclassifiedCount:  42 },
+  yearly:  { currentRate: 7.1, changePp: -1.3, defaultedCount: 850, amountInDefault: 740_000_000, tenantsInDefault: 22, unclassifiedCount: 130 },
+};
+
+export function getDefaultRateSeries(period: Period, filter: AccountType): DefaultRatePoint[] {
+  const base =
+    period === "weekly"  ? DEFAULT_WEEKLY_SERIES  :
+    period === "monthly" ? DEFAULT_MONTHLY_SERIES :
+                           DEFAULT_YEARLY_SERIES;
+  if (filter === "all") return base;
+  const scale = filter === "landlord" ? 0.85 : 0.15;
+  return base.map((pt) => ({
+    ...pt,
+    defaulted:  Math.round(pt.defaulted  * scale),
+    classified: Math.round(pt.classified * scale),
+  }));
+}
+
+export function getDefaultRateStats(period: Period, filter: AccountType): DefaultRateStats {
+  const base = DEFAULT_STATS_BASE[period];
+  if (filter === "all") return base;
+  const scale = filter === "landlord" ? 0.85 : 0.15;
+  return {
+    ...base,
+    defaultedCount:    Math.round(base.defaultedCount    * scale),
+    amountInDefault:   Math.round(base.amountInDefault   * scale),
+    tenantsInDefault:  Math.round(base.tenantsInDefault  * scale),
+    unclassifiedCount: Math.round(base.unclassifiedCount * scale),
+  };
+}
+
+export function getTenantsInDefault(period: Period, filter: AccountType): TenantDefaultRow[] {
+  const grace        = DEFAULT_GRACE_DAYS;
+  const monthIndices = getMonthIndices(period);
+  const rows: TenantDefaultRow[] = [];
+
+  TENANT_DEFS.forEach((def, idx) => {
+    if (filter !== "all" && def.acct !== filter) return;
+
+    const payments = buildPayments(idx, def);
+    const subset   = monthIndices.map((i) => payments[i]);
+
+    let defaultCount = 0;
+    let longestDelay = 0;
+
+    for (const p of subset) {
+      if (!p.paidDate) {
+        defaultCount++;
+        const d = TENANT_DAYS_OVERDUE[def.id] ?? 10;
+        longestDelay = Math.max(longestDelay, d);
+      } else {
+        const dl = daysLateForRecord(p) ?? 0;
+        if (dl > grace) {
+          defaultCount++;
+          longestDelay = Math.max(longestDelay, dl);
+        }
+      }
+    }
+
+    if (defaultCount === 0) return;
+
+    const monthlyRent     = TENANT_MONTHLY_RENT[def.id] ?? 200_000;
+    const amountInDefault = def.balanceOwed > 0
+      ? def.balanceOwed
+      : monthlyRent * Math.min(defaultCount, monthIndices.length);
+
+    rows.push({
+      id: def.id,
+      name: def.name,
+      property: def.property,
+      landlord: def.landlord,
+      defaults: defaultCount,
+      amountInDefault,
+      longestDelay,
+    });
+  });
+
+  return rows.sort((a, b) => b.amountInDefault - a.amountInDefault);
+}

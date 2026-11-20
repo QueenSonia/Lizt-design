@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ResponsiveContainer, BarChart, Bar,
+  LineChart, Line, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, LabelList,
 } from "recharts";
 import {
@@ -10,15 +11,19 @@ import {
 } from "@/lib/analyticsDateStore";
 import {
   getRentPageStats, getRentSeries,
-  fmtCompact, fmtPct,
+  fmtCompact, fmtPct, fmtNum,
   getUpcomingRentDue, getPaymentTiming, getOldestUnpaid, getRentByLocation,
   getRecoveredAfterReminders, getTenantCreditScores, getCreditScoreDistribution,
+  getOverviewStats,
+  DEFAULT_GRACE_DAYS, TARGET_DEFAULT_RATE,
+  getDefaultRateSeries, getDefaultRateStats, getTenantsInDefault,
   type UpcomingWeekRow, type UpcomingDueTenant,
   type UnpaidAccountRow,
   type RentByLocationRow,
   type RecoveryTrendPoint,
   type TenantCreditScore, type CreditScoreBand,
   type TenantPaymentRecord,
+  type TenantDefaultRow,
 } from "@/lib/analytics-mock";
 import { PKAnalyticsHeader } from "./PKAnalyticsHeader";
 
@@ -110,6 +115,33 @@ function RecoveryTooltip({ active, payload, label }: {
     }}>
       <div style={{ fontWeight: 600, color: "#0E1330", marginBottom: 4 }}>{label}</div>
       <div style={{ color: "#EA5B25" }}>{fmtCompact(payload[0].value)}</div>
+    </div>
+  );
+}
+
+// ── Default rate tooltip ──────────────────────────────────────────────────────
+
+function DefaultRateTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: Array<{ value?: number; payload: { defaulted: number; classified: number; inProgress?: boolean } }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const entry = payload.find((e) => e.value !== undefined);
+  if (!entry) return null;
+  const { defaulted, classified, inProgress } = entry.payload;
+  return (
+    <div style={{
+      backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 8,
+      padding: "10px 14px", fontSize: 12,
+      fontFamily: "var(--font-inter), Inter, sans-serif",
+    }}>
+      <div style={{ fontWeight: 600, color: "#0E1330", marginBottom: 4 }}>
+        {label}{inProgress ? " (in progress)" : ""}
+      </div>
+      <div style={{ color: "#EA5B25", marginBottom: 2 }}>Rate: {(entry.value ?? 0).toFixed(1)}%</div>
+      <div style={{ color: "#5B6475" }}>Defaulted: {defaulted.toLocaleString()}</div>
+      <div style={{ color: "#5B6475" }}>Classified: {classified.toLocaleString()}</div>
     </div>
   );
 }
@@ -376,7 +408,8 @@ function TenantDrawer({ tenant, onClose }: { tenant: TenantCreditScore | null; o
                       const paid = new Date(p.paidDate + "T12:00:00Z");
                       const dl   = Math.max(0, Math.round((paid.getTime() - due.getTime()) / 86_400_000));
                       if (dl === 0) { statusLabel = "On time"; statusColor = "#1F7A4D"; }
-                      else { statusLabel = `${dl} days late`; statusColor = "#C0392B"; }
+                      else if (dl <= DEFAULT_GRACE_DAYS) { statusLabel = `${dl} days late`; statusColor = "#0E1330"; }
+                      else { statusLabel = `${dl} days late, Default`; statusColor = "#C0392B"; }
                     }
                     return (
                       <tr key={p.month} style={{ borderBottom: "1px solid #EDEEF1" }}>
@@ -390,8 +423,198 @@ function TenantDrawer({ tenant, onClose }: { tenant: TenantCreditScore | null; o
                 </tbody>
               </table>
             </div>
+            <div style={{ fontSize: 11, color: "#5B6475", marginTop: 10, fontStyle: "italic" }}>
+              Default means paid more than {DEFAULT_GRACE_DAYS} days after the due date.
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(drawer, document.body);
+}
+
+// ── Default view-all drawer ───────────────────────────────────────────────────
+
+function DefaultViewAllDrawer({
+  rows,
+  onClose,
+  onRowClick,
+}: {
+  rows: TenantDefaultRow[];
+  onClose: () => void;
+  onRowClick: (id: string) => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState<keyof TenantDefaultRow>("amountInDefault");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handler);
+    };
+  }, [mounted, onClose]);
+
+  if (!mounted) return null;
+
+  function toggleSort(col: keyof TenantDefaultRow) {
+    if (sortCol === col) setSortDir((d) => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("desc"); }
+    setPage(1);
+  }
+
+  const q = search.toLowerCase();
+  const filtered = rows.filter((r) =>
+    !q || r.name.toLowerCase().includes(q) || r.property.toLowerCase().includes(q)
+  );
+
+  const sorted = [...filtered].sort((a, b) => {
+    const mult = sortDir === "asc" ? 1 : -1;
+    if (sortCol === "name")     return a.name.localeCompare(b.name) * mult;
+    if (sortCol === "property") return a.property.localeCompare(b.property) * mult;
+    if (sortCol === "landlord") return a.landlord.localeCompare(b.landlord) * mult;
+    return ((a[sortCol] as number) - (b[sortCol] as number)) * mult;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const curPage    = Math.min(page, totalPages);
+  const pageRows   = sorted.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
+
+  function sortArrow(col: keyof TenantDefaultRow) {
+    if (col !== sortCol) return <span style={{ color: "#C9CED8", marginLeft: 4 }}>+</span>;
+    return <span style={{ color: "#EA5B25", marginLeft: 4 }}>{sortDir === "asc" ? "^" : "v"}</span>;
+  }
+
+  const cols: Array<{ key: keyof TenantDefaultRow; label: string; align: "left" | "right" }> = [
+    { key: "name",            label: "Tenant",           align: "left"  },
+    { key: "property",        label: "Property",          align: "left"  },
+    { key: "landlord",        label: "Landlord",          align: "left"  },
+    { key: "defaults",        label: "Defaults",          align: "right" },
+    { key: "amountInDefault", label: "Amount in default", align: "right" },
+    { key: "longestDelay",    label: "Longest delay",     align: "right" },
+  ];
+
+  const drawer = (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 990, display: "flex", justifyContent: "flex-end" }}
+      aria-modal="true"
+      role="dialog"
+      aria-label="Tenants in default"
+    >
+      <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(14,19,48,0.35)" }} onClick={onClose} />
+      <div style={{
+        position: "relative", zIndex: 1,
+        width: "min(600px, 100vw)",
+        height: "100%",
+        backgroundColor: "#fff",
+        display: "flex", flexDirection: "column",
+        boxShadow: "-4px 0 32px rgba(0,0,0,0.12)",
+        fontFamily: "var(--font-inter), Inter, sans-serif",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #E6E8EE" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "#0E1330" }}>Tenants in default</div>
+            <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>{filtered.length} tenants</div>
+          </div>
+          <button
+            ref={closeRef}
+            onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#5B6475", fontSize: 18, lineHeight: 1 }}
+            aria-label="Close"
+          >
+            x
+          </button>
+        </div>
+
+        <div style={{ padding: "12px 24px", borderBottom: "1px solid #E6E8EE" }}>
+          <input
+            type="text"
+            placeholder="Search by name or property..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            style={{
+              width: "100%", boxSizing: "border-box",
+              border: "1px solid #E6E8EE", borderRadius: 8,
+              padding: "8px 12px", fontSize: 13, color: "#0E1330",
+              outline: "none", fontFamily: "inherit",
+              backgroundColor: "#F6F7F9",
+            }}
+          />
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ backgroundColor: "#F6F7F9", borderBottom: "1px solid #E6E8EE" }}>
+                {cols.map((col) => (
+                  <th
+                    key={col.key}
+                    onClick={() => toggleSort(col.key)}
+                    style={{ textAlign: col.align, padding: "10px 16px", fontWeight: 600, color: "#5B6475", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", cursor: "pointer", whiteSpace: "nowrap", userSelect: "none" }}
+                  >
+                    {col.label}{sortArrow(col.key)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pageRows.map((row) => (
+                <tr
+                  key={row.id}
+                  onClick={() => onRowClick(row.id)}
+                  style={{ borderBottom: "1px solid #EDEEF1", cursor: "pointer", backgroundColor: "transparent", transition: "background-color 0.1s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.02)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                >
+                  <td style={{ padding: "12px 16px", color: "#0E1330", fontWeight: 500, whiteSpace: "nowrap" }}>{row.name}</td>
+                  <td style={{ padding: "12px 16px", color: "#5B6475" }}>{row.property}</td>
+                  <td style={{ padding: "12px 16px", color: "#5B6475", whiteSpace: "nowrap" }}>{row.landlord}</td>
+                  <td style={{ padding: "12px 16px", color: "#0E1330", textAlign: "right" }}>{row.defaults}</td>
+                  <td style={{ padding: "12px 16px", color: "#C0392B", textAlign: "right", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{fmtCompact(row.amountInDefault)}</td>
+                  <td style={{ padding: "12px 16px", color: "#5B6475", textAlign: "right" }}>{row.longestDelay}d</td>
+                </tr>
+              ))}
+              {pageRows.length === 0 && (
+                <tr><td colSpan={6} style={{ padding: "24px 16px", textAlign: "center", color: "#5B6475" }}>No results</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", borderTop: "1px solid #E6E8EE", fontSize: 13 }}>
+            <span style={{ color: "#5B6475" }}>Page {curPage} of {totalPages}</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={curPage === 1}
+                style={{ background: "none", border: "1px solid #E6E8EE", borderRadius: 6, padding: "4px 12px", cursor: curPage === 1 ? "default" : "pointer", color: curPage === 1 ? "#C9CED8" : "#0E1330", fontSize: 13 }}
+              >
+                Prev
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={curPage === totalPages}
+                style={{ background: "none", border: "1px solid #E6E8EE", borderRadius: 6, padding: "4px 12px", cursor: curPage === totalPages ? "default" : "pointer", color: curPage === totalPages ? "#C9CED8" : "#0E1330", fontSize: 13 }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -426,10 +649,30 @@ export default function PKRentPayments() {
   const creditDist  = getCreditScoreDistribution(filter);
   const allScores   = getTenantCreditScores(filter);
 
+  // Default rate section data
+  const defaultStats    = getDefaultRateStats(period, filter);
+  const defaultSeries   = getDefaultRateSeries(period, filter);
+  const tenantDefaults  = getTenantsInDefault(period, filter);
+  const activeTenancyCount = getOverviewStats(period, filter).activeTenancies;
+
+  const defaultChartData = defaultSeries.map((pt, i) => ({
+    label:      pt.label,
+    solid:      i < defaultSeries.length - 1 ? pt.rate : undefined,
+    dashed:     i >= defaultSeries.length - 2 ? pt.rate : undefined,
+    defaulted:  pt.defaulted,
+    classified: pt.classified,
+    inProgress: pt.inProgress,
+  }));
+
+  const defaultRateYMax = Math.ceil(Math.max(...defaultSeries.map((d) => d.rate)) + 1.5);
+
   // Upcoming drawer state
   const [upcomingOpen, setUpcomingOpen] = useState(false);
 
-  // Tenant drawer state (shared by oldest unpaid + credit scores)
+  // Default view-all drawer state
+  const [defaultViewAllOpen, setDefaultViewAllOpen] = useState(false);
+
+  // Tenant drawer state (shared by oldest unpaid + credit scores + default table)
   const [activeTenant, setActiveTenant] = useState<TenantCreditScore | null>(null);
 
   // Oldest unpaid sort
@@ -569,6 +812,180 @@ export default function PKRentPayments() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Default rate section */}
+        <div style={{ marginTop: 48 }}>
+          {/* Full-width card: left stats + right chart */}
+          <div style={{ backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 16, padding: 28 }}>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#0E1330" }}>Default rate</div>
+              <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>Rent paid or still unpaid more than {DEFAULT_GRACE_DAYS} days after the due date</div>
+            </div>
+            <div style={{ display: "flex", gap: 32, alignItems: "flex-start" }}>
+              {/* Left: headline stats */}
+              <div style={{ width: 200, flexShrink: 0 }}>
+                <div style={{ fontSize: 48, fontWeight: 700, color: "#0E1330", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                  {defaultStats.currentRate.toFixed(1)}%
+                </div>
+                <div style={{ fontSize: 12, color: "#5B6475", marginTop: 6 }}>of rent payments</div>
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: defaultStats.changePp <= 0 ? "#1F7A4D" : "#C0392B" }}>
+                    {defaultStats.changePp > 0 ? "+" : ""}{defaultStats.changePp.toFixed(1)}pp
+                  </span>
+                  <span style={{ fontSize: 12, color: "#5B6475" }}>
+                    vs last {period === "weekly" ? "week" : period === "monthly" ? "month" : "year"}
+                  </span>
+                </div>
+                {defaultStats.unclassifiedCount > 0 && (
+                  <div style={{ fontSize: 11, color: "#5B6475", marginTop: 8 }}>
+                    {fmtNum(defaultStats.unclassifiedCount)} payments not yet classified
+                  </div>
+                )}
+              </div>
+              {/* Right: trend chart */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={defaultChartData} margin={{ top: 8, right: 48, bottom: 0, left: 0 }}>
+                    <CartesianGrid vertical={false} stroke="#EDEEF1" />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#5B6475" }} />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: "#5B6475" }}
+                      width={36}
+                      tickFormatter={(v: number) => `${v}%`}
+                      domain={[0, defaultRateYMax]}
+                    />
+                    <Tooltip content={<DefaultRateTooltip />} />
+                    <ReferenceLine
+                      y={TARGET_DEFAULT_RATE}
+                      stroke="#C9CED8"
+                      strokeDasharray="4 2"
+                      label={{ value: "Target 5%", position: "right", fontSize: 10, fill: "#5B6475" }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="solid"
+                      stroke="#EA5B25"
+                      strokeWidth={2}
+                      dot={false}
+                      connectNulls={false}
+                      activeDot={{ r: 4, stroke: "#fff", strokeWidth: 2, fill: "#EA5B25" }}
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="dashed"
+                      stroke="#EA5B25"
+                      strokeWidth={2}
+                      strokeDasharray="4 2"
+                      dot={false}
+                      connectNulls={false}
+                      activeDot={{ r: 4, stroke: "#fff", strokeWidth: 2, fill: "#EA5B25" }}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 8, justifyContent: "flex-end" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 20, height: 2, backgroundColor: "#EA5B25" }} />
+                    <span style={{ fontSize: 11, color: "#5B6475" }}>Default rate</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <svg width="20" height="4" style={{ display: "block" }}>
+                      <line x1="0" y1="2" x2="20" y2="2" stroke="#EA5B25" strokeWidth="2" strokeDasharray="4 2" />
+                    </svg>
+                    <span style={{ fontSize: 11, color: "#5B6475" }}>In progress</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <svg width="20" height="4" style={{ display: "block" }}>
+                      <line x1="0" y1="2" x2="20" y2="2" stroke="#C9CED8" strokeWidth="2" strokeDasharray="4 2" />
+                    </svg>
+                    <span style={{ fontSize: 11, color: "#5B6475" }}>Target 5%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Three stat cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginTop: 20 }}>
+            <div style={{ backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 16, padding: 28 }}>
+              <div style={{ fontSize: 12, color: "#5B6475", marginBottom: 8 }}>Defaulted payments</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "#0E1330", lineHeight: 1.1 }}>{fmtNum(defaultStats.defaultedCount)}</div>
+            </div>
+            <div style={{ backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 16, padding: 28 }}>
+              <div style={{ fontSize: 12, color: "#5B6475", marginBottom: 8 }}>Amount in default</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "#C0392B", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{fmtCompact(defaultStats.amountInDefault)}</div>
+            </div>
+            <div style={{ backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 16, padding: 28 }}>
+              <div style={{ fontSize: 12, color: "#5B6475", marginBottom: 8 }}>Tenants who defaulted</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "#0E1330", lineHeight: 1.1 }}>{fmtNum(defaultStats.tenantsInDefault)}</div>
+              {activeTenancyCount > 0 && (
+                <div style={{ fontSize: 12, color: "#5B6475", marginTop: 6 }}>
+                  {((defaultStats.tenantsInDefault / activeTenancyCount) * 100).toFixed(1)}% of active tenancies
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tenants in default table */}
+          <div style={{ backgroundColor: "#fff", border: "1px solid #E6E8EE", borderRadius: 16, overflow: "hidden", marginTop: 20 }}>
+            <div style={{ padding: "24px 28px 20px", borderBottom: "1px solid #E6E8EE", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "#0E1330" }}>Tenants in default</div>
+                <div style={{ fontSize: 12, color: "#5B6475", marginTop: 2 }}>Highest outstanding amounts this period</div>
+              </div>
+              <button
+                onClick={() => setDefaultViewAllOpen(true)}
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, color: "#EA5B25", padding: 0, fontFamily: "inherit" }}
+              >
+                View all
+              </button>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ backgroundColor: "#F6F7F9", borderBottom: "1px solid #E6E8EE" }}>
+                    {([
+                      { label: "Tenant",           align: "left"  },
+                      { label: "Property",          align: "left"  },
+                      { label: "Landlord",          align: "left"  },
+                      { label: "Defaults",          align: "right" },
+                      { label: "Amount in default", align: "right" },
+                      { label: "Longest delay",     align: "right" },
+                    ] as Array<{ label: string; align: "left" | "right" }>).map((col) => (
+                      <th key={col.label} style={{ padding: "10px 20px", fontSize: 11, fontWeight: 600, color: "#5B6475", textTransform: "uppercase", letterSpacing: "0.06em", textAlign: col.align, whiteSpace: "nowrap" }}>
+                        {col.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tenantDefaults.slice(0, 8).map((row, idx) => (
+                    <tr
+                      key={row.id}
+                      onClick={() => openTenantDrawer(row.id)}
+                      style={{ borderBottom: idx < Math.min(7, tenantDefaults.length - 1) ? "1px solid #F0F1F3" : "none", cursor: "pointer", backgroundColor: "transparent", transition: "background-color 0.1s" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.015)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    >
+                      <td style={{ padding: "12px 20px", fontSize: 13, fontWeight: 500, color: "#0E1330" }}>{row.name}</td>
+                      <td style={{ padding: "12px 20px", fontSize: 12, color: "#5B6475" }}>{row.property}</td>
+                      <td style={{ padding: "12px 20px", fontSize: 12, color: "#5B6475", whiteSpace: "nowrap" }}>{row.landlord}</td>
+                      <td style={{ padding: "12px 20px", fontSize: 12, color: "#0E1330", textAlign: "right" }}>{row.defaults}</td>
+                      <td style={{ padding: "12px 20px", fontSize: 12, color: "#C0392B", textAlign: "right", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{fmtCompact(row.amountInDefault)}</td>
+                      <td style={{ padding: "12px 20px", fontSize: 12, color: "#5B6475", textAlign: "right" }}>{row.longestDelay}d</td>
+                    </tr>
+                  ))}
+                  {tenantDefaults.length === 0 && (
+                    <tr><td colSpan={6} style={{ padding: "24px 20px", textAlign: "center", color: "#5B6475", fontSize: 13 }}>No tenants in default this period</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -1097,6 +1514,13 @@ export default function PKRentPayments() {
       {/* Drawers */}
       {upcomingOpen && (
         <UpcomingDrawer soonest={upcoming.soonest} onClose={() => setUpcomingOpen(false)} />
+      )}
+      {defaultViewAllOpen && (
+        <DefaultViewAllDrawer
+          rows={tenantDefaults}
+          onClose={() => setDefaultViewAllOpen(false)}
+          onRowClick={(id) => openTenantDrawer(id)}
+        />
       )}
       <TenantDrawer tenant={activeTenant} onClose={() => setActiveTenant(null)} />
     </div>
